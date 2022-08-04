@@ -35,7 +35,7 @@ public class MainVerticle extends AbstractVerticle {
     /**
      * An OpenAPI definition that the main verticle users to route requests.
      */
-    private static final String API_SPEC = "src/main/resources/prl-harvester.yaml";
+    private static final String API_SPEC = "src/main/resources/openapi.yaml";
 
     /**
      * The main verticle's HTTP server.

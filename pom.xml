@@ -515,7 +515,7 @@
                       <directory>${basedir}/src/main/resources</directory>
                       <filtering>true</filtering>
                       <includes>
-                        <include>template.yaml</include>
+                        <include>openapi.yaml</include>
                       </includes>
                     </resource>
                     <resource>
