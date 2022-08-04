@@ -1,5 +1,5 @@
 
-package info.freelibrary.vertx.template;
+package edu.ucla.library.prl.harvester;
 
 /**
  * Properties that are used to configure the application.

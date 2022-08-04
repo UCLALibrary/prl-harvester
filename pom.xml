@@ -2,11 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>vertx-template</artifactId>
+  <groupId>edu.ucla.library</groupId>
+  <artifactId>prl-harvester</artifactId>
   <version>${revision}</version>
-  <name>Vert.x Template</name>
+  <name>PRL Harvester</name>
   <description></description>
-  <url>https://github.com/ksclarke/vertx-template</url>
+  <url>https://github.com/UCLALibrary/prl-harvester</url>
 
   <licenses>
     <license>
@@ -16,14 +17,14 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git@github.com:ksclarke/vertx-template.git</connection>
-    <developerConnection>scm:git:git@github.com:ksclarke/vertx-template.git</developerConnection>
-    <url>git@github.com:ksclarke/vertx-template.git</url>
+    <connection>scm:git:git@github.com:UCLALibrary/prl-harvester.git</connection>
+    <developerConnection>scm:git:git@github.com:UCLALibrary/prl-harvester.git</developerConnection>
+    <url>git@github.com:UCLALibrary/prl-harvester.git</url>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/ksclarke/vertx-template/issues</url>
+    <url>https://github.com/UCLALibrary/prl-harvester/issues</url>
   </issueManagement>
 
   <properties>
@@ -51,7 +52,7 @@
     <docker.alpine.version>3.14.3</docker.alpine.version>
 
     <!-- Name of the main Vert.x verticle -->
-    <mainClass>info.freelibrary.vertx.template.verticles.MainVerticle</mainClass>
+    <mainClass>edu.ucla.library.prl.harvester.verticles.MainVerticle</mainClass>
 
     <native.cfg.dir>src/main/resources/META-INF/native-image/${project.groupId}/${project.artifactId}</native.cfg.dir>
 
@@ -204,7 +205,7 @@
               <goal>generate-mediatype</goal>
             </goals>
             <configuration>
-              <mediaTypePackage>info.freelibrary.vertx.template</mediaTypePackage>
+              <mediaTypePackage>edu.ucla.library.prl.harvester</mediaTypePackage>
             </configuration>
           </execution>
         </executions>

@@ -715,7 +715,7 @@
     "allDeclaredMethods": true
   },
   {
-    "name": "info.freelibrary.vertx.template.verticles.MainVerticle",
+    "name": "edu.ucla.library.prl.harvester.verticles.MainVerticle",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true
   }

@@ -1,17 +1,17 @@
 
-package info.freelibrary.vertx.template.verticles;
+package edu.ucla.library.prl.harvester.verticles;
 
 import static info.freelibrary.util.Constants.INADDR_ANY;
 
 import java.io.File;
 
+import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.Op;
+import edu.ucla.library.prl.harvester.handlers.StatusHandler;
+
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
-
-import info.freelibrary.vertx.template.Config;
-import info.freelibrary.vertx.template.MessageCodes;
-import info.freelibrary.vertx.template.Op;
-import info.freelibrary.vertx.template.handlers.StatusHandler;
 
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
@@ -35,7 +35,7 @@ public class MainVerticle extends AbstractVerticle {
     /**
      * An OpenAPI definition that the main verticle users to route requests.
      */
-    private static final String API_SPEC = "src/main/resources/template.yaml";
+    private static final String API_SPEC = "src/main/resources/prl-harvester.yaml";
 
     /**
      * The main verticle's HTTP server.

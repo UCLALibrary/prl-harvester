@@ -1,5 +1,5 @@
 
-package info.freelibrary.vertx.template.verticles;
+package edu.ucla.library.prl.harvester.verticles;
 
 import static info.freelibrary.util.Constants.INADDR_ANY;
 
@@ -8,9 +8,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import info.freelibrary.util.HTTP;
+import edu.ucla.library.prl.harvester.Config;
 
-import info.freelibrary.vertx.template.Config;
+import info.freelibrary.util.HTTP;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.json.JsonObject;
