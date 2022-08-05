@@ -53,7 +53,7 @@
     <docker.alpine.version>3.14.3</docker.alpine.version>
 
     <!-- Name of the main Vert.x verticle -->
-    <mainClass>edu.ucla.library.prl.harvester.verticles.MainVerticle</mainClass>
+    <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
 
     <native.cfg.dir>src/main/resources/META-INF/native-image/${project.groupId}/${project.artifactId}</native.cfg.dir>
 
@@ -314,15 +314,15 @@
                 </args>
                 <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                 <assembly>
-                  <inline xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2
-                      http://maven.apache.org/xsd/assembly-1.1.2.xsd" xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2">
-                    <id>builder-artifact-copy</id>
+                  <inline>
                     <fileSets>
                       <fileSet>
-                        <directory>.</directory>
+                        <!-- The directory where we can find our Maven-built artifact -->
+                        <directory>${project.basedir}/target/</directory>
+                        <!-- We don't want directory structure on output, just the artifact -->
+                        <outputDirectory>.</outputDirectory>
                         <includes>
-                          <include>pom.xml</include>
-                          <include>target/</include>
+                          <include>${project.artifactId}-${project.version}.jar</include>
                         </includes>
                       </fileSet>
                     </fileSets>
@@ -333,9 +333,11 @@
                 <containerNamePattern>${project.artifactId}</containerNamePattern>
                 <ports>
                   <!-- Start test container on an available host port -->
-                  <port>${http.test.port}:8888</port>
+                  <port>${http.test.port}:${http.test.port}</port>
                 </ports>
-                <env></env>
+                <env>
+                  <HTTP_PORT>${http.test.port}</HTTP_PORT>
+                </env>
                 <!-- Test to make sure the server started as expected -->
                 <!--<wait>
                   <http>
