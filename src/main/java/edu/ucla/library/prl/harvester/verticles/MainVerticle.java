@@ -1,10 +1,6 @@
 
 package edu.ucla.library.prl.harvester.verticles;
 
-import static info.freelibrary.util.Constants.INADDR_ANY;
-
-import java.io.File;
-
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
@@ -15,11 +11,13 @@ import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.openapi.RouterBuilder;
 
 /**
@@ -33,19 +31,21 @@ public class MainVerticle extends AbstractVerticle {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainVerticle.class, MessageCodes.BUNDLE);
 
     /**
-     * An OpenAPI definition that the main verticle users to route requests.
-     */
-    private static final String API_SPEC = "src/main/resources/openapi.yaml";
-
-    /**
      * The main verticle's HTTP server.
      */
     private HttpServer myServer;
 
     @Override
     public void start(final Promise<Void> aPromise) {
-        ConfigRetriever.create(vertx).getConfig().onFailure(aPromise::fail)
-                .onSuccess(config -> configureServer(config.mergeIn(config()), aPromise));
+        ConfigRetriever.create(vertx).getConfig().compose(config -> {
+            return createRouter(config).compose(router -> createHttpServer(config, router));
+        }).onSuccess(server -> {
+            // Save a reference to the HTTP server so we can close it later
+            myServer = server;
+
+            LOGGER.info(MessageCodes.PRL_001, server.actualPort());
+            aPromise.complete();
+        }).onFailure(aPromise::fail);
     }
 
     @Override
@@ -54,38 +54,32 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     /**
-     * Configure the application server.
+     * Creates the HTTP request router.
      *
-     * @param aConfig A JSON configuration
-     * @param aPromise A startup promise
+     * @param aConfig A configuration
+     * @return A Future that resolves to the HTTP request router
      */
-    private void configureServer(final JsonObject aConfig, final Promise<Void> aPromise) {
-        final String host = aConfig.getString(Config.HTTP_HOST, INADDR_ANY);
-        final int port = aConfig.getInteger(Config.HTTP_PORT, 8888);
+    public Future<Router> createRouter(final JsonObject aConfig) {
+        // Load the OpenAPI specification
+        return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
+            // Associate handlers with operation IDs from the OpenAPI spec
+            routeBuilder.operation(Op.GET_STATUS).handler(new StatusHandler(vertx));
 
-        RouterBuilder.create(vertx, getRouterSpec()).onFailure(aPromise::fail).onSuccess(routeBuilder -> {
-            final HttpServerOptions serverOptions = new HttpServerOptions().setPort(port).setHost(host);
-
-            // Associate handlers with operation IDs from the application's OpenAPI specification
-            routeBuilder.operation(Op.GET_STATUS).handler(new StatusHandler(getVertx()));
-
-            myServer = getVertx().createHttpServer(serverOptions).requestHandler(routeBuilder.createRouter());
-            myServer.listen().onFailure(aPromise::fail).onSuccess(result -> {
-                LOGGER.info(MessageCodes.CODE_001, port);
-                aPromise.complete();
-            });
+            return routeBuilder.createRouter();
         });
     }
 
     /**
-     * Gets the OpenAPI specification used to configure the application's router. If the file doesn't exist on the file
-     * system, we assume we're running from a Jar and that it can be found in the classpath.
+     * Creates the HTTP server.
      *
-     * @return The OpenAPI router specification
+     * @param aConfig A configuration
+     * @param aRouter An HTTP request router
+     * @return A Future that resolves to the HTTP server
      */
-    private String getRouterSpec() {
-        final File specFile = new File(API_SPEC);
-        return specFile.exists() ? API_SPEC : specFile.getName();
+    public Future<HttpServer> createHttpServer(final JsonObject aConfig, final Router aRouter) {
+        final int port = aConfig.getInteger(Config.HTTP_PORT, 8888);
+
+        return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
     }
 
     /**
