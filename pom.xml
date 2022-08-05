@@ -45,6 +45,7 @@
     <graalvm.plugin.version>0.9.11</graalvm.plugin.version>
 
     <!-- Test dependency versions -->
+    <junit.version>5.9.0</junit.version>
     <testcontainers.version>1.16.3</testcontainers.version>
 
     <!-- Docker component versions -->
@@ -82,6 +83,13 @@
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
         <version>${vertx.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -141,13 +149,13 @@
 
     <!-- Below dependencies only used for testing -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-unit</artifactId>
+      <artifactId>vertx-junit5</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
