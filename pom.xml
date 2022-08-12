@@ -308,13 +308,13 @@
                   <HTTP_PORT>${http.test.port}</HTTP_PORT>
                 </env>
                 <!-- Test to make sure the server started as expected -->
-                <!--<wait>
+                <wait>
                   <http>
                     <url>http://localhost:${http.test.port}/status</url>
                     <method>GET</method>
                     <status>200</status>
                   </http>
-                </wait>-->
+                </wait>
               </run>
             </image>
           </imagesMap>
@@ -480,7 +480,7 @@
               </execution>
             </executions>
             <configuration>
-              <verticle>${mainClass}</verticle>
+              <verticle>${vertx.verticle}</verticle>
               <redeploy>${live.test.reloads}</redeploy>
               <jvmArgs>
                 <jvmArg>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory</jvmArg>
@@ -512,12 +512,24 @@
                 <goals>
                   <goal>test</goal>
                 </goals>
+                <configuration>
+                  <args>
+                    <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
+                    <arg>--fail-on=all</arg>
+                  </args> 
+                </configuration>
               </execution>
               <execution>
                 <id>snyk-monitor</id>
                 <goals>
                   <goal>monitor</goal>
                 </goals>
+                <configuration>
+                  <args>
+                    <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
+                    <arg>--fail-on=all</arg>
+                  </args> 
+                </configuration>
               </execution>
             </executions>
           </plugin>
@@ -542,7 +554,7 @@
   <parent>
     <artifactId>freelib-parent</artifactId>
     <groupId>info.freelibrary</groupId>
-    <version>7.3.0</version>
+    <version>7.2.2</version>
   </parent>
 
 </project>

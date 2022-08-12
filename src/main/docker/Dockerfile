@@ -10,7 +10,7 @@ LABEL ContainerName="${project.name}" ContainerSourceCode=${project.url}
 
 # Install packages and setup the application's user
 WORKDIR /opt/${project.artifactId}
-RUN apk add openjdk11 --quiet --no-cache \
+RUN apk add openjdk17 --quiet --no-cache \
   && addgroup -S ${project.artifactId} \
   && adduser -S ${project.artifactId} -G ${project.artifactId} \
   && chown ${project.artifactId}:${project.artifactId} /opt/${project.artifactId}
@@ -22,7 +22,7 @@ COPY maven/${project.artifactId}-${project.version}.jar /opt/${project.artifactI
 USER ${project.artifactId}
 
 # The service's exposed port
-EXPOSE ${HTTP_PORT}
+EXPOSE ${http.test.port}
 
 # For container debugging
 #ENTRYPOINT ["tail", "-f", "/dev/null"]
