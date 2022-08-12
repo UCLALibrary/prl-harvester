@@ -28,25 +28,19 @@
   </issueManagement>
 
   <properties>
-    <vertx.version>4.2.6</vertx.version>
-    <freelib.utils.version>3.0.1</freelib.utils.version>
-    <freelib.maven.version>0.3.1</freelib.maven.version>
-
-    <!-- Security update overrides -->
-    <jackson.databind.version>2.13.2.1</jackson.databind.version>
-    <slf4j.ext.version>1.7.36</slf4j.ext.version>
+    <vertx.version>4.3.3</vertx.version>
+    <freelib.utils.version>3.1.1</freelib.utils.version>
+    <freelib.maven.version>0.3.3</freelib.maven.version>
 
     <!-- Build plugin versions -->
-    <vertx.plugin.version>1.0.27</vertx.plugin.version>
+    <vertx.plugin.version>1.0.28</vertx.plugin.version>
     <clean.plugin.version>3.1.0</clean.plugin.version>
-    <docker.plugin.version>0.39.1</docker.plugin.version>
+    <docker.plugin.version>0.40.2</docker.plugin.version>
     <deploy.plugin.version>2.8.2</deploy.plugin.version>
     <jar.plugin.version>3.2.2</jar.plugin.version>
-    <graalvm.plugin.version>0.9.11</graalvm.plugin.version>
 
     <!-- Test dependency versions -->
     <junit.version>5.9.0</junit.version>
-    <testcontainers.version>1.16.3</testcontainers.version>
 
     <!-- Docker component versions -->
     <docker.builder.version>0.0.6</docker.builder.version>
@@ -54,8 +48,6 @@
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
-
-    <native.cfg.dir>src/main/resources/META-INF/native-image/${project.groupId}/${project.artifactId}</native.cfg.dir>
 
     <!-- The default logging level for the application -->
     <logLevel>ERROR</logLevel>
@@ -72,13 +64,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers-bom</artifactId>
-        <version>${testcontainers.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
@@ -133,18 +118,6 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-config</artifactId>
-    </dependency>
-
-    <!-- Below is a dependency that needs updating due to security issue (may be able to remove in future) -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-ext</artifactId>
-      <version>${slf4j.ext.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.databind.version}</version>
     </dependency>
 
     <!-- Below dependencies only used for testing -->
@@ -307,10 +280,7 @@
               <name>${docker.registry.account}${project.artifactId}:%l</name>
               <build>
                 <args>
-                  <BUILDER_TAG>${docker.builder.version}</BUILDER_TAG>
                   <ALPINE_TAG>${docker.alpine.version}</ALPINE_TAG>
-                  <APP_VERSION>${project.version}</APP_VERSION>
-                  <APP_NAME>${project.artifactId}</APP_NAME>
                 </args>
                 <dockerFile>${project.basedir}/src/main/docker/Dockerfile</dockerFile>
                 <assembly>
@@ -455,50 +425,6 @@
       </build>
     </profile>
 
-    <!-- A profile to use to do a native compile using GraalVM's native-image -->
-    <profile>
-      <id>native</id>
-      <build>
-        <plugins>
-          <!-- This packages the code so the native-image plugin can access it -->
-          <plugin>
-            <artifactId>maven-jar-plugin</artifactId>
-            <version>${jar.plugin.version}</version>
-          </plugin>
-          <!-- This creates a native binary from the packaged jar and its dependencies -->
-          <plugin>
-            <groupId>org.graalvm.buildtools</groupId>
-            <artifactId>native-maven-plugin</artifactId>
-            <version>${graalvm.plugin.version}</version>
-            <extensions>true</extensions>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>build</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <imageName>${project.artifactId}</imageName>
-              <mainClass>${mainClass}</mainClass>
-              <buildArgs>
-                <buildArg>--static</buildArg>
-                <buildArg>--libc=musl</buildArg>
-                <buildArg>--verbose</buildArg>
-                <buildArg>-H:+PrintAnalysisCallTree</buildArg>
-                <buildArg>--trace-class-initialization=ch.qos.logback.classic.Logger</buildArg>
-                <buildArg>--trace-object-instantiation=ch.qos.logback.classic.Logger</buildArg>
-              </buildArgs>
-              <skipNativeBuild>false</skipNativeBuild>
-              <classpath>
-                <param>${project.build.directory}/${project.artifactId}-${project.version}.jar</param>
-              </classpath>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
     <!-- A profile for running the server in a live test mode -->
     <profile>
       <id>live</id>
@@ -617,7 +543,7 @@
   <parent>
     <artifactId>freelib-parent</artifactId>
     <groupId>info.freelibrary</groupId>
-    <version>7.2.2</version>
+    <version>7.3.0</version>
   </parent>
 
 </project>
