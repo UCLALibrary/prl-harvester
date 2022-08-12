@@ -22,7 +22,7 @@ COPY maven/${project.artifactId}-${project.version}.jar /opt/${project.artifactI
 USER ${project.artifactId}
 
 # The service's exposed port
-EXPOSE ${http.test.port}
+EXPOSE ${HTTP_PORT}
 
 # For container debugging
 #ENTRYPOINT ["tail", "-f", "/dev/null"]
