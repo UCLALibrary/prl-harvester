@@ -1,19 +1,18 @@
 
 package edu.ucla.library.prl.harvester.verticles;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.handlers.StatusHandler;
 
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
-
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
@@ -82,13 +81,4 @@ public class MainVerticle extends AbstractVerticle {
         return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
     }
 
-    /**
-     * Starts up the main verticle.
-     *
-     * @param aArgsArray An array of arguments
-     */
-    @SuppressWarnings("UncommentedMain")
-    public static void main(final String[] aArgsArray) {
-        Vertx.vertx().deployVerticle(new MainVerticle());
-    }
 }
