@@ -43,8 +43,7 @@
     <junit.version>5.9.0</junit.version>
 
     <!-- Docker component versions -->
-    <docker.builder.version>0.0.6</docker.builder.version>
-    <docker.alpine.version>3.14.3</docker.alpine.version>
+    <docker.alpine.version>3.16.2</docker.alpine.version>
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
