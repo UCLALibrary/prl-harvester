@@ -134,7 +134,7 @@ paths:
   /institutions:
     get:
       summary: The admin interface uses this endpoint on its initial load to render its UI
-      operationId: getInstitutions
+      operationId: listInstitutions
       responses:
         '200':
           description: A list of all institutions
@@ -146,7 +146,7 @@ paths:
                   $ref: "#/components/schemas/InstitutionWithId"
     post:
       description: The endpoint for adding a new institution
-      operationId: postInstitutions
+      operationId: addInstitution
       requestBody:
         $ref: "#/components/requestBodies/Institution"
       responses:
@@ -167,7 +167,7 @@ paths:
           $ref: "#/components/responses/Institution"
     put:
       description: The endpoint for updating an institution
-      operationId: putInstitution
+      operationId: updateInstitution
       requestBody:
         $ref: "#/components/requestBodies/Institution"
       responses:
@@ -181,7 +181,7 @@ paths:
   /jobs:
     get:
       summary: The admin interface uses this endpoint on its initial load to render its UI
-      operationId: getJobs
+      operationId: listJobs
       responses:
         '200':
           description: A list of all jobs
@@ -193,7 +193,7 @@ paths:
                   $ref: "#/components/schemas/JobWithId"
     post:
       description: The endpoint for adding a new job
-      operationId: postJobs
+      operationId: addJob
       requestBody:
         $ref: "#/components/requestBodies/Job"
       responses:
@@ -214,7 +214,7 @@ paths:
           $ref: "#/components/responses/Job"
     put:
       description: The endpoint for updating a job
-      operationId: putJob
+      operationId: updateJob
       requestBody:
         $ref: "#/components/requestBodies/Job"
       responses:
