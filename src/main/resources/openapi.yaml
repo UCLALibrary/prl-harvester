@@ -1,11 +1,11 @@
 openapi: "3.0.0"
 info:
   version: 1.0.0
-  title: Template API
+  title: PRL Harvester API
   license:
     name: The 3-Clause BSD License
 servers:
-  - url: http://github.com/ksclarke/template
+  - url: http://github.com/UCLALibrary/prl-harvester
 paths:
   /status:
     get:

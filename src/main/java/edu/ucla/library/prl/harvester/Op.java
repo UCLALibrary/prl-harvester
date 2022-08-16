@@ -1,8 +1,8 @@
 
-package info.freelibrary.vertx.template;
+package edu.ucla.library.prl.harvester;
 
 /**
- * Template API operation IDs.
+ * OpenAPI operation IDs.
  */
 public final class Op {
 

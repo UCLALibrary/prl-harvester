@@ -1,6 +1,6 @@
-# Vert.x Template
+# PRL Harvester
 
-This is a Vert.x template that can be customized for a new project.
+OAI-PMH harvester for the Pacific Rim Library.
 
 ## Running in Development
 
