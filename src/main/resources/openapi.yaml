@@ -83,13 +83,13 @@ components:
     Institution:
       description: An institution
       content:
-        'application/json':
+        application/json:
           schema:
             $ref: "#/components/schemas/Institution"
     Job:
       description: An job
       content:
-        'application/json':
+        application/json:
           schema:
             $ref: "#/components/schemas/Job"
 paths:
