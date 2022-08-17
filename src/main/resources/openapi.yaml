@@ -8,24 +8,45 @@ servers:
   - url: http://github.com/UCLALibrary/prl-harvester
 components:
   schemas:
+    InstitutionContact:
+      anyOf:
+      - type: object
+        required:
+        - email
+        properties:
+          email:
+            type: string
+            format: email
+      - type: object
+        required:
+        - phone
+        properties:
+          phone:
+            type: string
+      - type: object
+        required:
+        - webContact
+        properties:
+          webContact:
+            type: string
     Institution:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        location:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        webContact:
-          type: string
-        website:
-          type: string
+      allOf:
+      - $ref: "#/components/schemas/InstitutionContact"
+      - type: object
+        required:
+        - name
+        - description
+        - location
+        - website
+        properties:
+          name:
+            type: string
+          description:
+            type: string
+          location:
+            type: string
+          website:
+            type: string
     InstitutionWithId:
       allOf:
       - $ref: "#/components/schemas/Institution"
