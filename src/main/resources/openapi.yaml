@@ -12,11 +12,16 @@ components:
       allOf:
       - type: object
         required:
+        - id
         - name
         - description
         - location
         - website
         properties:
+          id:
+            type: integer
+            description: The institution's unique identifier
+            readOnly: true
           name:
             type: string
           description:
@@ -45,25 +50,21 @@ components:
           properties:
             webContact:
               type: string
-    InstitutionWithId:
-      allOf:
-      - $ref: "#/components/schemas/Institution"
-      - type: object
-        required:
-        - id
-        properties:
-          id:
-            type: integer
-            description: The institution's unique identifier
-            readOnly: true
     Job:
       type: object
       required:
+      - id
       - institutionId
       - repositoryBaseUrl
       - metadataPrefix
+      - sets
       - scheduleCronExpression
+      - lastSuccessfulRun
       properties:
+        id:
+          type: integer
+          description: The job's unique identifier
+          readOnly: true
         institutionId:
           type: integer
         repositoryBaseUrl:
@@ -75,6 +76,7 @@ components:
           items:
             type: string
             description: An OAI-PMH setSpec
+          nullable: true
         scheduleCronExpression:
           type: string
           example: "0 5 * * 1"
@@ -82,29 +84,20 @@ components:
           type: string
           format: date-time
           readOnly: true
-    JobWithId:
-      allOf:
-      - $ref: "#/components/schemas/Job"
-      - type: object
-        required:
-        - id
-        properties:
-          id:
-            type: integer
-            description: The job's unique identifier
+          nullable: true
   responses:
     Institution:
       description: An institution
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/InstitutionWithId"
+            $ref: "#/components/schemas/Institution"
     Job:
       description: A job
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/JobWithId"
+            $ref: "#/components/schemas/Job"
   requestBodies:
     Institution:
       description: An institution
@@ -169,7 +162,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/InstitutionWithId"
+                  $ref: "#/components/schemas/Institution"
     post:
       description: The endpoint for adding a new institution
       operationId: addInstitution
@@ -216,7 +209,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/JobWithId"
+                  $ref: "#/components/schemas/Job"
     post:
       description: The endpoint for adding a new job
       operationId: addJob
