@@ -6,7 +6,131 @@ info:
     name: The 3-Clause BSD License
 servers:
   - url: http://github.com/UCLALibrary/prl-harvester
+components:
+  schemas:
+    Institution:
+      allOf:
+      - type: object
+        required:
+        - id
+        - name
+        - description
+        - location
+        - website
+        properties:
+          id:
+            type: integer
+            description: The institution's unique identifier
+            readOnly: true
+          name:
+            type: string
+          description:
+            type: string
+          location:
+            type: string
+          website:
+            type: string
+      - anyOf:
+        - type: object
+          required:
+          - email
+          properties:
+            email:
+              type: string
+              format: email
+        - type: object
+          required:
+          - phone
+          properties:
+            phone:
+              type: string
+        - type: object
+          required:
+          - webContact
+          properties:
+            webContact:
+              type: string
+    Job:
+      type: object
+      required:
+      - id
+      - institutionId
+      - repositoryBaseUrl
+      - metadataPrefix
+      - sets
+      - scheduleCronExpression
+      - lastSuccessfulRun
+      properties:
+        id:
+          type: integer
+          description: The job's unique identifier
+          readOnly: true
+        institutionId:
+          type: integer
+        repositoryBaseUrl:
+          type: string
+        metadataPrefix:
+          type: string
+        sets:
+          type: array
+          items:
+            type: string
+            description: An OAI-PMH setSpec
+          nullable: true
+        scheduleCronExpression:
+          type: string
+          example: "0 5 * * 1"
+        lastSuccessfulRun:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+  responses:
+    Institution:
+      description: An institution
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Institution"
+    Job:
+      description: A job
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Job"
+  requestBodies:
+    Institution:
+      description: An institution
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Institution"
+    Job:
+      description: A job
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Job"
 paths:
+  /:
+    get:
+      summary: Requests to this endpoint are redirected to /admin
+      description: The application root
+      operationId: getRoot
+      responses:
+        '302':
+          description: Redirect to /admin
+  /admin:
+    get:
+      summary: Requests to this endpoint retrieve the administrative interface
+      description: A single-page application where users can manage institutions and their associated harvest jobs
+      operationId: getAdmin
+      responses:
+        '200':
+          description: The admin interface
+          content:
+            text/html:
+              example: <html><body>Hello World!</body></html>
   /status:
     get:
       summary: Get Application Status
@@ -26,3 +150,97 @@ paths:
                     example: ok
         '500':
           description: There was an internal server error
+  /institutions:
+    get:
+      summary: The admin interface uses this endpoint on its initial load to render its UI
+      operationId: listInstitutions
+      responses:
+        '200':
+          description: A list of all institutions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Institution"
+    post:
+      description: The endpoint for adding a new institution
+      operationId: addInstitution
+      requestBody:
+        $ref: "#/components/requestBodies/Institution"
+      responses:
+        '201':
+          $ref: "#/components/responses/Institution"
+  /institutions/{id}:
+    parameters:
+    - name: id
+      in: path
+      description: The institution's unique identifier
+      required: true
+      schema:
+        type: integer
+    get:
+      operationId: getInstitution
+      responses:
+        '200':
+          $ref: "#/components/responses/Institution"
+    put:
+      description: The endpoint for updating an institution
+      operationId: updateInstitution
+      requestBody:
+        $ref: "#/components/requestBodies/Institution"
+      responses:
+        '200':
+          $ref: "#/components/responses/Institution"
+    delete:
+      operationId: removeInstitution
+      responses:
+        '204':
+          description: The institution and all of its associated jobs have been removed
+  /jobs:
+    get:
+      summary: The admin interface uses this endpoint on its initial load to render its UI
+      operationId: listJobs
+      responses:
+        '200':
+          description: A list of all jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      description: The endpoint for adding a new job
+      operationId: addJob
+      requestBody:
+        $ref: "#/components/requestBodies/Job"
+      responses:
+        '201':
+          $ref: "#/components/responses/Job"
+  /jobs/{id}:
+    parameters:
+    - name: id
+      in: path
+      description: The job's unique identifier
+      required: true
+      schema:
+        type: integer
+    get:
+      operationId: getJob
+      responses:
+        '200':
+          $ref: "#/components/responses/Job"
+    put:
+      description: The endpoint for updating a job
+      operationId: updateJob
+      requestBody:
+        $ref: "#/components/requestBodies/Job"
+      responses:
+        '200':
+          $ref: "#/components/responses/Job"
+    delete:
+      operationId: removeJob
+      responses:
+        '204':
+          description: The job has been removed
