@@ -57,6 +57,11 @@ components:
             description: The institution's unique identifier
     Job:
       type: object
+      required:
+      - institutionId
+      - repositoryBaseUrl
+      - metadataPrefix
+      - scheduleCronExpression
       properties:
         institutionId:
           type: integer
