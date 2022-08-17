@@ -87,7 +87,7 @@ components:
           schema:
             $ref: "#/components/schemas/Institution"
     Job:
-      description: An job
+      description: A job
       content:
         application/json:
           schema:
@@ -174,10 +174,10 @@ paths:
         '200':
           $ref: "#/components/responses/Institution"
     delete:
-      operationId: deleteInstitution
+      operationId: removeInstitution
       responses:
         '204':
-          description: The institution and all of its associated jobs have been deleted
+          description: The institution and all of its associated jobs have been removed
   /jobs:
     get:
       summary: The admin interface uses this endpoint on its initial load to render its UI
@@ -221,7 +221,7 @@ paths:
         '200':
           $ref: "#/components/responses/Job"
     delete:
-      operationId: deleteJob
+      operationId: removeJob
       responses:
         '204':
-          description: The job has been deleted
+          description: The job has been removed
