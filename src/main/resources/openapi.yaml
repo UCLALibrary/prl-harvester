@@ -55,6 +55,7 @@ components:
           id:
             type: integer
             description: The institution's unique identifier
+            readOnly: true
     Job:
       type: object
       required:
@@ -80,6 +81,7 @@ components:
         lastSuccessfulRun:
           type: string
           format: date-time
+          readOnly: true
     JobWithId:
       allOf:
       - $ref: "#/components/schemas/Job"
