@@ -4,21 +4,23 @@ on:
     types: [ published ]
 jobs:
   publish:
-    name: Maven Artifact Publisher (JDK ${{ env.JAVA_VERSION }})
+    name: Maven Artifact Publisher (JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 17 ]
     env:
       AUTORELEASE_ARTIFACT: ${{ secrets.AUTORELEASE_ARTIFACT }}
       SKIP_JAR_DEPLOYMENT: ${{ secrets.SKIP_JAR_DEPLOYMENT }}
-      JAVA_VERSION: 17
     steps:
       - name: Check out source code
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
-      - name: Install JDK ${{ env.JAVA_VERSION }}
+      - name: Install JDK ${{ matrix.java }}
         uses: actions/setup-java@860f60056505705214d223b91ed7a30f173f6142 # v3.3.0
         with:
           cache: maven
           distribution: 'adopt'
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: ${{ matrix.java }}
       - name: Set autorelease config
         if: env.AUTORELEASE_ARTIFACT == null
         run: echo "AUTORELEASE_ARTIFACT=false" >> $GITHUB_ENV
