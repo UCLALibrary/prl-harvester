@@ -9,7 +9,7 @@
   </appender>
 
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-    <file>/var/log/hauth/hauth-${byDay}.log</file>
+    <file>/var/log/prl-harvester/prl-harvester-${byDay}.log</file>
     <append>false</append>
     <encoder>
       <pattern>[%level] %logger{0}:%X{line} [%d{yyyy-MM-dd HH:mm:ss.SSS}] | %msg%n</pattern>

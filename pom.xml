@@ -29,7 +29,7 @@
 
   <properties>
     <vertx.version>4.3.3</vertx.version>
-    <freelib.utils.version>3.1.1</freelib.utils.version>
+    <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
 
     <!-- Build plugin versions -->
