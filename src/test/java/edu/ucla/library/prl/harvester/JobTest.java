@@ -169,7 +169,8 @@ public class JobTest {
 
         return Stream.of( //
                 Arguments.of(1, null, validSets, validSchedule, validTimestamp), //
-                Arguments.of(2, validURL, validSets, null, validTimestamp));
+                Arguments.of(2, validURL, validSets, null, validTimestamp), //
+                Arguments.of(3, null, validSets, null, validTimestamp));
     }
 
     /**
