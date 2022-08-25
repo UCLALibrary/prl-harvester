@@ -138,7 +138,7 @@ public class InstitutionTest {
                 .put(Institution.PHONE, aPhone) //
                 .put(Institution.WEB_CONTACT, aWebContact) //
                 .put(Institution.WEBSITE, aWebsite);
-        final Exception error = assertThrows(IllegalArgumentException.class, () -> new Institution(json));
+        final Exception error = assertThrows(InvalidInstitutionJsonException.class, () -> new Institution(json));
 
         if (error.getCause() != null) {
             assertEquals(anErrorClass, error.getCause().getClass());

@@ -122,7 +122,7 @@ public final class Institution {
      * {@link #Institution(String, String, String, ContactMethods, URL)} should be used everywhere else.
      *
      * @param aJsonObject An institution represented as JSON
-     * @throws IllegalArgumentException If the JSON representation is invalid
+     * @throws InvalidInstitutionJsonException If the JSON representation is invalid
      */
     @SuppressWarnings({ "PMD.AvoidCatchingGenericException", "PMD.AvoidCatchingNPE", "PMD.CognitiveComplexity",
         "PMD.CyclomaticComplexity" })
@@ -141,21 +141,21 @@ public final class Institution {
                 try {
                     return new InternetAddress(rawEmail, true);
                 } catch (final AddressException details) {
-                    throw new IllegalArgumentException(details.getMessage(), details);
+                    throw new InvalidInstitutionJsonException(details);
                 }
             });
             phone = Optional.ofNullable(aJsonObject.getString(PHONE)).map(rawPhone -> {
                 try {
                     return PHONE_NUMBER_UTIL.parse(rawPhone, null);
                 } catch (NumberParseException details) {
-                    throw new IllegalArgumentException(details.getMessage(), details);
+                    throw new InvalidInstitutionJsonException(details);
                 }
             });
             webContact = Optional.ofNullable(aJsonObject.getString(WEB_CONTACT)).map(rawWebContact -> {
                 try {
                     return new URL(rawWebContact);
                 } catch (MalformedURLException details) {
-                    throw new IllegalArgumentException(details.getMessage(), details);
+                    throw new InvalidInstitutionJsonException(details);
                 }
             });
 
@@ -174,12 +174,12 @@ public final class Institution {
             } else if (webContact.isPresent()) {
                 myContactMethods = new ContactMethods(webContact.get());
             } else {
-                throw new IllegalArgumentException(LOGGER.getMessage(MessageCodes.PRL_002));
+                throw new InvalidInstitutionJsonException(LOGGER.getMessage(MessageCodes.PRL_002));
             }
 
             myWebsite = new URL(Objects.requireNonNull(aJsonObject.getString(WEBSITE)));
         } catch (final MalformedURLException | NullPointerException details) {
-            throw new IllegalArgumentException(details.getMessage(), details);
+            throw new InvalidInstitutionJsonException(details);
         }
     }
 

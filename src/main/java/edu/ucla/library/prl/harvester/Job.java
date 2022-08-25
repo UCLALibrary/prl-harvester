@@ -103,7 +103,7 @@ public final class Job {
      * {@link #Job(int, URL, List, CronExpression, ZonedDateTime)} should be used everywhere else.
      *
      * @param aJsonObject A job represented as JSON
-     * @throws IllegalArgumentException If the JSON representation is invalid
+     * @throws InvalidJobJsonException If the JSON representation is invalid
      */
     @SuppressWarnings({ "PMD.AvoidCatchingNPE", "PMD.AvoidCatchingGenericException" })
     public Job(final JsonObject aJsonObject) {
@@ -118,7 +118,7 @@ public final class Job {
                     .map(datetime -> ZonedDateTime.parse(datetime));
         } catch (final DateTimeParseException | MalformedURLException | NullPointerException | ParseException details) {
             // Catch-all because generated event bus proxy code doesn't appreciate checked exceptions
-            throw new IllegalArgumentException(details.getMessage(), details);
+            throw new InvalidJobJsonException(details);
         }
     }
 

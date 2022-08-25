@@ -107,7 +107,7 @@ public class JobTest {
                 .put(Job.SETS, aSets) //
                 .put(Job.SCHEDULE_CRON_EXPRESSION, aScheduleCronExpression) //
                 .put(Job.LAST_SUCCESSFUL_RUN, aLastSuccessfulRun);
-        final Exception error = assertThrows(IllegalArgumentException.class, () -> new Job(json));
+        final Exception error = assertThrows(InvalidJobJsonException.class, () -> new Job(json));
 
         assertEquals(anErrorClass, error.getCause().getClass());
     }
