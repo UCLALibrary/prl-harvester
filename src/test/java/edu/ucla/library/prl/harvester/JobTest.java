@@ -139,7 +139,7 @@ public class JobTest {
     }
 
     /**
-     * Tests that the more strongly-typed constructor can't be called with certain combinations of null arguments.
+     * Tests that the more strongly-typed constructor can't be called with certain arguments as null.
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository

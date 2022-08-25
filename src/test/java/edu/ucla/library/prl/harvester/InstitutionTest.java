@@ -186,7 +186,7 @@ public class InstitutionTest {
     }
 
     /**
-     * Tests that the more strongly-typed constructor can't be called with certain combinations of null arguments.
+     * Tests that the more strongly-typed constructor can't be called with null arguments.
      *
      * @param aName The institution's name
      * @param aDescription The institution's description
