@@ -31,7 +31,7 @@
     <vertx.version>4.3.3</vertx.version>
     <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
-    <quartz.version>2.3.2<quartz.version>
+    <quartz.version>2.3.2</quartz.version>
     <javax.mail.version>1.6.2</javax.mail.version>
     <libphonenumber.version>8.12.54</libphonenumber.version>
 
