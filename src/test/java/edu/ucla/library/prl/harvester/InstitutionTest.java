@@ -65,9 +65,11 @@ public class InstitutionTest {
                 .put(Institution.WEBSITE, aWebsite.toString());
         final Institution institutionFromJson = new Institution(json);
 
+        // If the JSON representations are equal, then serialization works
         assertEquals(json, institution.toJson());
         assertEquals(institution.toJson(), institutionFromJson.toJson());
 
+        // If the objects are equal, then deserialization works
         assertEquals(institution.getName(), institutionFromJson.getName());
         assertEquals(institution.getDescription(), institutionFromJson.getDescription());
         assertEquals(institution.getLocation(), institutionFromJson.getLocation());

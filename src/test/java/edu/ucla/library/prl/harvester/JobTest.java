@@ -54,9 +54,11 @@ public class JobTest {
                         Optional.ofNullable(aLastSuccessfulRun).map(ZonedDateTime::toString).orElse(null));
         final Job jobFromJson = new Job(json);
 
+        // If the JSON representations are equal, then serialization works
         assertEquals(json.copy().put(Job.METADATA_PREFIX, Constants.OAI_DC), job.toJson());
         assertEquals(job.toJson(), jobFromJson.toJson());
 
+        // If the objects are equal, then deserialization works
         assertEquals(job.getInstitutionID(), jobFromJson.getInstitutionID());
         assertEquals(job.getRepositoryBaseURL(), jobFromJson.getRepositoryBaseURL());
         assertEquals(job.getSets(), jobFromJson.getSets());
