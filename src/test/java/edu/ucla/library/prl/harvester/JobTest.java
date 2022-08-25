@@ -76,11 +76,11 @@ public class JobTest {
         final ZonedDateTime exampleTimestamp = ZonedDateTime.parse("2000-01-01T00:00Z");
 
         return Stream.of( //
-                Arguments.of(0, exampleUrl, null, exampleSchedule, null), //
-                Arguments.of(1, exampleUrl, null, exampleSchedule, exampleTimestamp), //
-                Arguments.of(2, exampleUrl, List.of(), exampleSchedule, exampleTimestamp), //
-                Arguments.of(3, exampleUrl, exampleSets, exampleSchedule, null), //
-                Arguments.of(4, exampleUrl, exampleSets, exampleSchedule, exampleTimestamp));
+                Arguments.of(1, exampleUrl, null, exampleSchedule, null), //
+                Arguments.of(2, exampleUrl, null, exampleSchedule, exampleTimestamp), //
+                Arguments.of(3, exampleUrl, List.of(), exampleSchedule, exampleTimestamp), //
+                Arguments.of(4, exampleUrl, exampleSets, exampleSchedule, null), //
+                Arguments.of(5, exampleUrl, exampleSets, exampleSchedule, exampleTimestamp));
     }
 
     /**
@@ -128,11 +128,11 @@ public class JobTest {
 
         return Stream.of( //
                 Arguments.of(null, validUrl, validSets, validSchedule, validTimestamp, NullPointerException.class), //
-                Arguments.of(0, null, validSets, validSchedule, validTimestamp, NullPointerException.class), //
-                Arguments.of(1, invalidUrl, validSets, validSchedule, validTimestamp, MalformedURLException.class), //
-                Arguments.of(2, validUrl, validSets, null, validTimestamp, NullPointerException.class), //
-                Arguments.of(3, validUrl, validSets, invalidSchedule, validTimestamp, ParseException.class), //
-                Arguments.of(4, validUrl, validSets, validSchedule, invalidTimestamp, DateTimeParseException.class));
+                Arguments.of(2, null, validSets, validSchedule, validTimestamp, NullPointerException.class), //
+                Arguments.of(3, invalidUrl, validSets, validSchedule, validTimestamp, MalformedURLException.class), //
+                Arguments.of(4, validUrl, validSets, null, validTimestamp, NullPointerException.class), //
+                Arguments.of(5, validUrl, validSets, invalidSchedule, validTimestamp, ParseException.class), //
+                Arguments.of(6, validUrl, validSets, validSchedule, invalidTimestamp, DateTimeParseException.class));
     }
 
     /**
@@ -165,7 +165,7 @@ public class JobTest {
         final ZonedDateTime validTimestamp = ZonedDateTime.parse("2020-01-01T00:00Z");
 
         return Stream.of( //
-                Arguments.of(0, null, validSets, validSchedule, validTimestamp), //
-                Arguments.of(0, validUrl, validSets, null, validTimestamp));
+                Arguments.of(1, null, validSets, validSchedule, validTimestamp), //
+                Arguments.of(2, validUrl, validSets, null, validTimestamp));
     }
 }

@@ -219,7 +219,7 @@ public class InstitutionTest {
                 Arguments.of(null, validDescription, validLocation, validEmail, validPhone, validWebContact,
                         validWebsite), //
                 Arguments.of(validName, null, validLocation, validEmail, validPhone, validWebContact, validWebsite), //
-                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact,
+                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact, //
                         validWebsite), //
                 Arguments.of(validName, validDescription, validLocation, null, null, null, validWebsite), //
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
