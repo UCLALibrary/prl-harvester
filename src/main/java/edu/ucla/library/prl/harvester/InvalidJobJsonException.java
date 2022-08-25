@@ -8,6 +8,11 @@ import info.freelibrary.util.StringUtils;
 public class InvalidJobJsonException extends IllegalArgumentException {
 
     /**
+     * The <code>serialVersionUID</code> for this class.
+     */
+    private static final long serialVersionUID = -5482785987411340970L;
+
+    /**
      * The message unique to this exception.
      */
     private static final String MESSAGE = "The supplied JsonObject does not represent a valid Job";

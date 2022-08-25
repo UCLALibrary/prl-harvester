@@ -8,6 +8,11 @@ import info.freelibrary.util.StringUtils;
 public class InvalidInstitutionJsonException extends IllegalArgumentException {
 
     /**
+     * The <code>serialVersionUID</code> for this class.
+     */
+    private static final long serialVersionUID = 1269493839347809483L;
+
+    /**
      * The message unique to this exception.
      */
     private static final String MESSAGE = "The supplied JsonObject does not represent a valid Institution";
