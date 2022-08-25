@@ -119,8 +119,7 @@ public final class Institution {
      * Instantiates an institution from its JSON representation.
      * <p>
      * <b>This constructor is meant to be used only by generated service proxy code!</b>
-     * {@link #Institution(String, String, String, InternetAddress, PhoneNumber, URL, URL)} should be used everywhere
-     * else.
+     * {@link #Institution(String, String, String, ContactMethods, URL)} should be used everywhere else.
      *
      * @param aJsonObject An institution represented as JSON
      * @throws IllegalArgumentException If the JSON representation is invalid
@@ -235,7 +234,7 @@ public final class Institution {
     }
 
     /**
-     * Contact methods.
+     * Represents a valid set of contact methods.
      */
     public static final class ContactMethods {
 
