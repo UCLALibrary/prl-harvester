@@ -30,7 +30,7 @@ public class InvalidJobJsonException extends IllegalArgumentException {
      * @param aMessage The detail message
      */
     public InvalidJobJsonException(final String aMessage) {
-        super(StringUtils.format("{}: {}", MESSAGE, aMessage));
+        this(aMessage, null);
     }
 
     /**

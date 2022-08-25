@@ -30,7 +30,7 @@ public class InvalidInstitutionJsonException extends IllegalArgumentException {
      * @param aMessage The detail message
      */
     public InvalidInstitutionJsonException(final String aMessage) {
-        super(StringUtils.format("{}: {}", MESSAGE, aMessage));
+        this(aMessage, null);
     }
 
     /**
