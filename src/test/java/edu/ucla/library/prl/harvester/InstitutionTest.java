@@ -73,7 +73,8 @@ public class InstitutionTest {
         assertEquals(institution.getLocation(), institutionFromJson.getLocation());
         assertEquals(institution.getContactMethods().getEmail(), institutionFromJson.getContactMethods().getEmail());
         assertEquals(institution.getContactMethods().getPhone(), institutionFromJson.getContactMethods().getPhone());
-        assertEquals(institution.getContactMethods().getWebContact(), institutionFromJson.getContactMethods().getWebContact());
+        assertEquals(institution.getContactMethods().getWebContact(),
+                institutionFromJson.getContactMethods().getWebContact());
         assertEquals(institution.getWebsite(), institutionFromJson.getWebsite());
     }
 
