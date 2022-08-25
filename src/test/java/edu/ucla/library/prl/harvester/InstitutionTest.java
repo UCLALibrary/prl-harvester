@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -224,5 +225,13 @@ public class InstitutionTest {
                 Arguments.of(validName, validDescription, validLocation, null, null, null, validWebsite), //
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
                         null));
+    }
+
+    /**
+     * Tests that passing a null {@link JsonObject} throws a {@link NullPointerException}.
+     */
+    @Test
+    void testInstitutionNullJsonObject() {
+        assertThrows(NullPointerException.class, () -> new Institution(null));
     }
 }

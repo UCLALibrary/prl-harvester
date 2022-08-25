@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -167,5 +168,13 @@ public class JobTest {
         return Stream.of( //
                 Arguments.of(1, null, validSets, validSchedule, validTimestamp), //
                 Arguments.of(2, validUrl, validSets, null, validTimestamp));
+    }
+
+    /**
+     * Tests that passing a null {@link JsonObject} throws a {@link NullPointerException}.
+     */
+    @Test
+    void testJobNullJsonObject() {
+        assertThrows(NullPointerException.class, () -> new Job(null));
     }
 }
