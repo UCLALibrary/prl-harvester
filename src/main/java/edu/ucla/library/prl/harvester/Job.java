@@ -107,6 +107,7 @@ public final class Job {
      */
     @SuppressWarnings({ "PMD.AvoidCatchingNPE", "PMD.AvoidCatchingGenericException" })
     public Job(final JsonObject aJsonObject) {
+        Objects.requireNonNull(aJsonObject);
         try {
             myInstitutionId = Objects.requireNonNull(aJsonObject.getInteger(INSTITUTION_ID));
             myRepositoryBaseUrl = new URL(Objects.requireNonNull(aJsonObject.getString(REPOSITORY_BASE_URL)));

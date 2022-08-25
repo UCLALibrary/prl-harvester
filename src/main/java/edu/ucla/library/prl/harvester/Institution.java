@@ -150,6 +150,7 @@ public final class Institution {
      */
     @SuppressWarnings({ "PMD.AvoidCatchingNPE", "PMD.AvoidCatchingGenericException" })
     public Institution(final JsonObject aJsonObject) {
+        Objects.requireNonNull(aJsonObject);
         try {
             myName = Objects.requireNonNull(aJsonObject.getString(NAME));
             myDescription = Objects.requireNonNull(aJsonObject.getString(DESCRIPTION));
