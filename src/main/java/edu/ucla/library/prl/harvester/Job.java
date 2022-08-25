@@ -56,12 +56,12 @@ public final class Job {
     /**
      * The identifier of the institution that this job should be associated with.
      */
-    private final int myInstitutionId;
+    private final int myInstitutionID;
 
     /**
      * The base URL of the OAI-PMH repository.
      */
-    private final URL myRepositoryBaseUrl;
+    private final URL myRepositoryBaseURL;
 
     /**
      * The list of sets to harvest.
@@ -81,16 +81,16 @@ public final class Job {
     /**
      * Instantiates a job.
      *
-     * @param anInstitutionId The identifier of the institution that this job should be associated with
-     * @param aRepositoryBaseUrl The base URL of the OAI-PMH repository
+     * @param anInstitutionID The identifier of the institution that this job should be associated with
+     * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
-    public Job(final int anInstitutionId, final URL aRepositoryBaseUrl, final List<String> aSets,
+    public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
             final CronExpression aScheduleCronExpression, final ZonedDateTime aLastSuccessfulRun) {
-        myInstitutionId = anInstitutionId;
-        myRepositoryBaseUrl = Objects.requireNonNull(aRepositoryBaseUrl);
+        myInstitutionID = anInstitutionID;
+        myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
         mySets = Optional.ofNullable(aSets);
         myScheduleCronExpression = Objects.requireNonNull(aScheduleCronExpression);
         myLastSuccessfulRun = Optional.ofNullable(aLastSuccessfulRun);
@@ -109,8 +109,8 @@ public final class Job {
     public Job(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
         try {
-            myInstitutionId = Objects.requireNonNull(aJsonObject.getInteger(INSTITUTION_ID));
-            myRepositoryBaseUrl = new URL(Objects.requireNonNull(aJsonObject.getString(REPOSITORY_BASE_URL)));
+            myInstitutionID = Objects.requireNonNull(aJsonObject.getInteger(INSTITUTION_ID));
+            myRepositoryBaseURL = new URL(Objects.requireNonNull(aJsonObject.getString(REPOSITORY_BASE_URL)));
             mySets = Optional.ofNullable(aJsonObject.getJsonArray(SETS)).map(JsonArray::getList);
             myScheduleCronExpression =
                     new CronExpression(Objects.requireNonNull(aJsonObject.getString(SCHEDULE_CRON_EXPRESSION)));
@@ -127,8 +127,8 @@ public final class Job {
      */
     public JsonObject toJson() {
         return new JsonObject() //
-                .put(INSTITUTION_ID, getInstitutionId()) //
-                .put(REPOSITORY_BASE_URL, getRepositoryBaseUrl().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
+                .put(INSTITUTION_ID, getInstitutionID()) //
+                .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
                 .put(SETS, getSets().orElse(null)) //
                 .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
                 .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(ZonedDateTime::toString).orElse(null));
@@ -137,15 +137,15 @@ public final class Job {
     /**
      * @return The institution ID
      */
-    public int getInstitutionId() {
-        return myInstitutionId;
+    public int getInstitutionID() {
+        return myInstitutionID;
     }
 
     /**
      * @return The repository base URL
      */
-    public URL getRepositoryBaseUrl() {
-        return myRepositoryBaseUrl;
+    public URL getRepositoryBaseURL() {
+        return myRepositoryBaseURL;
     }
 
     /**
