@@ -124,7 +124,8 @@ public final class Institution {
      * @param aJsonObject An institution represented as JSON
      * @throws IllegalArgumentException If the JSON representation is invalid
      */
-    @SuppressWarnings({ "PMD.AvoidCatchingNPE", "PMD.AvoidCatchingGenericException" })
+    @SuppressWarnings({ "PMD.AvoidCatchingGenericException", "PMD.AvoidCatchingNPE", "PMD.CognitiveComplexity",
+        "PMD.CyclomaticComplexity" })
     public Institution(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
         try {
