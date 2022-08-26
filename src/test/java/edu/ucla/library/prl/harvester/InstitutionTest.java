@@ -196,8 +196,8 @@ public class InstitutionTest {
                         validWebsite, NumberParseException.class), //
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, invalidWebContact,
                         validWebsite, MalformedURLException.class), //
-                Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
-                        null, null),
+                Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact, null,
+                        null),
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
                         invalidWebsite, MalformedURLException.class));
     }
