@@ -181,6 +181,12 @@ public class InstitutionTest {
         final String invalidWebsite = "example.com/2"; // Missing protocol
 
         return Stream.of( //
+                Arguments.of(null, validDescription, validLocation, validEmail, validPhone, validWebContact,
+                        validWebsite, null), //
+                Arguments.of(validName, null, validLocation, validEmail, validPhone, validWebContact, validWebsite,
+                        null), //
+                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact, validWebsite,
+                        null), //
                 Arguments.of(validName, validDescription, validLocation, invalidEmail, validPhone, validWebContact,
                         validWebsite, AddressException.class), //
                 Arguments.of(validName, validDescription, validLocation, validEmail, invalidPhone1, validWebContact,
@@ -190,6 +196,8 @@ public class InstitutionTest {
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, invalidWebContact,
                         validWebsite, MalformedURLException.class), //
                 Arguments.of(validName, validDescription, validLocation, null, null, null, validWebsite, null), //
+                Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
+                        null, null),
                 Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
                         invalidWebsite, MalformedURLException.class));
     }
