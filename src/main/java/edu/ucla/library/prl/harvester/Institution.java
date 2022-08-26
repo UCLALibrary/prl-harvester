@@ -277,13 +277,9 @@ public final class Institution {
          * @param aWebContact A web contact URL
          */
         public ContactMethods(final InternetAddress anEmail, final PhoneNumber aPhone, final URL aWebContact) {
-            Objects.requireNonNull(anEmail);
-            Objects.requireNonNull(aPhone);
-            Objects.requireNonNull(aWebContact);
-
-            myEmail = Optional.of(anEmail);
-            myPhone = Optional.of(aPhone);
-            myWebContact = Optional.of(aWebContact);
+            myEmail = Optional.of(Objects.requireNonNull(anEmail));
+            myPhone = Optional.of(Objects.requireNonNull(aPhone));
+            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
         }
 
         /**
@@ -293,11 +289,8 @@ public final class Institution {
          * @param aPhone A phone number
          */
         public ContactMethods(final InternetAddress anEmail, final PhoneNumber aPhone) {
-            Objects.requireNonNull(anEmail);
-            Objects.requireNonNull(aPhone);
-
-            myEmail = Optional.of(anEmail);
-            myPhone = Optional.of(aPhone);
+            myEmail = Optional.of(Objects.requireNonNull(anEmail));
+            myPhone = Optional.of(Objects.requireNonNull(aPhone));
             myWebContact = Optional.empty();
         }
 
@@ -308,12 +301,9 @@ public final class Institution {
          * @param aWebContact A web contact URL
          */
         public ContactMethods(final InternetAddress anEmail, final URL aWebContact) {
-            Objects.requireNonNull(anEmail);
-            Objects.requireNonNull(aWebContact);
-
-            myEmail = Optional.of(anEmail);
+            myEmail = Optional.of(Objects.requireNonNull(anEmail));
             myPhone = Optional.empty();
-            myWebContact = Optional.of(aWebContact);
+            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
         }
 
         /**
@@ -323,12 +313,9 @@ public final class Institution {
          * @param aWebContact A web contact URL
          */
         public ContactMethods(final PhoneNumber aPhone, final URL aWebContact) {
-            Objects.requireNonNull(aPhone);
-            Objects.requireNonNull(aWebContact);
-
             myEmail = Optional.empty();
-            myPhone = Optional.of(aPhone);
-            myWebContact = Optional.of(aWebContact);
+            myPhone = Optional.of(Objects.requireNonNull(aPhone));
+            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
         }
 
         /**
@@ -337,9 +324,7 @@ public final class Institution {
          * @param anEmail An email address
          */
         public ContactMethods(final InternetAddress anEmail) {
-            Objects.requireNonNull(anEmail);
-
-            myEmail = Optional.of(anEmail);
+            myEmail = Optional.of(Objects.requireNonNull(anEmail));
             myPhone = Optional.empty();
             myWebContact = Optional.empty();
         }
@@ -350,10 +335,8 @@ public final class Institution {
          * @param aPhone A phone number
          */
         public ContactMethods(final PhoneNumber aPhone) {
-            Objects.requireNonNull(aPhone);
-
             myEmail = Optional.empty();
-            myPhone = Optional.of(aPhone);
+            myPhone = Optional.of(Objects.requireNonNull(aPhone));
             myWebContact = Optional.empty();
         }
 
@@ -363,11 +346,9 @@ public final class Institution {
          * @param aWebContact A web contact URL
          */
         public ContactMethods(final URL aWebContact) {
-            Objects.requireNonNull(aWebContact);
-
             myEmail = Optional.empty();
             myPhone = Optional.empty();
-            myWebContact = Optional.of(aWebContact);
+            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
         }
 
         /**
