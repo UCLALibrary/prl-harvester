@@ -24,6 +24,9 @@ import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 import edu.ucla.library.prl.harvester.Institution.ContactMethods;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 
@@ -32,6 +35,11 @@ import io.vertx.junit5.VertxExtension;
  */
 @ExtendWith(VertxExtension.class)
 public class InstitutionTest {
+
+    /**
+     * The logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(InstitutionTest.class, MessageCodes.BUNDLE);
 
     /**
      * Parses and formats phone numbers.
@@ -51,8 +59,7 @@ public class InstitutionTest {
     @MethodSource
     void testInstitutionSerDe(final String aName, final String aDescription, final String aLocation,
             final ContactMethods aContactMethods, final URL aWebsite) {
-        final Institution institution =
-                new Institution(aName, aDescription, aLocation, aContactMethods, aWebsite);
+        final Institution institution = new Institution(aName, aDescription, aLocation, aContactMethods, aWebsite);
         final JsonObject json = new JsonObject() //
                 .put(Institution.NAME, aName) //
                 .put(Institution.DESCRIPTION, aDescription) //
@@ -143,6 +150,8 @@ public class InstitutionTest {
         if (error.getCause() != null) {
             assertEquals(anErrorClass, error.getCause().getClass());
         }
+
+        LOGGER.debug(LOGGER.getMessage(MessageCodes.PRL_000, error));
     }
 
     /**

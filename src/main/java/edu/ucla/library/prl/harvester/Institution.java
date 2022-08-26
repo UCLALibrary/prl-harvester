@@ -14,9 +14,6 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
-
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -61,11 +58,6 @@ public final class Institution {
      * The JSON key for the website.
      */
     static final String WEBSITE = "website";
-
-    /**
-     * The logger.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(Institution.class, MessageCodes.BUNDLE);
 
     /**
      * Parses and formats phone numbers.
@@ -124,62 +116,85 @@ public final class Institution {
      * @param aJsonObject An institution represented as JSON
      * @throws InvalidInstitutionJsonException If the JSON representation is invalid
      */
-    @SuppressWarnings({ "PMD.AvoidCatchingGenericException", "PMD.AvoidCatchingNPE", "PMD.CognitiveComplexity",
-        "PMD.CyclomaticComplexity" })
+    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity", "PMD.NPathComplexity" })
     public Institution(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
-        try {
-            final Optional<InternetAddress> email;
-            final Optional<PhoneNumber> phone;
-            final Optional<URL> webContact;
 
-            myName = Objects.requireNonNull(aJsonObject.getString(NAME));
-            myDescription = Objects.requireNonNull(aJsonObject.getString(DESCRIPTION));
-            myLocation = Objects.requireNonNull(aJsonObject.getString(LOCATION));
+        final String name = aJsonObject.getString(NAME);
+        final String description = aJsonObject.getString(DESCRIPTION);
+        final String location = aJsonObject.getString(LOCATION);
+        final Optional<InternetAddress> email;
+        final Optional<PhoneNumber> phone;
+        final Optional<URL> webContact;
+        final String website = aJsonObject.getString(WEBSITE);
 
-            email = Optional.ofNullable(aJsonObject.getString(EMAIL)).map(rawEmail -> {
-                try {
-                    return new InternetAddress(rawEmail, true);
-                } catch (final AddressException details) {
-                    throw new InvalidInstitutionJsonException(details);
-                }
-            });
-            phone = Optional.ofNullable(aJsonObject.getString(PHONE)).map(rawPhone -> {
-                try {
-                    return PHONE_NUMBER_UTIL.parse(rawPhone, null);
-                } catch (NumberParseException details) {
-                    throw new InvalidInstitutionJsonException(details);
-                }
-            });
-            webContact = Optional.ofNullable(aJsonObject.getString(WEB_CONTACT)).map(rawWebContact -> {
-                try {
-                    return new URL(rawWebContact);
-                } catch (MalformedURLException details) {
-                    throw new InvalidInstitutionJsonException(details);
-                }
-            });
+        if (name != null) {
+            myName = name;
+        } else {
+            throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, NAME);
+        }
 
-            if (email.isPresent() && phone.isPresent() && webContact.isPresent()) {
-                myContactMethods = new ContactMethods(email.get(), phone.get(), webContact.get());
-            } else if (email.isPresent() && phone.isPresent()) {
-                myContactMethods = new ContactMethods(email.get(), phone.get());
-            } else if (email.isPresent() && webContact.isPresent()) {
-                myContactMethods = new ContactMethods(email.get(), webContact.get());
-            } else if (phone.isPresent() && webContact.isPresent()) {
-                myContactMethods = new ContactMethods(phone.get(), webContact.get());
-            } else if (email.isPresent()) {
-                myContactMethods = new ContactMethods(email.get());
-            } else if (phone.isPresent()) {
-                myContactMethods = new ContactMethods(phone.get());
-            } else if (webContact.isPresent()) {
-                myContactMethods = new ContactMethods(webContact.get());
-            } else {
-                throw new InvalidInstitutionJsonException(LOGGER.getMessage(MessageCodes.PRL_002));
+        if (description != null) {
+            myDescription = description;
+        } else {
+            throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, DESCRIPTION);
+        }
+
+        if (location != null) {
+            myLocation = location;
+        } else {
+            throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, LOCATION);
+        }
+
+        email = Optional.ofNullable(aJsonObject.getString(EMAIL)).map(rawEmail -> {
+            try {
+                return new InternetAddress(rawEmail, true);
+            } catch (final AddressException details) {
+                throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, EMAIL, details.getMessage());
             }
+        });
+        phone = Optional.ofNullable(aJsonObject.getString(PHONE)).map(rawPhone -> {
+            try {
+                return PHONE_NUMBER_UTIL.parse(rawPhone, null);
+            } catch (NumberParseException details) {
+                throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, PHONE, details.getMessage());
+            }
+        });
+        webContact = Optional.ofNullable(aJsonObject.getString(WEB_CONTACT)).map(rawWebContact -> {
+            try {
+                return new URL(rawWebContact);
+            } catch (MalformedURLException details) {
+                throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, WEB_CONTACT,
+                        details.getMessage());
+            }
+        });
 
-            myWebsite = new URL(Objects.requireNonNull(aJsonObject.getString(WEBSITE)));
-        } catch (final MalformedURLException | NullPointerException details) {
-            throw new InvalidInstitutionJsonException(details);
+        if (email.isPresent() && phone.isPresent() && webContact.isPresent()) {
+            myContactMethods = new ContactMethods(email.get(), phone.get(), webContact.get());
+        } else if (email.isPresent() && phone.isPresent()) {
+            myContactMethods = new ContactMethods(email.get(), phone.get());
+        } else if (email.isPresent() && webContact.isPresent()) {
+            myContactMethods = new ContactMethods(email.get(), webContact.get());
+        } else if (phone.isPresent() && webContact.isPresent()) {
+            myContactMethods = new ContactMethods(phone.get(), webContact.get());
+        } else if (email.isPresent()) {
+            myContactMethods = new ContactMethods(email.get());
+        } else if (phone.isPresent()) {
+            myContactMethods = new ContactMethods(phone.get());
+        } else if (webContact.isPresent()) {
+            myContactMethods = new ContactMethods(webContact.get());
+        } else {
+            throw new InvalidInstitutionJsonException(MessageCodes.PRL_003);
+        }
+
+        if (website != null) {
+            try {
+                myWebsite = new URL(website);
+            } catch (final MalformedURLException details) {
+                throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, WEBSITE, details.getMessage());
+            }
+        } else {
+            throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, WEBSITE);
         }
     }
 

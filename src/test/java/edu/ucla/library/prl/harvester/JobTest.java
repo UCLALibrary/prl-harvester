@@ -21,6 +21,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.quartz.CronExpression;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 
@@ -29,6 +32,11 @@ import io.vertx.junit5.VertxExtension;
  */
 @ExtendWith(VertxExtension.class)
 public class JobTest {
+
+    /**
+     * The logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobTest.class, MessageCodes.BUNDLE);
 
     /**
      * Tests that a {@link Job} can be instantiated from a {@link JsonObject} and serialized back to one.
@@ -109,7 +117,11 @@ public class JobTest {
                 .put(Job.LAST_SUCCESSFUL_RUN, aLastSuccessfulRun);
         final Exception error = assertThrows(InvalidJobJsonException.class, () -> new Job(json));
 
-        assertEquals(anErrorClass, error.getCause().getClass());
+        if (error.getCause() != null) {
+            assertEquals(anErrorClass, error.getCause().getClass());
+        }
+
+        LOGGER.debug(LOGGER.getMessage(MessageCodes.PRL_000, error));
     }
 
     /**
@@ -130,10 +142,10 @@ public class JobTest {
         final String invalidTimestamp = LocalDate.of(2020, 1, 1).toString(); // Missing time component
 
         return Stream.of( //
-                Arguments.of(null, validURL, validSets, validSchedule, validTimestamp, NullPointerException.class), //
-                Arguments.of(2, null, validSets, validSchedule, validTimestamp, NullPointerException.class), //
+                Arguments.of(null, validURL, validSets, validSchedule, validTimestamp, null), //
+                Arguments.of(2, null, validSets, validSchedule, validTimestamp, null), //
                 Arguments.of(3, invalidURL, validSets, validSchedule, validTimestamp, MalformedURLException.class), //
-                Arguments.of(4, validURL, validSets, null, validTimestamp, NullPointerException.class), //
+                Arguments.of(4, validURL, validSets, null, validTimestamp, null), //
                 Arguments.of(5, validURL, validSets, invalidSchedule, validTimestamp, ParseException.class), //
                 Arguments.of(6, validURL, validSets, validSchedule, invalidTimestamp, DateTimeParseException.class));
     }

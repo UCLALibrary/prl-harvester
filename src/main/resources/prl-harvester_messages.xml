@@ -6,7 +6,8 @@
   <entry key="message-class-name">edu.ucla.library.prl.harvester.MessageCodes</entry>
 
   <entry key="PRL_001">Server started at port: {}</entry>
-  <entry key="PRL_002">The JSON representation of an Institution must contain at least one of 'email', 'phone', or 'webContact'</entry>
-  <entry key="PRL_003"></entry>
+  <entry key="PRL_002">Missing value for field '{}'</entry>
+  <entry key="PRL_003">Missing at least one of 'email', 'phone', or 'webContact'</entry>
+  <entry key="PRL_004">Invalid value for field '{}': {}</entry>
 
 </properties>

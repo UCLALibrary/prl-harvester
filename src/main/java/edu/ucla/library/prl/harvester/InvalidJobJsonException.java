@@ -1,11 +1,12 @@
+
 package edu.ucla.library.prl.harvester;
 
-import info.freelibrary.util.StringUtils;
+import info.freelibrary.util.I18nRuntimeException;
 
 /**
  * Represents an error in the JSON representation of a {@link Job}.
  */
-public class InvalidJobJsonException extends IllegalArgumentException {
+public class InvalidJobJsonException extends I18nRuntimeException {
 
     /**
      * The <code>serialVersionUID</code> for this class.
@@ -13,42 +14,32 @@ public class InvalidJobJsonException extends IllegalArgumentException {
     private static final long serialVersionUID = -5482785987411340970L;
 
     /**
-     * The message unique to this exception.
-     */
-    private static final String MESSAGE = "The supplied JsonObject does not represent a valid Job";
-
-    /**
      * Instantiates an exception.
+     *
+     * @param aMessageKey The message key
      */
-    public InvalidJobJsonException() {
-        super();
+    public InvalidJobJsonException(final String aMessageKey) {
+        super(MessageCodes.BUNDLE, aMessageKey);
     }
 
     /**
      * Instantiates an exception.
      *
-     * @param aMessage The detail message
+     * @param aMessageKey The message key
+     * @param aVarArgs The message details
      */
-    public InvalidJobJsonException(final String aMessage) {
-        this(aMessage, null);
-    }
-
-    /**
-     * Instantiates an exception.
-     *
-     * @param aMessage The detail message
-     * @param aCause The cause
-     */
-    public InvalidJobJsonException(final String aMessage, final Throwable aCause) {
-        super(StringUtils.format("{}: {}", MESSAGE, aMessage), aCause);
+    public InvalidJobJsonException(final String aMessageKey, final Object... aVarArgs) {
+        super(MessageCodes.BUNDLE, aMessageKey, aVarArgs);
     }
 
     /**
      * Instantiates an exception.
      *
      * @param aCause The cause
+     * @param aMessageKey The message key
+     * @param aVarArgs The message details
      */
-    public InvalidJobJsonException(final Throwable aCause) {
-        super(MESSAGE, aCause);
+    public InvalidJobJsonException(final Throwable aCause, final String aMessageKey, final Object... aVarArgs) {
+        super(aCause, MessageCodes.BUNDLE, aMessageKey, aVarArgs);
     }
 }

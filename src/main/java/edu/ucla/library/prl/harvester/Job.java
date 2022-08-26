@@ -105,21 +105,52 @@ public final class Job {
      * @param aJsonObject A job represented as JSON
      * @throws InvalidJobJsonException If the JSON representation is invalid
      */
-    @SuppressWarnings({ "PMD.AvoidCatchingNPE", "PMD.AvoidCatchingGenericException" })
+    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity" })
     public Job(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
-        try {
-            myInstitutionID = Objects.requireNonNull(aJsonObject.getInteger(INSTITUTION_ID));
-            myRepositoryBaseURL = new URL(Objects.requireNonNull(aJsonObject.getString(REPOSITORY_BASE_URL)));
-            mySets = Optional.ofNullable(aJsonObject.getJsonArray(SETS)).map(JsonArray::getList);
-            myScheduleCronExpression =
-                    new CronExpression(Objects.requireNonNull(aJsonObject.getString(SCHEDULE_CRON_EXPRESSION)));
-            myLastSuccessfulRun = Optional.ofNullable(aJsonObject.getString(LAST_SUCCESSFUL_RUN))
-                    .map(datetime -> ZonedDateTime.parse(datetime));
-        } catch (final DateTimeParseException | MalformedURLException | NullPointerException | ParseException details) {
-            // Catch-all because generated event bus proxy code doesn't appreciate checked exceptions
-            throw new InvalidJobJsonException(details);
+
+        final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
+        final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
+        final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
+
+        if (institutionID != null) {
+            myInstitutionID = institutionID;
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, INSTITUTION_ID);
         }
+
+        if (repositoryBaseURL != null) {
+            try {
+                myRepositoryBaseURL = new URL(repositoryBaseURL);
+            } catch (final MalformedURLException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, REPOSITORY_BASE_URL,
+                        details.getMessage());
+            }
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
+        }
+
+        mySets = Optional.ofNullable(aJsonObject.getJsonArray(SETS)).map(JsonArray::getList);
+
+        if (scheduleCronExpression != null) {
+            try {
+                myScheduleCronExpression = new CronExpression(scheduleCronExpression);
+            } catch (final ParseException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, SCHEDULE_CRON_EXPRESSION,
+                        details.getMessage());
+            }
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, SCHEDULE_CRON_EXPRESSION);
+        }
+
+        myLastSuccessfulRun = Optional.ofNullable(aJsonObject.getString(LAST_SUCCESSFUL_RUN)).map(datetime -> {
+            try {
+                return ZonedDateTime.parse(datetime);
+            } catch (final DateTimeParseException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, LAST_SUCCESSFUL_RUN,
+                        details.getMessage());
+            }
+        });
     }
 
     /**
