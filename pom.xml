@@ -31,6 +31,9 @@
     <vertx.version>4.3.3</vertx.version>
     <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
+    <quartz.version>2.3.2</quartz.version>
+    <javax.mail.version>1.6.2</javax.mail.version>
+    <libphonenumber.version>8.12.54</libphonenumber.version>
 
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
@@ -128,6 +131,28 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-config</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-codegen</artifactId>
+      <classifier>processor</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.quartz-scheduler</groupId>
+      <artifactId>quartz</artifactId>
+      <version>${quartz.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.mail</groupId>
+      <artifactId>javax.mail</artifactId>
+      <version>${javax.mail.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.libphonenumber</groupId>
+      <artifactId>libphonenumber</artifactId>
+      <version>${libphonenumber.version}</version>
+    </dependency>
+
+
 
     <!-- Below dependencies only used for testing -->
     <dependency>
