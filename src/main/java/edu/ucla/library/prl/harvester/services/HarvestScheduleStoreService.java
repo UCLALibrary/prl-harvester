@@ -95,14 +95,14 @@ public interface HarvestScheduleStoreService {
      * @param aJobId The unique local ID for the harvest job
      * @return A Future that succeeds if the harvest job exists
      */
-    Future<Job> getHarvestJob(int aJobId);
+    Future<Job> getJob(int aJobId);
 
     /**
      * Gets the list of all harvest jobs.
      *
      * @return A Future that succeeds with a list of all harvest jobs (if any)
      */
-    Future<List<Job>> listHarvestJobs();
+    Future<List<Job>> listJobs();
 
     /**
      * Adds a harvest job.
@@ -110,7 +110,7 @@ public interface HarvestScheduleStoreService {
      * @param aJob The harvest job to add
      * @return A Future that succeeds, with a unique local ID for the harvest job, if it was added
      */
-    Future<Integer> addHarvestJob(Job aJob);
+    Future<Integer> addJob(Job aJob);
 
     /**
      * Updates a harvest job.
@@ -119,7 +119,7 @@ public interface HarvestScheduleStoreService {
      * @param aJob The harvest job to replace the existing one with
      * @return A Future that succeeds if the harvest job was updated
      */
-    Future<Void> updateHarvestJob(int aJobId, Job aJob);
+    Future<Void> updateJob(int aJobId, Job aJob);
 
     /**
      * Removes a harvest job.
@@ -127,7 +127,7 @@ public interface HarvestScheduleStoreService {
      * @param aJobId The unique local ID for the harvest job
      * @return A Future that succeeds if the harvest job was removed
      */
-    Future<Void> removeHarvestJob(int aJobId);
+    Future<Void> removeJob(int aJobId);
 
     /**
      * Closes the underlying resources used by this service.
