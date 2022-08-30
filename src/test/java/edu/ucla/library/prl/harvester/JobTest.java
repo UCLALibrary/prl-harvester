@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -25,12 +24,10 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.core.json.JsonObject;
-import io.vertx.junit5.VertxExtension;
 
 /**
  * Tests {@link Job}.
  */
-@ExtendWith(VertxExtension.class)
 public class JobTest {
 
     /**

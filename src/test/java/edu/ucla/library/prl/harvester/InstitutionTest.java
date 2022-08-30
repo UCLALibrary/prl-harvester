@@ -12,7 +12,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,12 +27,10 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.core.json.JsonObject;
-import io.vertx.junit5.VertxExtension;
 
 /**
  * Tests {@link Institution}.
  */
-@ExtendWith(VertxExtension.class)
 public class InstitutionTest {
 
     /**
