@@ -1,7 +1,7 @@
 
 package edu.ucla.library.prl.harvester.services;
 
-import java.util.Collection;
+import java.util.List;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
@@ -62,7 +62,7 @@ public interface HarvestScheduleStoreService {
      *
      * @return A Future that succeeds with a list of all institutions (if any)
      */
-    Future<Collection<Institution>> listInstitutions();
+    Future<List<Institution>> listInstitutions();
 
     /**
      * Adds an institution.
@@ -102,7 +102,7 @@ public interface HarvestScheduleStoreService {
      *
      * @return A Future that succeeds with a list of all harvest jobs (if any)
      */
-    Future<Collection<Job>> listHarvestJobs();
+    Future<List<Job>> listHarvestJobs();
 
     /**
      * Adds a harvest job.
