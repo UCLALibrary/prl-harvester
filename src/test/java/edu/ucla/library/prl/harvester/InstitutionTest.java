@@ -211,7 +211,9 @@ public class InstitutionTest {
      * @param aName The institution's name
      * @param aDescription The institution's description
      * @param aLocation The institution's human-readable location
-     * @param aContactMethods The institution's contact methods
+     * @param anEmail The institution's optional email contact
+     * @param aPhone The institution's optional phone contact
+     * @param aWebContact The institution's optional web contact
      * @param aWebsite The institiution's website
      */
     @ParameterizedTest
@@ -244,7 +246,8 @@ public class InstitutionTest {
                 Arguments.of(null, validDescription, validLocation, validEmail, validPhone, validWebContact,
                         validWebsite), //
                 Arguments.of(validName, null, validLocation, validEmail, validPhone, validWebContact, validWebsite), //
-                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact, validWebsite), //
+                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact,
+                        validWebsite), //
                 Arguments.of(validName, validDescription, validLocation, null, validPhone, validWebContact,
                         validWebsite), //
                 Arguments.of(validName, validDescription, validLocation, validEmail, null, validWebContact,
