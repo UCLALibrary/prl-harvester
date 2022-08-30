@@ -12,6 +12,8 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,6 +33,7 @@ import io.vertx.core.json.JsonObject;
 /**
  * Tests {@link Institution}.
  */
+@Execution(ExecutionMode.CONCURRENT)
 public class InstitutionTest {
 
     /**
