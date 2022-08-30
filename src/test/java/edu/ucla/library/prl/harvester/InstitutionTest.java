@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
@@ -23,8 +24,7 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
-import edu.ucla.library.prl.harvester.Institution.ContactMethods;
-
+import info.freelibrary.util.IllegalArgumentI18nException;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
@@ -52,23 +52,27 @@ public class InstitutionTest {
      * @param aName The institution's name
      * @param aDescription The institution's description
      * @param aLocation The institution's human-readable location
-     * @param aContactMethods The institution's contact methods
+     * @param anEmail The institution's optional email contact
+     * @param aPhone The institution's optional phone contact
+     * @param aWebContact The institution's optional web contact
      * @param aWebsite The institiution's website
      */
     @ParameterizedTest
     @MethodSource
     void testInstitutionSerDe(final String aName, final String aDescription, final String aLocation,
-            final ContactMethods aContactMethods, final URL aWebsite) {
-        final Institution institution = new Institution(aName, aDescription, aLocation, aContactMethods, aWebsite);
+            final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
+            final Optional<URL> aWebContact, final URL aWebsite) {
+        final Institution institution =
+                new Institution(aName, aDescription, aLocation, anEmail, aPhone, aWebContact, aWebsite);
         final JsonObject json = new JsonObject() //
                 .put(Institution.NAME, aName) //
                 .put(Institution.DESCRIPTION, aDescription) //
                 .put(Institution.LOCATION, aLocation) //
-                .put(Institution.EMAIL, aContactMethods.getEmail().map(InternetAddress::toString).orElse(null)) //
-                .put(Institution.PHONE, aContactMethods.getPhone() //
+                .put(Institution.EMAIL, anEmail.map(InternetAddress::toString).orElse(null)) //
+                .put(Institution.PHONE, aPhone //
                         .map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)) //
                         .orElse(null)) //
-                .put(Institution.WEB_CONTACT, aContactMethods.getWebContact().map(URL::toString).orElse(null)) //
+                .put(Institution.WEB_CONTACT, aWebContact.map(URL::toString).orElse(null)) //
                 .put(Institution.WEBSITE, aWebsite.toString());
         final Institution institutionFromJson = new Institution(json);
 
@@ -80,10 +84,9 @@ public class InstitutionTest {
         assertEquals(institution.getName(), institutionFromJson.getName());
         assertEquals(institution.getDescription(), institutionFromJson.getDescription());
         assertEquals(institution.getLocation(), institutionFromJson.getLocation());
-        assertEquals(institution.getContactMethods().getEmail(), institutionFromJson.getContactMethods().getEmail());
-        assertEquals(institution.getContactMethods().getPhone(), institutionFromJson.getContactMethods().getPhone());
-        assertEquals(institution.getContactMethods().getWebContact(),
-                institutionFromJson.getContactMethods().getWebContact());
+        assertEquals(institution.getEmail(), institutionFromJson.getEmail());
+        assertEquals(institution.getPhone(), institutionFromJson.getPhone());
+        assertEquals(institution.getWebContact(), institutionFromJson.getWebContact());
         assertEquals(institution.getWebsite(), institutionFromJson.getWebsite());
     }
 
@@ -98,26 +101,26 @@ public class InstitutionTest {
         final String exampleName = "Name 1";
         final String exampleDescription = "Description 1";
         final String exampleLocation = "Location 1";
-        final InternetAddress exampleEmail = new InternetAddress("test0@example.com");
-        final PhoneNumber examplePhone = PHONE_NUMBER_UTIL.parse("+1 888 200 1000", null);
-        final URL exampleWebContact = new URL("http://example.com/1/contact");
-        final ContactMethods exampleContactMethods1 = new ContactMethods(exampleEmail, examplePhone, exampleWebContact);
-        final ContactMethods exampleContactMethods2 = new ContactMethods(exampleEmail, examplePhone);
-        final ContactMethods exampleContactMethods3 = new ContactMethods(exampleEmail, exampleWebContact);
-        final ContactMethods exampleContactMethods4 = new ContactMethods(examplePhone, exampleWebContact);
-        final ContactMethods exampleContactMethods6 = new ContactMethods(exampleEmail);
-        final ContactMethods exampleContactMethods5 = new ContactMethods(examplePhone);
-        final ContactMethods exampleContactMethods7 = new ContactMethods(exampleWebContact);
+        final Optional<InternetAddress> exampleEmail = Optional.of(new InternetAddress("test0@example.com"));
+        final Optional<PhoneNumber> examplePhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 1000", null));
+        final Optional<URL> exampleWebContact = Optional.of(new URL("http://example.com/1/contact"));
         final URL exampleWebsite = new URL("http://example.com/1");
 
         return Stream.of( //
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods1, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods2, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods3, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods4, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods5, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods6, exampleWebsite),
-                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleContactMethods7, exampleWebsite));
+                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleEmail, examplePhone,
+                        exampleWebContact, exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleEmail, examplePhone,
+                        Optional.empty(), exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleEmail, Optional.empty(),
+                        exampleWebContact, exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, Optional.empty(), examplePhone,
+                        exampleWebContact, exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, exampleEmail, Optional.empty(),
+                        Optional.empty(), exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, Optional.empty(), examplePhone,
+                        Optional.empty(), exampleWebsite),
+                Arguments.of(exampleName, exampleDescription, exampleLocation, Optional.empty(), Optional.empty(),
+                        exampleWebContact, exampleWebsite));
     }
 
     /**
@@ -126,9 +129,9 @@ public class InstitutionTest {
      * @param aName The institution's name
      * @param aDescription The institution's description
      * @param aLocation The institution's human-readable location
-     * @param anEmail The optional email address contact of the institution
-     * @param aPhone The optional phone number contact of the institution
-     * @param aWebContact The optional web contact of the institution
+     * @param anEmail The institution's optional email contact
+     * @param aPhone The institution's optional phone contact
+     * @param aWebContact The institution's optional web contact
      * @param aWebsite The institiution's website
      * @param anErrorClass The class of error that we expect instantiation with the above arguments to throw
      */
@@ -214,9 +217,10 @@ public class InstitutionTest {
     @ParameterizedTest
     @MethodSource
     void testInstitutionNullArguments(final String aName, final String aDescription, final String aLocation,
-            final ContactMethods aContactMethods, final URL aWebsite) {
+            final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
+            final Optional<URL> aWebContact, final URL aWebsite) {
         assertThrows(NullPointerException.class, () -> {
-            new Institution(aName, aDescription, aLocation, aContactMethods, aWebsite);
+            new Institution(aName, aDescription, aLocation, anEmail, aPhone, aWebContact, aWebsite);
         });
     }
 
@@ -231,18 +235,32 @@ public class InstitutionTest {
         final String validName = "Name 3";
         final String validDescription = "Description 3";
         final String validLocation = "Location 3";
-        final InternetAddress validEmail = new InternetAddress("test2@example.com");
-        final PhoneNumber validPhone = PHONE_NUMBER_UTIL.parse("+1 888 200 3000", null);
-        final URL validWebContact = new URL("http://example.com/3/contact");
-        final ContactMethods validContactMethods = new ContactMethods(validEmail, validPhone, validWebContact);
+        final Optional<InternetAddress> validEmail = Optional.of(new InternetAddress("test2@example.com"));
+        final Optional<PhoneNumber> validPhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 3000", null));
+        final Optional<URL> validWebContact = Optional.of(new URL("http://example.com/3/contact"));
         final URL validWebsite = new URL("http://example.com/3");
 
         return Stream.of( //
-                Arguments.of(null, validDescription, validLocation, validContactMethods, validWebsite), //
-                Arguments.of(validName, null, validLocation, validContactMethods, validWebsite), //
-                Arguments.of(validName, validDescription, null, validContactMethods, validWebsite), //
-                Arguments.of(validName, validDescription, validLocation, null, validWebsite), //
-                Arguments.of(validName, validDescription, validLocation, validContactMethods, null));
+                Arguments.of(null, validDescription, validLocation, validEmail, validPhone, validWebContact,
+                        validWebsite), //
+                Arguments.of(validName, null, validLocation, validEmail, validPhone, validWebContact, validWebsite), //
+                Arguments.of(validName, validDescription, null, validEmail, validPhone, validWebContact, validWebsite), //
+                Arguments.of(validName, validDescription, validLocation, null, validPhone, validWebContact,
+                        validWebsite), //
+                Arguments.of(validName, validDescription, validLocation, validEmail, null, validWebContact,
+                        validWebsite), //
+                Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, null, validWebsite), //
+                Arguments.of(validName, validDescription, validLocation, validEmail, validPhone, validWebContact,
+                        null));
+    }
+
+    /**
+     * Tests that passing all empty contact methods throws an error.
+     */
+    @Test
+    void testInstitutionEmptyContactMethods() {
+        assertThrows(IllegalArgumentI18nException.class, () -> new Institution("Name 4", "Description 4", "Location 4",
+                Optional.empty(), Optional.empty(), Optional.empty(), new URL("http://example.com/4")));
     }
 
     /**

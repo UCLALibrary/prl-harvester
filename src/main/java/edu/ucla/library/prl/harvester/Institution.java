@@ -14,6 +14,8 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
+import info.freelibrary.util.IllegalArgumentI18nException;
+
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -80,9 +82,19 @@ public final class Institution {
     private final String myLocation;
 
     /**
-     * The institution's contact methods.
+     * The institution's optional email contact.
      */
-    private final ContactMethods myContactMethods;
+    private final Optional<InternetAddress> myEmail;
+
+    /**
+     * The institution's optional phone contact.
+     */
+    private final Optional<PhoneNumber> myPhone;
+
+    /**
+     * The institution's optional web contact.
+     */
+    private final Optional<URL> myWebContact;
 
     /**
      * The institiution's website.
@@ -95,15 +107,27 @@ public final class Institution {
      * @param aName The institution's name
      * @param aDescription The institution's description
      * @param aLocation The institution's human-readable location
-     * @param aContactMethods The institution's contact methods
+     * @param anEmail The institution's optional email contact
+     * @param aPhone The institution's optional phone contact
+     * @param aWebContact The institution's optional web contact
      * @param aWebsite The institiution's website
+     * @throws IllegalArgumentI18nException If all provided contact methods are empty
      */
     public Institution(final String aName, final String aDescription, final String aLocation,
-            final ContactMethods aContactMethods, final URL aWebsite) {
+            final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
+            final Optional<URL> aWebContact, final URL aWebsite) {
         myName = Objects.requireNonNull(aName);
         myDescription = Objects.requireNonNull(aDescription);
         myLocation = Objects.requireNonNull(aLocation);
-        myContactMethods = Objects.requireNonNull(aContactMethods);
+
+        if (anEmail.isPresent() || aPhone.isPresent() || aWebContact.isPresent()) {
+            myEmail = Objects.requireNonNull(anEmail);
+            myPhone = Objects.requireNonNull(aPhone);
+            myWebContact = Objects.requireNonNull(aWebContact);
+        } else {
+            throw new IllegalArgumentI18nException(MessageCodes.BUNDLE, MessageCodes.PRL_003);
+        }
+
         myWebsite = Objects.requireNonNull(aWebsite);
     }
 
@@ -169,20 +193,10 @@ public final class Institution {
             }
         });
 
-        if (email.isPresent() && phone.isPresent() && webContact.isPresent()) {
-            myContactMethods = new ContactMethods(email.get(), phone.get(), webContact.get());
-        } else if (email.isPresent() && phone.isPresent()) {
-            myContactMethods = new ContactMethods(email.get(), phone.get());
-        } else if (email.isPresent() && webContact.isPresent()) {
-            myContactMethods = new ContactMethods(email.get(), webContact.get());
-        } else if (phone.isPresent() && webContact.isPresent()) {
-            myContactMethods = new ContactMethods(phone.get(), webContact.get());
-        } else if (email.isPresent()) {
-            myContactMethods = new ContactMethods(email.get());
-        } else if (phone.isPresent()) {
-            myContactMethods = new ContactMethods(phone.get());
-        } else if (webContact.isPresent()) {
-            myContactMethods = new ContactMethods(webContact.get());
+        if (email.isPresent() || phone.isPresent() || webContact.isPresent()) {
+            myEmail = email;
+            myPhone = phone;
+            myWebContact = webContact;
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_003);
         }
@@ -206,11 +220,11 @@ public final class Institution {
                 .put(NAME, getName()) //
                 .put(DESCRIPTION, getDescription()) //
                 .put(LOCATION, getLocation()) //
-                .put(EMAIL, getContactMethods().getEmail().map(InternetAddress::toString).orElse(null)) //
-                .put(PHONE, getContactMethods().getPhone() //
+                .put(EMAIL, getEmail().map(InternetAddress::toString).orElse(null)) //
+                .put(PHONE, getPhone() //
                         .map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)) //
                         .orElse(null)) //
-                .put(WEB_CONTACT, getContactMethods().getWebContact().map(URL::toString).orElse(null)) //
+                .put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null)) //
                 .put(WEBSITE, myWebsite.toString());
     }
 
@@ -236,10 +250,24 @@ public final class Institution {
     }
 
     /**
-     * @return The contact methods
+     * @return The optional email
      */
-    public ContactMethods getContactMethods() {
-        return myContactMethods;
+    public Optional<InternetAddress> getEmail() {
+        return myEmail;
+    }
+
+    /**
+     * @return The optional phone
+     */
+    public Optional<PhoneNumber> getPhone() {
+        return myPhone;
+    }
+
+    /**
+     * @return The optional web contact
+     */
+    public Optional<URL> getWebContact() {
+        return myWebContact;
     }
 
     /**
@@ -247,129 +275,5 @@ public final class Institution {
      */
     public URL getWebsite() {
         return myWebsite;
-    }
-
-    /**
-     * Represents a valid set of contact methods.
-     */
-    public static final class ContactMethods {
-
-        /**
-         * The optional email address contact of the institution.
-         */
-        private final Optional<InternetAddress> myEmail;
-
-        /**
-         * The optional phone number contact of the institution.
-         */
-        private final Optional<PhoneNumber> myPhone;
-
-        /**
-         * The optional web contact of the institution.
-         */
-        private final Optional<URL> myWebContact;
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param anEmail An email address
-         * @param aPhone A phone number
-         * @param aWebContact A web contact URL
-         */
-        public ContactMethods(final InternetAddress anEmail, final PhoneNumber aPhone, final URL aWebContact) {
-            myEmail = Optional.of(Objects.requireNonNull(anEmail));
-            myPhone = Optional.of(Objects.requireNonNull(aPhone));
-            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param anEmail An email address
-         * @param aPhone A phone number
-         */
-        public ContactMethods(final InternetAddress anEmail, final PhoneNumber aPhone) {
-            myEmail = Optional.of(Objects.requireNonNull(anEmail));
-            myPhone = Optional.of(Objects.requireNonNull(aPhone));
-            myWebContact = Optional.empty();
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param anEmail An email address
-         * @param aWebContact A web contact URL
-         */
-        public ContactMethods(final InternetAddress anEmail, final URL aWebContact) {
-            myEmail = Optional.of(Objects.requireNonNull(anEmail));
-            myPhone = Optional.empty();
-            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param aPhone A phone number
-         * @param aWebContact A web contact URL
-         */
-        public ContactMethods(final PhoneNumber aPhone, final URL aWebContact) {
-            myEmail = Optional.empty();
-            myPhone = Optional.of(Objects.requireNonNull(aPhone));
-            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param anEmail An email address
-         */
-        public ContactMethods(final InternetAddress anEmail) {
-            myEmail = Optional.of(Objects.requireNonNull(anEmail));
-            myPhone = Optional.empty();
-            myWebContact = Optional.empty();
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param aPhone A phone number
-         */
-        public ContactMethods(final PhoneNumber aPhone) {
-            myEmail = Optional.empty();
-            myPhone = Optional.of(Objects.requireNonNull(aPhone));
-            myWebContact = Optional.empty();
-        }
-
-        /**
-         * Instantiates a set of contact methods.
-         *
-         * @param aWebContact A web contact URL
-         */
-        public ContactMethods(final URL aWebContact) {
-            myEmail = Optional.empty();
-            myPhone = Optional.empty();
-            myWebContact = Optional.of(Objects.requireNonNull(aWebContact));
-        }
-
-        /**
-         * @return The optional email
-         */
-        public Optional<InternetAddress> getEmail() {
-            return myEmail;
-        }
-
-        /**
-         * @return The optional phone
-         */
-        public Optional<PhoneNumber> getPhone() {
-            return myPhone;
-        }
-
-        /**
-         * @return The optional web contact
-         */
-        public Optional<URL> getWebContact() {
-            return myWebContact;
-        }
     }
 }
