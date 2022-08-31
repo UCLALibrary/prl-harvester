@@ -294,7 +294,9 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
-          <environmentVariables></environmentVariables>
+          <environmentVariables>
+            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+          </environmentVariables>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
@@ -599,6 +601,74 @@
                     <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
                     <arg>--fail-on=all</arg>
                   </args> 
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>debug</id>
+      <properties>
+        <maven.compiler.debug>true</maven.compiler.debug>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <properties>
+                <configurationParameters>
+                  junit.jupiter.execution.timeout.mode = disabled_on_debug
+                </configurationParameters>
+              </properties>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <properties>
+                <configurationParameters>
+                  junit.jupiter.execution.timeout.mode = disabled_on_debug
+                </configurationParameters>
+              </properties>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <imagesMap>
+                <image>
+                  <name>${docker.registry.account}${project.artifactId}:%l</name>
+                  <run>
+                    <ports>
+                      <port>${http.test.port}:${http.test.port}</port>
+                      <port>5555:5555</port>
+                    </ports>
+                    <env>
+                      <JAVA_OPTS>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555</JAVA_OPTS>
+                    </env>
+                    <wait>
+                      <time>60000</time>
+                    </wait>
+                  </run>
+                </image>
+              </imagesMap>
+            </configuration>
+            <executions>
+              <execution>
+                <id>docker-start</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <showLogs>true</showLogs>
                 </configuration>
               </execution>
             </executions>
