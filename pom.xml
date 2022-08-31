@@ -107,6 +107,12 @@
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <!-- The default scope from the parent is 'test' so we have to override here -->
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <!-- The default scope from the parent is 'test' so we have to override here -->
       <scope>compile</scope>
@@ -618,7 +624,7 @@
   <parent>
     <artifactId>freelib-parent</artifactId>
     <groupId>info.freelibrary</groupId>
-    <version>7.2.2</version>
+    <version>7.3.1</version>
   </parent>
 
 </project>
