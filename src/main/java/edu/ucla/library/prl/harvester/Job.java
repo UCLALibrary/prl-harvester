@@ -1,0 +1,209 @@
+
+package edu.ucla.library.prl.harvester;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.ParseException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.quartz.CronExpression;
+
+import io.vertx.codegen.annotations.DataObject;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+
+/**
+ * Represents an OAI-PMH harvest job.
+ */
+@DataObject
+@SuppressWarnings("PMD.DataClass")
+public final class Job {
+
+    /**
+     * The JSON key for the institution ID.
+     */
+    static final String INSTITUTION_ID = "institutionId";
+
+    /**
+     * The JSON key for the repository base URL.
+     */
+    static final String REPOSITORY_BASE_URL = "repositoryBaseUrl";
+
+    /**
+     * JSON key for the metadata prefix.
+     */
+    static final String METADATA_PREFIX = "metadataPrefix";
+
+    /**
+     * JSON key for the list of sets.
+     */
+    static final String SETS = "sets";
+
+    /**
+     * JSON key for the schedule.
+     */
+    static final String SCHEDULE_CRON_EXPRESSION = "scheduleCronExpression";
+
+    /**
+     * JSON key for the last successful run.
+     */
+    static final String LAST_SUCCESSFUL_RUN = "lastSuccessfulRun";
+
+    /**
+     * The identifier of the institution that this job should be associated with.
+     */
+    private final int myInstitutionID;
+
+    /**
+     * The base URL of the OAI-PMH repository.
+     */
+    private final URL myRepositoryBaseURL;
+
+    /**
+     * The list of sets to harvest.
+     */
+    private final Optional<List<String>> mySets;
+
+    /**
+     * The schedule on which this job should be run.
+     */
+    private final CronExpression myScheduleCronExpression;
+
+    /**
+     * The timestamp of the last successful run of this job; will be empty at first.
+     */
+    private final Optional<ZonedDateTime> myLastSuccessfulRun;
+
+    /**
+     * Instantiates a job.
+     *
+     * @param anInstitutionID The identifier of the institution that this job should be associated with
+     * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
+     * @param aScheduleCronExpression The schedule on which this job should be run
+     * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
+     */
+    public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
+            final CronExpression aScheduleCronExpression, final ZonedDateTime aLastSuccessfulRun) {
+        myInstitutionID = anInstitutionID;
+        myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
+        mySets = Optional.ofNullable(aSets);
+        myScheduleCronExpression = Objects.requireNonNull(aScheduleCronExpression);
+        myLastSuccessfulRun = Optional.ofNullable(aLastSuccessfulRun);
+    }
+
+    /**
+     * Instantiates a job from its JSON representation.
+     * <p>
+     * <b>This constructor is meant to be used only by generated service proxy code!</b>
+     * {@link #Job(int, URL, List, CronExpression, ZonedDateTime)} should be used everywhere else.
+     *
+     * @param aJsonObject A job represented as JSON
+     * @throws InvalidJobJsonException If the JSON representation is invalid
+     */
+    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity" })
+    public Job(final JsonObject aJsonObject) {
+        Objects.requireNonNull(aJsonObject);
+
+        final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
+        final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
+        final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
+
+        if (institutionID != null) {
+            myInstitutionID = institutionID;
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, INSTITUTION_ID);
+        }
+
+        if (repositoryBaseURL != null) {
+            try {
+                myRepositoryBaseURL = new URL(repositoryBaseURL);
+            } catch (final MalformedURLException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, REPOSITORY_BASE_URL,
+                        details.getMessage());
+            }
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
+        }
+
+        mySets = Optional.ofNullable(aJsonObject.getJsonArray(SETS)).map(JsonArray::getList);
+
+        if (scheduleCronExpression != null) {
+            try {
+                myScheduleCronExpression = new CronExpression(scheduleCronExpression);
+            } catch (final ParseException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, SCHEDULE_CRON_EXPRESSION,
+                        details.getMessage());
+            }
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, SCHEDULE_CRON_EXPRESSION);
+        }
+
+        myLastSuccessfulRun = Optional.ofNullable(aJsonObject.getString(LAST_SUCCESSFUL_RUN)).map(datetime -> {
+            try {
+                return ZonedDateTime.parse(datetime);
+            } catch (final DateTimeParseException details) {
+                throw new InvalidJobJsonException(details, MessageCodes.PRL_004, LAST_SUCCESSFUL_RUN,
+                        details.getMessage());
+            }
+        });
+    }
+
+    /**
+     * @return The JSON representation of the job
+     */
+    public JsonObject toJson() {
+        return new JsonObject() //
+                .put(INSTITUTION_ID, getInstitutionID()) //
+                .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
+                .put(SETS, getSets().orElse(null)) //
+                .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
+                .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(ZonedDateTime::toString).orElse(null));
+    }
+
+    /**
+     * @return The institution ID
+     */
+    public int getInstitutionID() {
+        return myInstitutionID;
+    }
+
+    /**
+     * @return The repository base URL
+     */
+    public URL getRepositoryBaseURL() {
+        return myRepositoryBaseURL;
+    }
+
+    /**
+     * @return The metadata prefix
+     */
+    public String getMetadataPrefix() {
+        return Constants.OAI_DC;
+    }
+
+    /**
+     * @return The optional list of sets
+     */
+    public Optional<List<String>> getSets() {
+        return mySets;
+    }
+
+    /**
+     * @return The schedule
+     */
+    public CronExpression getScheduleCronExpression() {
+        return myScheduleCronExpression;
+    }
+
+    /**
+     * @return The optional last successful run
+     */
+    public Optional<ZonedDateTime> getLastSuccessfulRun() {
+        return myLastSuccessfulRun;
+    }
+}
