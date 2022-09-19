@@ -8,9 +8,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 /**
- * The interface of the event bus service that schedules harvest jobs.
+ * The implementation of {@link HarvestScheduleStoreService}.
  */
-@SuppressWarnings("PMD.UnusedFormalParameter") //temp until constructor defined
+@SuppressWarnings("PMD.UnusedFormalParameter") //FIXME: temp until constructor defined
 public class HarvestJobSchedulerServiceImpl implements HarvestJobSchedulerService {
 
     HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig) {

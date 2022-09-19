@@ -8,11 +8,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 /**
- * The interface of the event bus service that runs harvest jobs.
+ * The implementation of {@link HarvestService}.
  */
 public class HarvestServiceImpl implements HarvestService {
 
-    @SuppressWarnings("PMD.UnusedFormalParameter") //temp until constructor defined
+    @SuppressWarnings("PMD.UnusedFormalParameter") //FIXME: temp until constructor defined
     HarvestServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
         // TODO: code class constructor
     }
