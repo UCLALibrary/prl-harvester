@@ -12,7 +12,7 @@ import io.vertx.core.json.JsonObject;
  */
 public class HarvestServiceImpl implements HarvestService {
 
-    @SuppressWarnings("PMD.UnusedFormalParameter") //FIXME: temp until constructor defined
+    @SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
     HarvestServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
         // TODO: code class constructor
     }

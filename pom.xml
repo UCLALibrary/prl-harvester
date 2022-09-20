@@ -35,6 +35,9 @@
     <javax.mail.version>1.6.2</javax.mail.version>
     <libphonenumber.version>8.12.54</libphonenumber.version>
 
+    <!-- Security update overrides -->
+    <snakeyaml.version>1.32</snakeyaml.version>
+
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
     <clean.plugin.version>3.1.0</clean.plugin.version>
@@ -47,6 +50,7 @@
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
+    <postgres.version>12.12-alpine</postgres.version>
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
@@ -162,7 +166,12 @@
       <version>${libphonenumber.version}</version>
     </dependency>
 
-
+    <!-- Security update overrides -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
+    </dependency>
 
     <!-- Below dependencies only used for testing -->
     <dependency>
@@ -231,6 +240,15 @@
             </goals>
             <configuration>
               <mediaTypePackage>edu.ucla.library.prl.harvester</mediaTypePackage>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-db-password</id>
+            <goals>
+              <goal>set-uuid-property</goal>
+            </goals>
+            <configuration>
+              <name>test.db.password</name>
             </configuration>
           </execution>
         </executions>
@@ -320,7 +338,27 @@
         <version>${docker.plugin.version}</version>
         <configuration>
           <imagesMap>
-            <image>
+            <prl_pgsql>
+              <name>postgres:${postgres.version}</name>
+              <run>
+                <containerNamePattern>hauth_pgsql</containerNamePattern>
+                <ports>
+                  <port>${test.db.port}:5432</port>
+                </ports>
+                <volumes>
+                  <bind>
+                    <volume>${project.basedir}/src/test/resources/db/:/docker-entrypoint-initdb.d/</volume>
+                  </bind>
+                </volumes>
+                <env>
+                  <POSTGRES_PASSWORD>${test.db.password}</POSTGRES_PASSWORD>
+                </env>
+                <wait>
+                  <log>database system is ready to accept connections</log>
+                </wait>
+              </run>
+            </prl_pgsql>
+            <prl_harvester>
               <!-- Registry account, if supplied, must end in a slash (e.g. "account/") -->
               <!-- The %l at the end translates to "latest" if version ends in "-SNAPSHOT" -->
               <name>${docker.registry.account}${project.artifactId}:%l</name>
@@ -355,6 +393,9 @@
                   <HTTP_PORT>${http.test.port}</HTTP_PORT>
                 </env>
                 <!-- Test to make sure the server started as expected -->
+                <dependsOn>
+                  <container>prl_pgsql</container>
+                </dependsOn>
                 <wait>
                   <http>
                     <url>http://localhost:${http.test.port}/status</url>
@@ -363,7 +404,7 @@
                   </http>
                 </wait>
               </run>
-            </image>
+            </prl_harvester>
           </imagesMap>
         </configuration>
         <executions>
