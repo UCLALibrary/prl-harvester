@@ -320,7 +320,7 @@
         <version>${docker.plugin.version}</version>
         <configuration>
           <imagesMap>
-            <image>
+            <harvester>
               <!-- Registry account, if supplied, must end in a slash (e.g. "account/") -->
               <!-- The %l at the end translates to "latest" if version ends in "-SNAPSHOT" -->
               <name>${docker.registry.account}${project.artifactId}:%l</name>
@@ -363,7 +363,7 @@
                   </http>
                 </wait>
               </run>
-            </image>
+            </harvester>
           </imagesMap>
         </configuration>
         <executions>
@@ -643,7 +643,7 @@
             <artifactId>docker-maven-plugin</artifactId>
             <configuration>
               <imagesMap>
-                <image>
+                <harvester>
                   <name>${docker.registry.account}${project.artifactId}:%l</name>
                   <run>
                     <ports>
@@ -657,7 +657,7 @@
                       <time>60000</time>
                     </wait>
                   </run>
-                </image>
+                </harvester>
               </imagesMap>
             </configuration>
             <executions>
