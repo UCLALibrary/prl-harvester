@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
  */
-@SuppressWarnings("PMD.UnusedFormalParameter") //FIXME: temp until constructor defined
+@SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
 public class HarvestJobSchedulerServiceImpl implements HarvestJobSchedulerService {
 
     HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig) {

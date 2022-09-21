@@ -1,23 +1,41 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import java.util.List;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.MessageCodes;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.jdbcclient.JDBCPool;
+//import io.vertx.sqlclient.Row;
+import io.vertx.serviceproxy.ServiceException;
 
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
  */
-@SuppressWarnings("PMD.UnusedFormalParameter") //FIXME: temp until constructor defined
+@SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
 public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreService {
 
+    /**
+     * The cschedule store service's logger.
+     */
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
+
+    /**
+     * The underlying PostgreSQL connection pool.
+     */
+    private final JDBCPool myDbConnectionPool;
+
     HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
-        // TODO code constructor
+        myDbConnectionPool = JDBCPool.pool(aVertx, aConfig);
     }
 
     @Override
@@ -34,8 +52,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Integer> addInstitution(final Institution anInstitution) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(UPSERT_DEGRADED_ALLOWED).execute(Tuple.of(
+                  anInstitution.getName(), anInstitution.getDescription(), anInstitution.getLocation(),
+                  anInstitution.getEmail(), anInstitution.getPhone(), anInstitution.getWebContact(),
+                  anInstitution.getWebsite()));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(result -> Future.succeededFuture());
     }
 
     @Override

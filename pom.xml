@@ -147,6 +147,10 @@
       <classifier>processor</classifier>
     </dependency>
     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-jdbc-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.quartz-scheduler</groupId>
       <artifactId>quartz</artifactId>
       <version>${quartz.version}</version>
