@@ -212,10 +212,14 @@
         </configuration>
       </plugin>
 
-      <!-- Sets http.test.port for testing the application -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
+        <configuration>
+          <portNames>
+            <portName>test.harvester.port</portName>
+          </portNames>
+        </configuration>
       </plugin>
 
       <!-- Processes resources codes and generates media types -->
@@ -284,7 +288,7 @@
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
           <environmentVariables>
-            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
         </configuration>
       </plugin>
@@ -295,7 +299,7 @@
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
           <environmentVariables>
-            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
@@ -349,15 +353,15 @@
                 <containerNamePattern>${project.artifactId}</containerNamePattern>
                 <ports>
                   <!-- Start test container on an available host port -->
-                  <port>${http.test.port}:${http.test.port}</port>
+                  <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
-                  <HTTP_PORT>${http.test.port}</HTTP_PORT>
+                  <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
-                    <url>http://localhost:${http.test.port}/status</url>
+                    <url>http://localhost:${test.harvester.port}/status</url>
                     <method>GET</method>
                     <status>200</status>
                   </http>
@@ -557,7 +561,7 @@
               <jvmArgs>
                 <jvmArg>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory</jvmArg>
                 <!-- Pass system props because the plugin doesn't take ENVs (and the config library doesn't care) -->
-                <jvmArg>-DHTTP_PORT=${http.test.port}</jvmArg>
+                <jvmArg>-DHTTP_PORT=${test.harvester.port}</jvmArg>
               </jvmArgs>
             </configuration>
           </plugin>
@@ -647,7 +651,7 @@
                   <name>${docker.registry.account}${project.artifactId}:%l</name>
                   <run>
                     <ports>
-                      <port>${http.test.port}:${http.test.port}</port>
+                      <port>${test.harvester.port}:${test.harvester.port}</port>
                       <port>5555:5555</port>
                     </ports>
                     <env>
