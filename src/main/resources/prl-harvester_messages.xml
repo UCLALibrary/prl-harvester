@@ -10,5 +10,6 @@
   <entry key="PRL_002">Missing value for field '{}'</entry>
   <entry key="PRL_003">Missing at least one of 'email', 'phone', or 'webContact'</entry>
   <entry key="PRL_004">Invalid value for field '{}': {}</entry>
+  <entry key="PRL_005">Error during institution insert: {}</entry>
 
 </properties>

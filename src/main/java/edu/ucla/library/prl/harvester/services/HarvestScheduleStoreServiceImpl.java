@@ -14,7 +14,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
-//import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.Tuple;
+import io.vertx.sqlclient.Row;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -52,14 +53,20 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Integer> addInstitution(final Institution anInstitution) {
+        final StringBuffer newID = new StringBuffer();
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery(UPSERT_DEGRADED_ALLOWED).execute(Tuple.of(
-                  anInstitution.getName(), anInstitution.getDescription(), anInstitution.getLocation(),
-                  anInstitution.getEmail(), anInstitution.getPhone(), anInstitution.getWebContact(),
-                  anInstitution.getWebsite()));
+            return connection.preparedQuery("query to be defined")
+                    .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
+                            anInstitution.getLocation(), anInstitution.getEmail(), anInstitution.getPhone(),
+                            anInstitution.getWebContact(), anInstitution.getWebsite()))
+                    .onSuccess(rows -> {
+                        final Row lastInsertId = rows.property(JDBCPool.GENERATED_KEYS);
+                        newID.append(lastInsertId.getLong(0));
+                    });
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
-        }).compose(result -> Future.succeededFuture());
+            LOGGER.error(MessageCodes.PRL_005, error.getMessage());
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(result -> Future.succeededFuture(Integer.valueOf(newID.toString())));
     }
 
     @Override
