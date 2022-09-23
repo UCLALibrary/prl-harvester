@@ -47,6 +47,7 @@
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
+    <docker.localstack.version>1.1.0</docker.localstack.version>
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
@@ -212,10 +213,15 @@
         </configuration>
       </plugin>
 
-      <!-- Sets http.test.port for testing the application -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
+        <configuration>
+          <portNames>
+            <portName>test.harvester.port</portName>
+            <portName>test.s3.port</portName>
+          </portNames>
+        </configuration>
       </plugin>
 
       <!-- Processes resources codes and generates media types -->
@@ -284,7 +290,7 @@
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
           <environmentVariables>
-            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
         </configuration>
       </plugin>
@@ -295,7 +301,11 @@
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
           <environmentVariables>
-            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+            <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+            <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+            <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+            <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
@@ -320,7 +330,7 @@
         <version>${docker.plugin.version}</version>
         <configuration>
           <imagesMap>
-            <image>
+            <harvester>
               <!-- Registry account, if supplied, must end in a slash (e.g. "account/") -->
               <!-- The %l at the end translates to "latest" if version ends in "-SNAPSHOT" -->
               <name>${docker.registry.account}${project.artifactId}:%l</name>
@@ -349,21 +359,70 @@
                 <containerNamePattern>${project.artifactId}</containerNamePattern>
                 <ports>
                   <!-- Start test container on an available host port -->
-                  <port>${http.test.port}:${http.test.port}</port>
+                  <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
-                  <HTTP_PORT>${http.test.port}</HTTP_PORT>
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                  <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+                  <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
+                <dependsOn>
+                  <container>s3</container>
+                </dependsOn>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
-                    <url>http://localhost:${http.test.port}/status</url>
+                    <url>http://localhost:${test.harvester.port}/status</url>
                     <method>GET</method>
                     <status>200</status>
                   </http>
                 </wait>
               </run>
-            </image>
+            </harvester>
+            <s3>
+              <name>localstack/localstack:${docker.localstack.version}</name>
+              <run>
+                <env>
+                  <SERVICES>s3</SERVICES>
+                </env>
+                <ports>
+                  <port>${test.s3.port}:4566</port>
+                </ports>
+                <wait>
+                  <log>^Ready\.$</log>
+                  <time>60000</time>
+                </wait>
+              </run>
+            </s3>
+            <s3-initializer>
+              <name>s3-initializer</name>
+              <build>
+                <args>
+                  <ALPINE_TAG>${docker.alpine.version}</ALPINE_TAG>
+                </args>
+                <dockerFile>${project.basedir}/src/test/docker/s3-initializer/Dockerfile</dockerFile>
+                <imagePullPolicy>Never</imagePullPolicy>
+              </build>
+              <run>
+                <containerNamePattern>${project.artifactId}_s3-initializer</containerNamePattern>
+                <env>
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+                </env>
+                <links>
+                  <link>s3:s3</link>
+                </links>
+                <dependsOn>
+                  <container>s3</container>
+                </dependsOn>
+                <wait>
+                  <exit>0</exit>
+                </wait>
+              </run>
+            </s3-initializer>
           </imagesMap>
         </configuration>
         <executions>
@@ -557,7 +616,7 @@
               <jvmArgs>
                 <jvmArg>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory</jvmArg>
                 <!-- Pass system props because the plugin doesn't take ENVs (and the config library doesn't care) -->
-                <jvmArg>-DHTTP_PORT=${http.test.port}</jvmArg>
+                <jvmArg>-DHTTP_PORT=${test.harvester.port}</jvmArg>
               </jvmArgs>
             </configuration>
           </plugin>
@@ -643,11 +702,11 @@
             <artifactId>docker-maven-plugin</artifactId>
             <configuration>
               <imagesMap>
-                <image>
+                <harvester>
                   <name>${docker.registry.account}${project.artifactId}:%l</name>
                   <run>
                     <ports>
-                      <port>${http.test.port}:${http.test.port}</port>
+                      <port>${test.harvester.port}:${test.harvester.port}</port>
                       <port>5555:5555</port>
                     </ports>
                     <env>
@@ -657,7 +716,7 @@
                       <time>60000</time>
                     </wait>
                   </run>
-                </image>
+                </harvester>
               </imagesMap>
             </configuration>
             <executions>
