@@ -47,6 +47,7 @@
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
+    <docker.localstack.version>1.1.0</docker.localstack.version>
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
@@ -218,6 +219,7 @@
         <configuration>
           <portNames>
             <portName>test.harvester.port</portName>
+            <portName>test.s3.port</portName>
           </portNames>
         </configuration>
       </plugin>
@@ -299,6 +301,10 @@
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
           <environmentVariables>
+            <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+            <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+            <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+            <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
           <systemPropertyVariables>
@@ -356,8 +362,15 @@
                   <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                  <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
+                <dependsOn>
+                  <container>s3</container>
+                </dependsOn>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
@@ -368,6 +381,48 @@
                 </wait>
               </run>
             </harvester>
+            <s3>
+              <name>localstack/localstack:${docker.localstack.version}</name>
+              <run>
+                <env>
+                  <SERVICES>s3</SERVICES>
+                </env>
+                <ports>
+                  <port>${test.s3.port}:4566</port>
+                </ports>
+                <wait>
+                  <log>^Ready\.$</log>
+                  <time>60000</time>
+                </wait>
+              </run>
+            </s3>
+            <s3-initializer>
+              <name>s3-initializer</name>
+              <build>
+                <args>
+                  <ALPINE_TAG>${docker.alpine.version}</ALPINE_TAG>
+                </args>
+                <dockerFile>${project.basedir}/src/test/docker/s3-initializer/Dockerfile</dockerFile>
+                <imagePullPolicy>Never</imagePullPolicy>
+              </build>
+              <run>
+                <containerNamePattern>${project.artifactId}_s3-initializer</containerNamePattern>
+                <env>
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+                </env>
+                <links>
+                  <link>s3:s3</link>
+                </links>
+                <dependsOn>
+                  <container>s3</container>
+                </dependsOn>
+                <wait>
+                  <exit>0</exit>
+                </wait>
+              </run>
+            </s3-initializer>
           </imagesMap>
         </configuration>
         <executions>
