@@ -35,6 +35,9 @@
     <javax.mail.version>1.6.2</javax.mail.version>
     <libphonenumber.version>8.12.54</libphonenumber.version>
 
+    <!-- Security update overrides -->
+    <snakeyaml.version>1.32</snakeyaml.version>
+
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
     <clean.plugin.version>3.1.0</clean.plugin.version>
@@ -47,6 +50,8 @@
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
+    <postgres.version>12.12-alpine</postgres.version>
+    <docker.localstack.version>1.1.0</docker.localstack.version>
 
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
@@ -78,6 +83,10 @@
 
     <!-- This can be left alone as this will set a default image tag in the helm chart relative to the release tag -->
     <helm.chart.app.version>${revision}</helm.chart.app.version>
+
+    <!-- Parameterized user since we'll use for other harvesting applications too -->
+    <test.db.reader>prl_reader</test.db.reader>
+    <test.db.writer>prl_writer</test.db.writer>
   </properties>
 
   <dependencyManagement>
@@ -139,6 +148,14 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
+      <artifactId>vertx-pg-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-sql-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
       <artifactId>vertx-service-proxy</artifactId>
     </dependency>
     <dependency>
@@ -166,7 +183,12 @@
       <version>${libphonenumber.version}</version>
     </dependency>
 
-
+    <!-- Security update overrides -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
+    </dependency>
 
     <!-- Below dependencies only used for testing -->
     <dependency>
@@ -188,6 +210,7 @@
         <filtering>true</filtering>
         <includes>
           <include>logback-test.xml</include>
+          <include>db/prldb.sql</include>
         </includes>
       </testResource>
     </testResources>
@@ -216,10 +239,16 @@
         </configuration>
       </plugin>
 
-      <!-- Sets http.test.port for testing the application -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
+        <configuration>
+          <portNames>
+            <portName>test.harvester.port</portName>
+            <portName>test.db.port</portName>
+            <portName>test.s3.port</portName>
+          </portNames>
+        </configuration>
       </plugin>
 
       <!-- Processes resources codes and generates media types -->
@@ -235,6 +264,15 @@
             </goals>
             <configuration>
               <mediaTypePackage>edu.ucla.library.prl.harvester</mediaTypePackage>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-db-password</id>
+            <goals>
+              <goal>set-uuid-property</goal>
+            </goals>
+            <configuration>
+              <name>test.db.password</name>
             </configuration>
           </execution>
         </executions>
@@ -288,7 +326,7 @@
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
           <environmentVariables>
-            <HTTP_PORT>${http.test.port}</HTTP_PORT>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
           </environmentVariables>
         </configuration>
       </plugin>
@@ -298,10 +336,23 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
-          <environmentVariables></environmentVariables>
+          <environmentVariables>
+            <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+            <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+            <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+            <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+          </environmentVariables>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
+          <environmentVariables>
+            <PGDATABASE>postgres</PGDATABASE>
+            <PGUSER>${test.db.reader}</PGUSER>
+            <PGPASSWORD>${test.db.password}</PGPASSWORD>
+            <PGPORT>${test.db.port}</PGPORT>
+            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+          </environmentVariables>
         </configuration>
       </plugin>
 
@@ -322,7 +373,27 @@
         <version>${docker.plugin.version}</version>
         <configuration>
           <imagesMap>
-            <image>
+            <pgsql>
+              <name>postgres:${postgres.version}</name>
+              <run>
+                <containerNamePattern>pgsql</containerNamePattern>
+                <ports>
+                  <port>${test.db.port}:5432</port>
+                </ports>
+                <volumes>
+                  <bind>
+                    <volume>${project.basedir}/target/test-classes/db/:/docker-entrypoint-initdb.d/</volume>
+                  </bind>
+                </volumes>
+                <env>
+                  <POSTGRES_PASSWORD>${test.db.password}</POSTGRES_PASSWORD>
+                </env>
+                <wait>
+                  <log>database system is ready to accept connections</log>
+                </wait>
+              </run>
+            </pgsql>
+            <harvester>
               <!-- Registry account, if supplied, must end in a slash (e.g. "account/") -->
               <!-- The %l at the end translates to "latest" if version ends in "-SNAPSHOT" -->
               <name>${docker.registry.account}${project.artifactId}:%l</name>
@@ -351,21 +422,72 @@
                 <containerNamePattern>${project.artifactId}</containerNamePattern>
                 <ports>
                   <!-- Start test container on an available host port -->
-                  <port>${http.test.port}:${http.test.port}</port>
+                  <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
-                  <HTTP_PORT>${http.test.port}</HTTP_PORT>
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                  <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+                  <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
+                <dependsOn>
+                  <container>s3</container>
+                  <container>pgsql</container>
+                </dependsOn>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
-                    <url>http://localhost:${http.test.port}/status</url>
+                    <url>http://localhost:${test.harvester.port}/status</url>
                     <method>GET</method>
                     <status>200</status>
                   </http>
                 </wait>
               </run>
-            </image>
+            </harvester>
+            <s3>
+              <name>localstack/localstack:${docker.localstack.version}</name>
+              <run>
+                <env>
+                  <SERVICES>s3</SERVICES>
+                </env>
+                <ports>
+                  <port>${test.s3.port}:4566</port>
+                </ports>
+                <wait>
+                  <log>^Ready\.$</log>
+                  <time>60000</time>
+                </wait>
+              </run>
+            </s3>
+            <s3-initializer>
+              <name>s3-initializer</name>
+              <build>
+                <args>
+                  <ALPINE_TAG>${docker.alpine.version}</ALPINE_TAG>
+                </args>
+                <dockerFile>${project.basedir}/src/test/docker/s3-initializer/Dockerfile</dockerFile>
+                <imagePullPolicy>Never</imagePullPolicy>
+              </build>
+              <run>
+                <containerNamePattern>${project.artifactId}_s3-initializer</containerNamePattern>
+                <env>
+                  <!-- Access key and secret key must be set (to anything) -->
+                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID>
+                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
+                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
+                </env>
+                <links>
+                  <link>s3:s3</link>
+                </links>
+                <dependsOn>
+                  <container>s3</container>
+                </dependsOn>
+                <wait>
+                  <exit>0</exit>
+                </wait>
+              </run>
+            </s3-initializer>
           </imagesMap>
         </configuration>
         <executions>
@@ -400,7 +522,7 @@
             </configuration>
           </execution>
 
-          <!-- Deploys the Hauth Docker image -->
+          <!-- Deploys the PRL-Harvester Docker image -->
           <execution>
             <id>docker-deploy</id>
             <phase>deploy</phase>
@@ -559,7 +681,7 @@
               <jvmArgs>
                 <jvmArg>-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory</jvmArg>
                 <!-- Pass system props because the plugin doesn't take ENVs (and the config library doesn't care) -->
-                <jvmArg>-DHTTP_PORT=${http.test.port}</jvmArg>
+                <jvmArg>-DHTTP_PORT=${test.harvester.port}</jvmArg>
               </jvmArgs>
             </configuration>
           </plugin>
@@ -590,7 +712,7 @@
                   <args>
                     <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
                     <arg>--fail-on=all</arg>
-                  </args> 
+                  </args>
                 </configuration>
               </execution>
               <execution>
@@ -602,7 +724,82 @@
                   <args>
                     <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
                     <arg>--fail-on=all</arg>
-                  </args> 
+                  </args>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>debug</id>
+      <properties>
+        <maven.compiler.debug>true</maven.compiler.debug>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <properties>
+                <configurationParameters>
+                  junit.jupiter.execution.timeout.mode = disabled_on_debug
+                </configurationParameters>
+              </properties>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <properties>
+                <configurationParameters>
+                  junit.jupiter.execution.timeout.mode = disabled_on_debug
+                </configurationParameters>
+              </properties>
+              <environmentVariables>
+                <PGDATABASE>postgres</PGDATABASE>
+                <PGUSER>${test.db.reader}</PGUSER>
+                <PGPASSWORD>${test.db.password}</PGPASSWORD>
+                <PGPORT>${test.db.port}</PGPORT>
+                <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+              </environmentVariables>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+            <configuration>
+              <imagesMap>
+                <harvester>
+                  <name>${docker.registry.account}${project.artifactId}:%l</name>
+                  <run>
+                    <ports>
+                      <port>${test.harvester.port}:${test.harvester.port}</port>
+                      <port>5555:5555</port>
+                    </ports>
+                    <env>
+                      <JAVA_OPTS>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555</JAVA_OPTS>
+                    </env>
+                    <wait>
+                      <time>60000</time>
+                    </wait>
+                  </run>
+                </harvester>
+              </imagesMap>
+            </configuration>
+            <executions>
+              <execution>
+                <id>docker-start</id>
+                <phase>pre-integration-test</phase>
+                <goals>
+                  <goal>start</goal>
+                </goals>
+                <configuration>
+                  <showLogs>true</showLogs>
                 </configuration>
               </execution>
             </executions>
@@ -628,7 +825,7 @@
   <parent>
     <artifactId>freelib-parent</artifactId>
     <groupId>info.freelibrary</groupId>
-    <version>7.3.1</version>
+    <version>7.4.0</version>
   </parent>
 
 </project>

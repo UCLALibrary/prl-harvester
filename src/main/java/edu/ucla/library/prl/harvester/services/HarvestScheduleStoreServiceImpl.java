@@ -21,6 +21,7 @@ import io.vertx.serviceproxy.ServiceException;
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
  */
+//@SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
 public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreService {
 
     /**
@@ -63,7 +64,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                         newID.append(lastInsertId.getLong(0));
                     });
         }).recover(error -> {
-            LOGGER.error(MessageCodes.PRL_005, error.getMessage());
+            LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(result -> Future.succeededFuture(Integer.valueOf(newID.toString())));
     }
