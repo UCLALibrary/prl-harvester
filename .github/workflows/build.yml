@@ -25,4 +25,4 @@ jobs:
           maven_goals_phases: "clean compile formatter:validate javadoc:javadoc verify"
           maven_profiles: default
           maven_args: >
-            -V -ntp -Ddocker.showLogs=true
+            -V -ntp -DlogLevel=DEBUG -Ddocker.showLogs=true
