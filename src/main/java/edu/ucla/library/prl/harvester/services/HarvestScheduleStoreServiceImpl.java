@@ -21,7 +21,6 @@ import io.vertx.serviceproxy.ServiceException;
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
  */
-@SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
 public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreService {
 
     /**
