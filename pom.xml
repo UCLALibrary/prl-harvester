@@ -408,7 +408,7 @@
             </goals>
             <configuration>
               <checkoutDirectory>${project.build.directory}/checkout/joai</checkoutDirectory>
-              <connectionUrl>https://github.com/NCAR/joai-project.git</connectionUrl>
+              <connectionUrl>scm:git:https://github.com/NCAR/joai-project.git</connectionUrl>
               <scmVersion>${joai.version}</scmVersion>
               <scmVersionType>tag</scmVersionType>
               <skipCheckoutIfExists>true</skipCheckoutIfExists>
