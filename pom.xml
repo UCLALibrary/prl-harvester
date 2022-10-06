@@ -210,6 +210,7 @@
         <includes>
           <include>logback-test.xml</include>
           <include>db/prldb.sql</include>
+          <include>images/</include>
           <include>provider/</include>
         </includes>
       </testResource>
@@ -525,6 +526,11 @@
                   <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
                   <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
                 </env>
+                <volumes>
+                  <bind>
+                    <volume>${project.basedir}/target/test-classes/images/:/root/images</volume>
+                  </bind>
+                </volumes>
                 <links>
                   <link>s3:s3</link>
                 </links>
