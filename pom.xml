@@ -51,6 +51,7 @@
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
     <postgres.version>12.12-alpine</postgres.version>
+    <solr.version>8</solr.version>
     <docker.localstack.version>1.1.0</docker.localstack.version>
 
     <!-- Name of the main Vert.x verticle -->
@@ -242,6 +243,7 @@
           <portNames>
             <portName>test.harvester.port</portName>
             <portName>test.db.port</portName>
+            <portName>test.solr.port</portName>
             <portName>test.s3.port</portName>
           </portNames>
         </configuration>
@@ -429,6 +431,7 @@
                 </env>
                 <dependsOn>
                   <container>s3</container>
+                  <container>solr</container>
                   <container>pgsql</container>
                 </dependsOn>
                 <!-- Test to make sure the server started as expected -->
@@ -441,6 +444,24 @@
                 </wait>
               </run>
             </harvester>
+            <solr>
+              <name>solr:${solr.version}</name>
+              <run>
+                <containerNamePattern>${project.artifactId}_solr</containerNamePattern>
+                <ports>
+                  <port>${test.solr.port}:8983</port>
+                </ports>
+                <cmd>solr-create -c prl</cmd>
+                <wait>
+                  <http>
+                    <url>http://localhost:${test.solr.port}/solr/prl/admin/ping</url>
+                    <method>GET</method>
+                    <status>200</status>
+                  </http>
+                  <time>30000</time>
+                </wait>
+              </run>
+            </solr>
             <s3>
               <name>localstack/localstack:${docker.localstack.version}</name>
               <run>
