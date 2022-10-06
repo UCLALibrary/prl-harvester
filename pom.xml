@@ -505,7 +505,6 @@
                 </ports>
                 <wait>
                   <log>^Ready\.$</log>
-                  <time>60000</time>
                 </wait>
               </run>
             </s3>
