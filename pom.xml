@@ -395,6 +395,31 @@
         </configuration>
       </plugin>
 
+      <!-- Builds a jOAI Docker image -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-joai-docker-image</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <executable>docker</executable>
+              <arguments>
+                <argument>build</argument>
+                <argument>-q</argument>
+                <argument>-t</argument>
+                <argument>ncar/joai-project:${joai.version}</argument>
+                <argument>https://github.com/ncar/joai-project.git#${joai.version}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Creates a Docker image and uses it for functional testing -->
       <plugin>
         <groupId>io.fabric8</groupId>
