@@ -395,26 +395,23 @@
         </configuration>
       </plugin>
 
-      <!-- Builds a jOAI Docker image -->
+      <!-- Checks out the jOAI source so DMP can build a Docker image from it -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-scm-plugin</artifactId>
         <executions>
           <execution>
-            <id>build-joai-docker-image</id>
+            <id>joai-checkout</id>
+            <phase>generate-test-resources</phase>
             <goals>
-              <goal>exec</goal>
+              <goal>checkout</goal>
             </goals>
-            <phase>generate-resources</phase>
             <configuration>
-              <executable>docker</executable>
-              <arguments>
-                <argument>build</argument>
-                <argument>-q</argument>
-                <argument>-t</argument>
-                <argument>ncar/joai-project:${joai.version}</argument>
-                <argument>https://github.com/ncar/joai-project.git#${joai.version}</argument>
-              </arguments>
+              <checkoutDirectory>${project.build.directory}/checkout/joai</checkoutDirectory>
+              <connectionUrl>scm:git:git@github.com:NCAR/joai-project.git</connectionUrl>
+              <scmVersion>${joai.version}</scmVersion>
+              <scmVersionType>tag</scmVersionType>
+              <skipCheckoutIfExists>true</skipCheckoutIfExists>
             </configuration>
           </execution>
         </executions>
@@ -569,6 +566,10 @@
             </s3-initializer>
             <provider>
               <name>ncar/joai-project:${joai.version}</name>
+              <build>
+                <dockerFile>${project.build.directory}/checkout/joai/Dockerfile</dockerFile>
+                <imagePullPolicy>Never</imagePullPolicy>
+              </build>
               <run>
                 <containerNamePattern>${project.artifactId}_provider</containerNamePattern>
                 <ports>
