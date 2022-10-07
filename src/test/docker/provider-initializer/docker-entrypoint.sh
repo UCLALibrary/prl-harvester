@@ -49,7 +49,7 @@ define_set() {
     | sed -e 's/<\/form>//' -e 's/<br>/ /' \
     | render_joai_response
 
-    echo -e "Please verify that the selective harvest \"${selective_harvest_url}\" appears as expected:\n"
+    echo -e "\nPlease verify that the selective harvest \"${selective_harvest_url}\" appears as expected:\n"
 
     curl -s ${selective_harvest_url} \
     | xmllint --format -
