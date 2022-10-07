@@ -42,6 +42,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private final JDBCPool myDbConnectionPool;
 
     HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
+        LOGGER.info(aConfig.encodePrettily());
         myDbConnectionPool = JDBCPool.pool(aVertx, aConfig);
     }
 
