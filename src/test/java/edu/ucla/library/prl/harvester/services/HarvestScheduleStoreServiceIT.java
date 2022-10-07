@@ -14,7 +14,6 @@ import javax.mail.internet.InternetAddress;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 import org.junit.jupiter.api.AfterAll;
@@ -25,15 +24,16 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.serviceproxy.ServiceBinder;
 
+/**
+ * Tests {@linkHarvestScheduleStoreService}.
+ */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
 public class HarvestScheduleStoreServiceIT {
@@ -44,6 +44,12 @@ public class HarvestScheduleStoreServiceIT {
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
 
+    /**
+     * Sets up the test service.
+     *
+     * @param aVertx A A Vert.x instance
+     * @param aContext A test context
+     */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         final ConfigRetriever cr = ConfigRetriever.create(aVertx);
@@ -61,12 +67,24 @@ public class HarvestScheduleStoreServiceIT {
         }).onFailure(aContext::failNow);
     }
 
+    /**
+     * Clean up the service client.
+     *
+     * @param aVertx A A Vert.x instance
+     * @param aContext A test context
+     */
     @AfterAll
     public final void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         myScheduleStoreProxy.close().compose(result -> myHarvestScheduleStoreService.unregister())
                 .onSuccess(success -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
+    /**
+     * Tests inserting institution record in db.
+     *
+     * @param aVertx A A Vert.x instance
+     * @param aContext A test context
+     */
     @Test
     public final void testAddInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
@@ -79,11 +97,9 @@ public class HarvestScheduleStoreServiceIT {
         final URL myWebsite = new URL("http://acme.edu/1");
         final Institution inst =
                 new Institution(myName, myDescription, myLocation, myEmail, myPhone, myContact, myWebsite);
-        myScheduleStoreProxy.addInstitution(inst).compose(instID -> {
-            assertTrue(instID != null);
-            return Future.succeededFuture(instID);
-        }).onSuccess(result -> {
+        myScheduleStoreProxy.addInstitution(inst).onSuccess(result -> {
+            assertTrue(result != null);
             aContext.completeNow();
-        }).onFailure(aContext::failNow);;
+        }).onFailure(aContext::failNow);
     }
 }

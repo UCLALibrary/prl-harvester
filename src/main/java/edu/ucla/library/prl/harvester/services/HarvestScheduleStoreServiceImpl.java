@@ -25,10 +25,16 @@ import io.vertx.serviceproxy.ServiceException;
 public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreService {
 
     /**
-     * The cschedule store service's logger.
+     * The schedule store service's logger.
      */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
+
+    /**
+     * The insert query for institutions.
+     */
+    private static final String ADD_INST = "INSERT INTO institutions(name, description, location, email," +
+            " phone, webContact, website) VALUES(?, ?, ?, ?, ?, ?, ?)";
 
     /**
      * The underlying PostgreSQL connection pool.
@@ -55,7 +61,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     public Future<Integer> addInstitution(final Institution anInstitution) {
         final StringBuffer newID = new StringBuffer();
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery("query to be defined")
+            return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), anInstitution.getEmail(), anInstitution.getPhone(),
                             anInstitution.getWebContact(), anInstitution.getWebsite()))
@@ -113,7 +119,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Void> close() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.close();
     }
 }
