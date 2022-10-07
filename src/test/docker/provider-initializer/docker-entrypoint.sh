@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o pipefail
+
 # If the service URL hasn't already been set, then assume we're running the container with DMP
 
 if [[ -z ${JOAI_SERVICE_URL} ]]
@@ -74,5 +76,5 @@ export -f add_metadata_dir bold define_set render_joai_response
 # Do the work
 
 configure_repository_info && \
-find records -type d -mindepth 1 -print0 \
+find records -mindepth 1 -type d -print0 \
     | xargs -0 -I {} bash -c 'add_metadata_dir "$@" && define_set "$@"' _ {}
