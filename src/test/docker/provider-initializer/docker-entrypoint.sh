@@ -44,7 +44,7 @@ define_set() {
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/set_definition-validate.do \
         --data-urlencode "setName=Test Set \"${set_spec}\"" \
         --data-urlencode "includedDirs=/joai/data/${set_spec}" \
-        --data-raw "setSpec=${set_spec}" \
+        --data-urlencode "setSpec=${set_spec}" \
         --data-raw "include_radio=include_radio_3&limit_radio=limit_radio_1&exclude_radio=exclude_radio_1" \
     | render_joai_response
 
