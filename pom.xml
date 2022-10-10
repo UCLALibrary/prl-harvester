@@ -556,9 +556,6 @@
                 <links>
                   <link>s3:s3</link>
                 </links>
-                <dependsOn>
-                  <container>s3</container>
-                </dependsOn>
                 <wait>
                   <exit>0</exit>
                   <time>15000</time>
@@ -608,9 +605,6 @@
                 <links>
                   <link>provider:provider</link>
                 </links>
-                <dependsOn>
-                  <container>provider</container>
-                </dependsOn>
                 <wait>
                   <exit>0</exit>
                   <time>15000</time>
