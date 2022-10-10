@@ -6,6 +6,7 @@ import info.freelibrary.util.LoggerFactory;
 
 import java.util.List;
 
+import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -14,6 +15,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.sqlclient.PoolOptions;
+import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.Row;
 import io.vertx.serviceproxy.ServiceException;
@@ -33,17 +37,29 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The insert query for institutions.
      */
-    private static final String ADD_INST = "INSERT INTO institutions(name, description, location, email," +
-            " phone, webContact, website) VALUES(?, ?, ?, ?, ?, ?, ?)";
+    private static final String ADD_INST = "INSERT INTO public.institutions(name, description, location, email," +
+            " phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7)";
+
+    /**
+     * The postgres database (and default user) name.
+     */
+    private static final String POSTGRES = "postgres";
+
+    /**
+     * The database's default hostname.
+     */
+    private static final String DEFAULT_HOSTNAME = "localhost";
 
     /**
      * The underlying PostgreSQL connection pool.
      */
-    private final JDBCPool myDbConnectionPool;
+    // private final JDBCPool myDbConnectionPool;
+    private final PgPool myDbConnectionPool;
 
     HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
-        LOGGER.info(aConfig.encodePrettily());
-        myDbConnectionPool = JDBCPool.pool(aVertx, aConfig);
+        // LOGGER.info(aConfig.encodePrettily());
+        // myDbConnectionPool = JDBCPool.pool(aVertx, aConfig);
+        myDbConnectionPool = PgPool.pool(aVertx, getConnectionOpts(aConfig), getPoolOpts(aConfig));
     }
 
     @Override
@@ -122,4 +138,37 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     public Future<Void> close() {
         return myDbConnectionPool.close();
     }
+
+    /**
+     * Gets the database's connection options.
+     *
+     * @param aConfig A configuration
+     * @return The database's connection options
+     */
+    private PgConnectOptions getConnectionOpts(final JsonObject aConfig) {
+        final String dbHost = aConfig.getString(Config.DB_HOST, DEFAULT_HOSTNAME);
+        final int dbPort = aConfig.getInteger(Config.DB_PORT, 5432);
+        final String dbName = aConfig.getString(Config.DB_NAME, POSTGRES);
+        final String dbUser = aConfig.getString(Config.DB_USERNAME, POSTGRES);
+        final String dbPassword = aConfig.getString(Config.DB_PASSWORD);
+        final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
+        final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
+
+        return new PgConnectOptions().setPort(dbPort).setHost(dbHost).setDatabase(dbName).setUser(dbUser)
+                .setPassword(dbPassword).setReconnectAttempts(dbReconnectAttempts)
+                .setReconnectInterval(dbReconnectInterval);
+    }
+
+    /**
+     * Gets the options for the database connection pool.
+     *
+     * @param aConfig A configuration
+     * @return The options for the database connection pool
+     */
+    private PoolOptions getPoolOpts(final JsonObject aConfig) {
+        final int maxSize = aConfig.getInteger(Config.DB_CONNECTION_POOL_MAX_SIZE, 5);
+
+        return new PoolOptions().setMaxSize(maxSize);
+    }
+
 }
