@@ -35,7 +35,6 @@ add_metadata_dir() {
     | render_joai_response
 
     echo
-#--data-urlencode "metadataNamespace=http://www.openarchives.org/OAI/2.0/oai_dc/&metadataSchema=http://www.openarchives.org/OAI/2.0/oai_dc.xsd" \
 }
 
 define_set() {
