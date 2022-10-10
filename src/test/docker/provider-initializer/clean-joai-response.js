@@ -14,10 +14,10 @@ process.stdin.on('readable', () => {
     const dom = new JSDOM(chunks.join(''))
 
     // Assume the useful data is in <table id="form">
-    const dataTable = dom.window.document.querySelector('table#form')
+    const table = dom.window.document.querySelector('table#form')
 
-    if (dataTable !== null) {
-        console.log(htmlTableToPlaintext(dataTable))
+    if (table !== null) {
+        console.log(htmlTableToPlaintext(table))
     }
 })
 
