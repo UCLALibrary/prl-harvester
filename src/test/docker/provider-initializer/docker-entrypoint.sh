@@ -26,12 +26,10 @@ add_metadata_dir() {
 
     echo -e "`bold '--- Metadata validation ---'`\n"
 
-    # The call to sed is necessary because html-tidy complains about an unmatched </form>, and <br> would complicate rendering the table as plaintext
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/metadata_dir-validate.do \
         --data-raw "command=addMetadataDir&dirMetadataFormat=oai_dc" \
         --data-urlencode "dirNickname=Test Set \"${set_spec}\"" \
         --data-urlencode "dirPath=/joai/data/${set_spec}" \
-    | sed -e 's/<\/form>//' -e 's/<br>/ /' \
     | render_joai_response
 
     echo
@@ -43,13 +41,11 @@ define_set() {
 
     echo -e "`bold '--- Set definition ---'`\n"
 
-    # The call to sed is necessary because html-tidy complains about an unmatched </form>, and <br> would complicate rendering the table as plaintext
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/set_definition-validate.do \
         --data-urlencode "setName=Test Set \"${set_spec}\"" \
         --data-urlencode "includedDirs=/joai/data/${set_spec}" \
         --data-raw "setSpec=${set_spec}" \
         --data-raw "include_radio=include_radio_3&limit_radio=limit_radio_1&exclude_radio=exclude_radio_1" \
-    | sed -e 's/<\/form>//' -e 's/<br>/ /' \
     | render_joai_response
 
     echo -e "\nPlease verify that the selective harvest \"${selective_harvest_url}\" appears as expected:\n"
@@ -61,9 +57,7 @@ define_set() {
 }
 
 render_joai_response() {
-    tidy -q -c -i --show-body-only yes --show-warnings no --show-errors 0 --wrap 0 \
-    | clean-joai-response.js \
-    | column -t -s $'\t'
+    clean-joai-response.js | column -t -s $'\t'
 }
 
 bold() {

@@ -4,7 +4,7 @@ FROM alpine:${ALPINE_TAG}
 
 # Install script dependencies
 
-RUN apk add bash curl libxml2-utils nodejs npm tidyhtml util-linux
+RUN apk add bash curl libxml2-utils nodejs npm util-linux
 RUN npm install --global jsdom
 ENV NODE_PATH="${NODE_PATH}:/usr/local/lib/node_modules/"
 
