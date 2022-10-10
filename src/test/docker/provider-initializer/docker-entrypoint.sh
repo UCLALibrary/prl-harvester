@@ -47,7 +47,7 @@ define_set() {
     # This jOAI endpoint seems to require the data as application/x-www-form-urlencoded, so we can't pass individual input fields via -F
     # The call to sed is necessary because html-tidy complains about an unmatched </form>, and <br> would complicate rendering the table as plaintext
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/set_definition-validate.do \
-        --data-raw "setName=Test+Set+%22${set_spec}%22&setSpec=${set_spec}&setDescription=&setURL=&includedFormat=&include_radio=include_radio_3&includedDirs=%2Fjoai%2Fdata%2F${set_spec}&limit_radio=limit_radio_1&includedTerms=&includedQuery=&exclude_radio=exclude_radio_1&excludedTerms=&excludedQuery=" \
+        --data-raw "setName=Test+Set+%22${set_spec}%22&setSpec=${set_spec}&include_radio=include_radio_3&includedDirs=%2Fjoai%2Fdata%2F${set_spec}&limit_radio=limit_radio_1&exclude_radio=exclude_radio_1" \
     | sed -e 's/<\/form>//' -e 's/<br>/ /' \
     | render_joai_response
 
