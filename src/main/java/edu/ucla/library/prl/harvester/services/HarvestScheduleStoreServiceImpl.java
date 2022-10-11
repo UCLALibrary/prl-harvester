@@ -5,6 +5,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
@@ -80,8 +81,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
-                            anInstitution.getLocation(), anInstitution.getEmail(), anInstitution.getPhone(),
-                            anInstitution.getWebContact(), anInstitution.getWebsite()))
+                            anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
+                            getOptionalAsString(anInstitution.getPhone()),
+                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()))
                     .onSuccess(rows -> {
                         final Row lastInsertId = rows.property(JDBCPool.GENERATED_KEYS);
                         newID.append(lastInsertId.getLong(0));
@@ -90,6 +92,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(result -> Future.succeededFuture(Integer.valueOf(newID.toString())));
+    }
+
+    private String getOptionalAsString(final Optional aField) {
+        if (aField.isPresent()) {
+            return aField.get().toString();
+        } else {
+            return null;
+        }
     }
 
     @Override
