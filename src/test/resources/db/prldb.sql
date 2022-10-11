@@ -186,3 +186,7 @@ GRANT ALL ON TABLE public.institutions TO prl_writer;
 
 GRANT SELECT ON TABLE public.harvestjobs TO prl_reader;
 GRANT ALL ON TABLE public.harvestjobs TO prl_writer;
+
+--
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prl_writer;;

@@ -4,6 +4,10 @@ package edu.ucla.library.prl.harvester.services;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.MessageCodes;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -37,6 +41,12 @@ import io.vertx.serviceproxy.ServiceBinder;
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
 public class HarvestScheduleStoreServiceIT {
+
+    /**
+     * The schedule store test's logger.
+     */
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(HarvestScheduleStoreServiceIT.class, MessageCodes.BUNDLE);
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
@@ -98,6 +108,7 @@ public class HarvestScheduleStoreServiceIT {
         final Institution inst =
                 new Institution(myName, myDescription, myLocation, myEmail, myPhone, myContact, myWebsite);
         myScheduleStoreProxy.addInstitution(inst).onSuccess(result -> {
+            LOGGER.info("result ID = " + result);
             assertTrue(result != null);
             aContext.completeNow();
         }).onFailure(aContext::failNow);

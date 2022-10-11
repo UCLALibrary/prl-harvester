@@ -15,7 +15,6 @@ import edu.ucla.library.prl.harvester.MessageCodes;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
@@ -26,7 +25,6 @@ import io.vertx.serviceproxy.ServiceException;
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
  */
-// @SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
 public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreService {
 
     /**
@@ -39,7 +37,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The insert query for institutions.
      */
     private static final String ADD_INST = "INSERT INTO public.institutions(name, description, location, email," +
-            " phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7)";
+            " phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id";
 
     /**
      * The postgres database (and default user) name.
@@ -54,12 +52,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The underlying PostgreSQL connection pool.
      */
-    // private final JDBCPool myDbConnectionPool;
     private final PgPool myDbConnectionPool;
 
     HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
-        // LOGGER.info(aConfig.encodePrettily());
-        // myDbConnectionPool = JDBCPool.pool(aVertx, aConfig);
         myDbConnectionPool = PgPool.pool(aVertx, getConnectionOpts(aConfig), getPoolOpts(aConfig));
     }
 
@@ -85,8 +80,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                             getOptionalAsString(anInstitution.getPhone()),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()))
                     .onSuccess(rows -> {
-                        final Row lastInsertId = rows.property(JDBCPool.GENERATED_KEYS);
-                        newID.append(lastInsertId.getLong(0));
+                        // n.b. the query should return just one result, but there doesn't seem
+                        // to be a way to grab a specific row out of a RowSet<Row>
+                        for (final Row row : rows) {
+                            newID.append(row.getInteger("id"));
+                        }
                     });
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
@@ -94,11 +92,17 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).compose(result -> Future.succeededFuture(Integer.valueOf(newID.toString())));
     }
 
-    private String getOptionalAsString(final Optional aField) {
-        if (aField.isPresent()) {
-            return aField.get().toString();
+    /**
+     * Converts Optional values to String for use in prepared queries.
+     *
+     * @param aParam An Optional used as a query param
+     * @return The String representation of the Optional value, or an empty string if Optional is empty
+     */
+    private String getOptionalAsString(final Optional aParam) {
+        if (aParam.isPresent()) {
+            return aParam.get().toString();
         } else {
-            return null;
+            return String.valueOf("");
         }
     }
 
