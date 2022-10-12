@@ -108,8 +108,9 @@ public class HarvestScheduleStoreServiceIT {
         final Institution inst =
                 new Institution(myName, myDescription, myLocation, myEmail, myPhone, myContact, myWebsite);
         myScheduleStoreProxy.addInstitution(inst).onSuccess(result -> {
-            assertTrue(result.intValue() >= 1);
-            aContext.completeNow();
+            aContext.verify(() -> {
+                assertTrue(result.intValue() >= 1);
+            }).completeNow();
         }).onFailure(aContext::failNow);
     }
 }
