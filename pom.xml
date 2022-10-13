@@ -51,7 +51,7 @@
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
     <postgres.version>12.12-alpine</postgres.version>
-    <solr.version>8</solr.version>
+    <solr.version>9</solr.version>
     <docker.localstack.version>1.1.0</docker.localstack.version>
 
     <!-- Name of the main Vert.x verticle -->
