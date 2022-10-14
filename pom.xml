@@ -44,7 +44,6 @@
     <docker.plugin.version>0.40.2</docker.plugin.version>
     <deploy.plugin.version>2.8.2</deploy.plugin.version>
     <jar.plugin.version>3.2.2</jar.plugin.version>
-    <replacer.plugin.version>1.5.3</replacer.plugin.version>
     <scm.plugin.version>1.13.0</scm.plugin.version>
 
     <!-- Test dependency versions -->
@@ -252,32 +251,6 @@
             <portName>test.s3.port</portName>
             <portName>test.provider.port</portName>
           </portNames>
-        </configuration>
-      </plugin>
-
-      <!-- Points the test OAI-PMH records at the thumbnails S3 bucket -->
-      <plugin>
-        <groupId>com.google.code.maven-replacer-plugin</groupId>
-        <artifactId>replacer</artifactId>
-        <version>${replacer.plugin.version}</version>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>replace</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <includes>
-            <include>${project.basedir}/target/test-classes/provider/**/*.xml</include>
-          </includes>
-          <replacements>
-            <replacement>
-              <token>S3_BASE_URL</token>
-              <value>http://172.17.0.1:${test.s3.port}</value>
-            </replacement>
-          </replacements>
         </configuration>
       </plugin>
 

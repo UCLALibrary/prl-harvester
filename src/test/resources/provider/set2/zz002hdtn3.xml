@@ -6,6 +6,6 @@
   <dc:subject>中國--人口--地圖</dc:subject>
   <dc:subject>China--Population--Maps.</dc:subject>
   <dc:language>eng</dc:language>
-  <dc:identifier>S3_BASE_URL/thumbnails-source/ark+=21198=zz002hdtn3.jpg</dc:identifier>
+  <dc:identifier>http://172.17.0.1:${test.s3.port}/thumbnails-source/ark+=21198=zz002hdtn3.jpg</dc:identifier>
   <dc:identifier>https://digital.library.ucla.edu/catalog/ark:/21198/zz002hdtn3</dc:identifier>
 </oai_dc:dc>
