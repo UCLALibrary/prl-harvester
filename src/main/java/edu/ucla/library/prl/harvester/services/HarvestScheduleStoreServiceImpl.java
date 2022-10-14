@@ -19,7 +19,6 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
-import io.vertx.sqlclient.Row;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -72,24 +71,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Integer> addInstitution(final Institution anInstitution) {
-        final StringBuffer newID = new StringBuffer();
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
                             getOptionalAsString(anInstitution.getPhone()),
-                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()))
-                    .onSuccess(rows -> {
-                        // n.b. the query should return just one result, but there doesn't seem
-                        // to be a way to grab a specific row out of a RowSet<Row>
-                        for (final Row row : rows) {
-                            newID.append(row.getInteger("id"));
-                        }
-                    });
+                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
-        }).compose(result -> Future.succeededFuture(Integer.valueOf(newID.toString())));
+        }).compose(insert -> {
+            return Future.succeededFuture(insert.iterator().next().getInteger("id"));
+        });
     }
 
     /**
