@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+  <dc:source>East Asian Maps in the Bruman Collection</dc:source>
+  <dc:title>China, East Coast: Mineral Resources</dc:title>
+  <dc:type>http://id.loc.gov/vocabulary/resourceTypes/car</dc:type>
+  <dc:date>26 October 1944</dc:date>
+  <dc:language>eng</dc:language>
+  <dc:identifier>http://172.17.0.1:${test.s3.port}/thumbnails-source/ark+=21198=zz002hdt5v.jpg</dc:identifier>
+  <dc:identifier>https://digital.library.ucla.edu/catalog/ark:/21198/zz002hdt5v</dc:identifier>
+</oai_dc:dc>
