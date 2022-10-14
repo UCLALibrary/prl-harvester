@@ -28,7 +28,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.junit5.VertxExtension;
@@ -62,15 +61,14 @@ public class HarvestScheduleStoreServiceIT {
      */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        final ConfigRetriever cr = ConfigRetriever.create(aVertx);
+        final ConfigRetriever retriever = ConfigRetriever.create(aVertx);
 
-        cr.getConfig().compose(config -> {
-            return Future.succeededFuture(HarvestScheduleStoreService.create(aVertx, config));
-        }).onSuccess(services -> {
-            final ServiceBinder sb = new ServiceBinder(aVertx);
+        retriever.getConfig().onSuccess(config -> {
+            final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(aVertx, config);
+            final ServiceBinder binder = new ServiceBinder(aVertx);
 
-            myHarvestScheduleStoreService = sb.setAddress(HarvestScheduleStoreService.ADDRESS)
-                    .register(HarvestScheduleStoreService.class, services);
+            myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
+                    .register(HarvestScheduleStoreService.class, service);
             myScheduleStoreProxy = HarvestScheduleStoreService.createProxy(aVertx);
 
             aContext.completeNow();
