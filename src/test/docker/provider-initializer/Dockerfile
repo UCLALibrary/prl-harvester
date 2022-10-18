@@ -4,13 +4,16 @@ FROM alpine:${ALPINE_TAG}
 
 # Install script dependencies
 
-RUN apk add aws-cli bash
+RUN apk add bash curl libxml2-utils nodejs npm util-linux
+RUN npm install --global jsdom
+ENV NODE_PATH="${NODE_PATH}:/usr/local/lib/node_modules/"
 
 # Copy over the executable
 
 WORKDIR /usr/local/bin
 COPY docker-entrypoint.sh .
-RUN chmod +x docker-entrypoint.sh
+COPY clean-joai-response.js .
+RUN chmod +x docker-entrypoint.sh clean-joai-response.js
 
 WORKDIR /root
 

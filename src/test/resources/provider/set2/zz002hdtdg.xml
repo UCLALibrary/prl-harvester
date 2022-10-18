@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+  <dc:source>East Asian Maps in the Bruman Collection</dc:source>
+  <dc:title>China, East Coast Motor Roads And Railroads</dc:title>
+  <dc:type>http://id.loc.gov/vocabulary/resourceTypes/car</dc:type>
+  <dc:subject>Transportation--China--Maps</dc:subject>
+  <dc:subject>運輸--中國--地圖</dc:subject>
+  <dc:date>20 October 1944</dc:date>
+  <dc:language>eng</dc:language>
+  <dc:identifier>http://172.17.0.1:${test.s3.port}/thumbnails-source/ark+=21198=zz002hdtdg.jpg</dc:identifier>
+  <dc:identifier>https://digital.library.ucla.edu/catalog/ark:/21198/zz002hdtdg</dc:identifier>
+</oai_dc:dc>

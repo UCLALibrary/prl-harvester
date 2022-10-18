@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o pipefail
+
 # Configure the default AWS CLI profile
 
 aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
