@@ -355,7 +355,7 @@
           </systemPropertyVariables>
           <environmentVariables>
             <PGDATABASE>postgres</PGDATABASE>
-            <PGUSER>${test.db.reader}</PGUSER>
+            <PGUSER>${test.db.writer}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
             <PGPORT>${test.db.port}</PGPORT>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
@@ -862,7 +862,7 @@
               </properties>
               <environmentVariables>
                 <PGDATABASE>postgres</PGDATABASE>
-                <PGUSER>${test.db.reader}</PGUSER>
+                <PGUSER>${test.db.writer}</PGUSER>
                 <PGPASSWORD>${test.db.password}</PGPASSWORD>
                 <PGPORT>${test.db.port}</PGPORT>
                 <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
