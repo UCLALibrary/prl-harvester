@@ -10,8 +10,7 @@ SET standard_conforming_strings = on;
 -- Roles
 --
 
-CREATE ROLE prl_reader;
-ALTER ROLE prl_reader WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${test.db.password}';
+--CREATE ROLE prl_reader;
 CREATE ROLE prl_writer;
 ALTER ROLE prl_writer WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${test.db.password}';
 
@@ -177,14 +176,12 @@ ALTER TABLE ONLY public.harvestjobs
 -- Name: TABLE institutions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT SELECT ON TABLE public.institutions TO prl_reader;
 GRANT ALL ON TABLE public.institutions TO prl_writer;
 
 --
 -- Name: TABLE harvestjobs; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT SELECT ON TABLE public.harvestjobs TO prl_reader;
 GRANT ALL ON TABLE public.harvestjobs TO prl_writer;
 
 --

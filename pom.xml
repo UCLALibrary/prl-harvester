@@ -88,7 +88,6 @@
     <helm.chart.app.version>${revision}</helm.chart.app.version>
 
     <!-- Parameterized user since we'll use for other harvesting applications too -->
-    <test.db.reader>prl_reader</test.db.reader>
     <test.db.writer>prl_writer</test.db.writer>
   </properties>
 
