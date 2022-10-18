@@ -20,6 +20,7 @@ import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -55,6 +56,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final String DEFAULT_HOSTNAME = "localhost";
 
     /**
+     * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
+     */
+    private static final int INTERNAL_ERROR = 500;
+
+    /**
+     * The failure code to use for a ServiceException that represents {@link Error#NOT_FOUND}.
+     */
+    private static final int NOT_FOUND_ERROR = 403;
+
+    /**
      * The underlying PostgreSQL connection pool.
      */
     private final PgPool myDbConnectionPool;
@@ -71,10 +82,20 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(select -> {
             if (hasSingleRow(select)) {
-                return Future.succeededFuture(select.iterator().next().getInteger("access_mode"));
+                return Future.succeededFuture(new Institution(select.iterator().next().toJson()));
             }
-            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR, anInstitutionId));
+            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR, String.valueOf(anInstitutionId)));
         });
+    }
+
+    /**
+     * Checks if the given RowSet consists of a single row or not.
+     *
+     * @param aRowSet A RowSet representing the response to a database query
+     * @return true if it has a single row, false otherwise
+     */
+    private static boolean hasSingleRow(final RowSet<Row> aRowSet) {
+        return aRowSet.rowCount() == 1;
     }
 
     @Override
