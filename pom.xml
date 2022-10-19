@@ -88,7 +88,7 @@
     <helm.chart.app.version>${revision}</helm.chart.app.version>
 
     <!-- Parameterized user since we'll use for other harvesting applications too -->
-    <test.db.writer>prl_writer</test.db.writer>
+    <test.db.user>prl</test.db.user>
   </properties>
 
   <dependencyManagement>
@@ -354,7 +354,7 @@
           </systemPropertyVariables>
           <environmentVariables>
             <PGDATABASE>postgres</PGDATABASE>
-            <PGUSER>${test.db.writer}</PGUSER>
+            <PGUSER>${test.db.user}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
             <PGPORT>${test.db.port}</PGPORT>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
@@ -861,7 +861,7 @@
               </properties>
               <environmentVariables>
                 <PGDATABASE>postgres</PGDATABASE>
-                <PGUSER>${test.db.writer}</PGUSER>
+                <PGUSER>${test.db.user}</PGUSER>
                 <PGPASSWORD>${test.db.password}</PGPASSWORD>
                 <PGPORT>${test.db.port}</PGPORT>
                 <HTTP_PORT>${test.harvester.port}</HTTP_PORT>

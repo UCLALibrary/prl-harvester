@@ -34,7 +34,6 @@ public interface HarvestScheduleStoreService {
      * @return The service instance
      */
     static HarvestScheduleStoreService create(final Vertx aVertx, final JsonObject aConfig) {
-        // TODO: depending on implementation, consider returning Future<HarvestScheduleStoreService> instead
         return new HarvestScheduleStoreServiceImpl(aVertx, aConfig);
     }
 

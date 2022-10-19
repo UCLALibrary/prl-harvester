@@ -56,7 +56,7 @@ public class HarvestScheduleStoreServiceIT {
     /**
      * Sets up the test service.
      *
-     * @param aVertx A A Vert.x instance
+     * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @BeforeAll
@@ -78,7 +78,7 @@ public class HarvestScheduleStoreServiceIT {
     /**
      * Clean up the service client.
      *
-     * @param aVertx A A Vert.x instance
+     * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @AfterAll
@@ -90,7 +90,7 @@ public class HarvestScheduleStoreServiceIT {
     /**
      * Tests inserting institution record in db.
      *
-     * @param aVertx A A Vert.x instance
+     * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
