@@ -10,10 +10,8 @@ SET standard_conforming_strings = on;
 -- Roles
 --
 
-CREATE ROLE prl_reader;
-ALTER ROLE prl_reader WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${test.db.password}';
-CREATE ROLE prl_writer;
-ALTER ROLE prl_writer WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${test.db.password}';
+CREATE ROLE prl;
+ALTER ROLE prl WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD '${test.db.password}';
 
 --
 -- PostgreSQL database initialization
@@ -177,12 +175,14 @@ ALTER TABLE ONLY public.harvestjobs
 -- Name: TABLE institutions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT SELECT ON TABLE public.institutions TO prl_reader;
-GRANT ALL ON TABLE public.institutions TO prl_writer;
+GRANT ALL ON TABLE public.institutions TO prl;
 
 --
 -- Name: TABLE harvestjobs; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT SELECT ON TABLE public.harvestjobs TO prl_reader;
-GRANT ALL ON TABLE public.harvestjobs TO prl_writer;
+GRANT ALL ON TABLE public.harvestjobs TO prl;
+
+--
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prl;
