@@ -88,8 +88,7 @@
     <helm.chart.app.version>${revision}</helm.chart.app.version>
 
     <!-- Parameterized user since we'll use for other harvesting applications too -->
-    <test.db.reader>prl_reader</test.db.reader>
-    <test.db.writer>prl_writer</test.db.writer>
+    <test.db.user>prl</test.db.user>
   </properties>
 
   <dependencyManagement>
@@ -165,6 +164,10 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-codegen</artifactId>
       <classifier>processor</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-jdbc-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.quartz-scheduler</groupId>
@@ -351,7 +354,7 @@
           </systemPropertyVariables>
           <environmentVariables>
             <PGDATABASE>postgres</PGDATABASE>
-            <PGUSER>${test.db.reader}</PGUSER>
+            <PGUSER>${test.db.user}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
             <PGPORT>${test.db.port}</PGPORT>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
@@ -858,7 +861,7 @@
               </properties>
               <environmentVariables>
                 <PGDATABASE>postgres</PGDATABASE>
-                <PGUSER>${test.db.reader}</PGUSER>
+                <PGUSER>${test.db.user}</PGUSER>
                 <PGPASSWORD>${test.db.password}</PGPASSWORD>
                 <PGPORT>${test.db.port}</PGPORT>
                 <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
