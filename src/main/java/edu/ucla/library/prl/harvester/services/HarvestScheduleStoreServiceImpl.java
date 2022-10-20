@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester.services;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.serviceproxy.ServiceException;
 
@@ -39,6 +42,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             " phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id";
 
     /**
+     * The select query for all institutions.
+     */
+    private static final String LIST_INSTS = "SELECT * FROM public.institutions ORDER BY name";
+
+    /**
      * The postgres database (and default user) name.
      */
     private static final String POSTGRES = "postgres";
@@ -47,6 +55,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The database's default hostname.
      */
     private static final String DEFAULT_HOSTNAME = "localhost";
+
+    /**
+     * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
+     */
+    private static final int INTERNAL_ERROR = 500;
+
+    /**
+     * The failure code to use for a ServiceException that represents {@link Error#NOT_FOUND}.
+     */
+    //private static final int NOT_FOUND_ERROR = 403;
 
     /**
      * The underlying PostgreSQL connection pool.
@@ -65,8 +83,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<List<Institution>> listInstitutions() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(LIST_INSTS).execute();
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            final List<Institution> allInstitutions = new ArrayList<>();
+            final RowIterator<Row> iterator = select.iterator();
+            while (iterator.hasNext()) {
+                allInstitutions.add(new Institution(iterator.next().toJson()));
+            }
+            return Future.succeededFuture(allInstitutions);
+        });
     }
 
     @Override
