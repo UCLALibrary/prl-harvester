@@ -214,7 +214,7 @@
           <include>logback-test.xml</include>
           <include>db/prldb.sql</include>
           <include>images/</include>
-          <include>provider/</include>
+          <include>provider/**</include>
         </includes>
       </testResource>
     </testResources>
