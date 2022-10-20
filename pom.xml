@@ -34,6 +34,9 @@
     <quartz.version>2.3.2</quartz.version>
     <javax.mail.version>1.6.2</javax.mail.version>
     <libphonenumber.version>8.12.54</libphonenumber.version>
+    <solrs.version>2.6.0</solrs.version>
+    <xoai.version>4.2.0</xoai.version>
+    <guava.version>31.1-jre</guava.version>
 
     <!-- Security update overrides -->
     <snakeyaml.version>1.32</snakeyaml.version>
@@ -183,6 +186,40 @@
       <groupId>com.googlecode.libphonenumber</groupId>
       <artifactId>libphonenumber</artifactId>
       <version>${libphonenumber.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.ino</groupId>
+      <artifactId>solrs_2.12</artifactId>
+      <version>${solrs.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.dspace</groupId>
+      <artifactId>xoai-common</artifactId>
+      <version>${xoai.version}</version>
+      <exclusions>
+        <!-- Conflicts with solrs -->
+        <exclusion>
+          <groupId>org.codehaus.woodstox</groupId>
+          <artifactId>stax2-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.dspace</groupId>
+      <artifactId>xoai-service-provider</artifactId>
+      <version>${xoai.version}</version>
+      <exclusions>
+        <!-- Conflicts with solrs -->
+        <exclusion>
+          <groupId>org.codehaus.woodstox</groupId>
+          <artifactId>stax2-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
     </dependency>
 
     <!-- Security update overrides -->
@@ -343,22 +380,17 @@
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
           <environmentVariables>
-            <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
-            <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
-            <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
-            <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
-          </environmentVariables>
-          <systemPropertyVariables>
-            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
-          </systemPropertyVariables>
-          <environmentVariables>
             <PGDATABASE>postgres</PGDATABASE>
             <PGUSER>${test.db.user}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
             <PGPORT>${test.db.port}</PGPORT>
-            <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+            <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
+            <TEST_PROVIDER_BASE_URL>http://localhost:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
           </environmentVariables>
+          <systemPropertyVariables>
+            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
 
@@ -454,10 +486,6 @@
                   <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
-                  <AWS_ACCESS_KEY_ID>test</AWS_ACCESS_KEY_ID> <!-- access key and secret key must be set (to anything) -->
-                  <AWS_DEFAULT_REGION>us-east-1</AWS_DEFAULT_REGION>
-                  <AWS_ENDPOINT_URL>http://localhost:${test.s3.port}</AWS_ENDPOINT_URL>
-                  <AWS_SECRET_ACCESS_KEY>test</AWS_SECRET_ACCESS_KEY>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
                 <dependsOn>
@@ -534,7 +562,7 @@
                 </links>
                 <wait>
                   <exit>0</exit>
-                  <time>15000</time>
+                  <time>30000</time>
                 </wait>
               </run>
             </s3-initializer>
@@ -559,7 +587,7 @@
                     <method>GET</method>
                     <status>200</status>
                   </http>
-                  <time>15000</time>
+                  <time>30000</time>
                 </wait>
               </run>
             </provider>
@@ -583,7 +611,7 @@
                 </links>
                 <wait>
                   <exit>0</exit>
-                  <time>15000</time>
+                  <time>30000</time>
                 </wait>
               </run>
             </provider-initializer>
