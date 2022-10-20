@@ -103,10 +103,14 @@ public class HarvestServiceUtilsTest {
      */
     @ParameterizedTest
     @CsvSource({ //
-        "oai:namespace-identifier:local-identifier, true", "oai:0:1, true", //
-        "test, false", "oai:namespace-identifier:, false", //
-        "oai:namespace-identifier, false", "oai:0, false", //
-        "oai::local-identifier, false", "oai::1, false" //
+        "oai:namespace-identifier:local-identifier, true", //
+        "oai:0:1, true", //
+        "test, false", //
+        "oai:namespace-identifier:, false", //
+        "oai:namespace-identifier, false", //
+        "oai:0, false", //
+        "oai::local-identifier, false", //
+        "oai::1, false" //
     })
     public void testIsOaiIdentifier(final String aRecordIdentifier, final boolean anExpectedResult, final Vertx aVertx,
             final VertxTestContext aContext) {

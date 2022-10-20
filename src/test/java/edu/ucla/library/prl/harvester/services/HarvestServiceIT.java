@@ -126,7 +126,6 @@ public class HarvestServiceIT {
             final CompletionStage<QueryResponse> query;
             final NamedList<String> solrParams = new NamedList<>();
 
-            // Matches all documents
             solrParams.add("q", SOLR_SELECT_ALL);
 
             query = mySolrClient.query(solrParams.toSolrParams());
