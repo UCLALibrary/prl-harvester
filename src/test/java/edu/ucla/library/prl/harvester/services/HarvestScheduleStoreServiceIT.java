@@ -52,6 +52,8 @@ public class HarvestScheduleStoreServiceIT {
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
+    private static final String SAMPLE_NAME = "Sample 1";
+
     private MessageConsumer<?> myHarvestScheduleStoreService;
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
@@ -128,7 +130,7 @@ public class HarvestScheduleStoreServiceIT {
         myScheduleStoreProxy.getInstitution(instID).onSuccess(institution -> {
             aContext.verify(() -> {
                 assertTrue(institution != null);
-                assertTrue(institution.getName().equals("Sample 1"));
+                assertTrue(institution.getName().equals(SAMPLE_NAME));
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -156,4 +158,23 @@ public class HarvestScheduleStoreServiceIT {
             aContext.failNow("this shouldn't happen");
         });
     }
+
+    /**
+     * Tests getting all institutions from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testListInstitution(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        myScheduleStoreProxy.listInstitutions().onSuccess(instList -> {
+            aContext.verify(() -> {
+                assertTrue(instList != null);
+                assertTrue(instList.size() >= 3);
+                assertTrue(instList.get(0).getName().equals(SAMPLE_NAME));
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
 }
