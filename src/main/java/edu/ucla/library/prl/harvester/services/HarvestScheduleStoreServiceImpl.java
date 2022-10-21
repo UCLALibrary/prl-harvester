@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -58,12 +59,12 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
      */
-    private static final int INTERNAL_ERROR = 500;
+    private static final int INTERNAL_ERROR = Error.INTERNAL_ERROR.ordinal();
 
     /**
      * The failure code to use for a ServiceException that represents {@link Error#NOT_FOUND}.
      */
-    private static final int NOT_FOUND_ERROR = 403;
+    private static final int NOT_FOUND_ERROR = Error.NOT_FOUND.ordinal();
 
     /**
      * The underlying PostgreSQL connection pool.
@@ -84,7 +85,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             if (hasSingleRow(select)) {
                 return Future.succeededFuture(new Institution(select.iterator().next().toJson()));
             }
-            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR, String.valueOf(anInstitutionId)));
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_007, anInstitutionId)));
         });
     }
 

@@ -1,8 +1,10 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
@@ -33,6 +35,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.serviceproxy.ServiceBinder;
+import io.vertx.serviceproxy.ServiceException;
 
 /**
  * Tests {@linkHarvestScheduleStoreService}.
@@ -128,5 +131,29 @@ public class HarvestScheduleStoreServiceIT {
                 assertTrue(institution.getName().equals("Sample 1"));
             }).completeNow();
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests handling bad institution ID in get institution.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetInstitutionBadID(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int badID = -1;
+        myScheduleStoreProxy.getInstitution(badID).onFailure(details -> {
+            final ServiceException error = (ServiceException) details;
+
+            aContext.verify(() -> {
+                assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                assertTrue(error.getMessage().contains(String.valueOf(badID)));
+
+                aContext.completeNow();
+            });
+        }).onSuccess(result -> {
+            aContext.failNow("this shouldn't happen");
+        });
     }
 }
