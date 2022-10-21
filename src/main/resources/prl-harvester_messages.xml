@@ -12,5 +12,6 @@
   <entry key="PRL_004">Invalid value for field '{}': {}</entry>
   <entry key="PRL_005">User '{}' connecting to test database at port '{}' with password: {}</entry>
   <entry key="PRL_006">Error during institution insert: {}</entry>
+  <entry key="PRL_007">No institution found for ID: {}</entry>
 
 </properties>
