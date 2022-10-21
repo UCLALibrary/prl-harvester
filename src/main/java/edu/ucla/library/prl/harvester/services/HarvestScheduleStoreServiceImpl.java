@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -19,6 +20,8 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -31,6 +34,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
+
+    /**
+     * The select-one query for institutions.
+     */
+    private static final String GET_INST = "SELECT * FROM public.institutions WHERE id = $1";
 
     /**
      * The insert query for institutions.
@@ -49,6 +57,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final String DEFAULT_HOSTNAME = "localhost";
 
     /**
+     * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
+     */
+    private static final int INTERNAL_ERROR = Error.INTERNAL_ERROR.ordinal();
+
+    /**
+     * The failure code to use for a ServiceException that represents {@link Error#NOT_FOUND}.
+     */
+    private static final int NOT_FOUND_ERROR = Error.NOT_FOUND.ordinal();
+
+    /**
      * The underlying PostgreSQL connection pool.
      */
     private final PgPool myDbConnectionPool;
@@ -59,8 +77,27 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Institution> getInstitution(final int anInstitutionId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(GET_INST).execute(Tuple.of(anInstitutionId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            if (hasSingleRow(select)) {
+                return Future.succeededFuture(new Institution(select.iterator().next().toJson()));
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_007, anInstitutionId)));
+        });
+    }
+
+    /**
+     * Checks if the given RowSet consists of a single row or not.
+     *
+     * @param aRowSet A RowSet representing the response to a database query
+     * @return true if it has a single row, false otherwise
+     */
+    private static boolean hasSingleRow(final RowSet<Row> aRowSet) {
+        return aRowSet.rowCount() == 1;
     }
 
     @Override
