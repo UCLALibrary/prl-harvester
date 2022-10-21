@@ -157,13 +157,13 @@ public class HarvestServiceIT {
         // These arguments reflect the directory structure of src/test/resources/provider
         return Stream.of( //
                 Arguments.of(new Job(1, baseURL, List.of(set1), schedule, null), 1), //
-                Arguments.of(new Job(2, baseURL, List.of(set2), schedule, null), 3), //
-                Arguments.of(new Job(3, baseURL, List.of(set1, set2), schedule, null), 4), //
-                Arguments.of(new Job(4, baseURL, List.of(), schedule, null), 4), //
-                Arguments.of(new Job(5, baseURL, List.of("undefined"), schedule, null), 0), //
-                Arguments.of(new Job(6, baseURL, List.of(set1, "nil"), schedule, null), 1), //
-                Arguments.of(new Job(7, baseURL, null, schedule, ZonedDateTime.now().minusHours(1)), 4), //
-                Arguments.of(new Job(8, baseURL, null, schedule, ZonedDateTime.now().plusHours(1)), 0));
+                Arguments.of(new Job(1, baseURL, List.of(set2), schedule, null), 3), //
+                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 4), //
+                Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 4), //
+                Arguments.of(new Job(1, baseURL, List.of("undefined"), schedule, null), 0), //
+                Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 1), //
+                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().minusHours(1)), 4), //
+                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().plusHours(1)), 0));
     }
 
     /**
