@@ -111,4 +111,22 @@ public class HarvestScheduleStoreServiceIT {
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
+
+    /**
+     * Tests getting institution by ID from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetInstitution(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int instID = 1;
+        myScheduleStoreProxy.getInstitution(instID).onSuccess(institution -> {
+            aContext.verify(() -> {
+                assertTrue(institution != null);
+                assertTrue(institution.getName().equals("Sample 1"));
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
 }
