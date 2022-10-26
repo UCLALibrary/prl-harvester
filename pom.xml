@@ -48,6 +48,7 @@
     <deploy.plugin.version>2.8.2</deploy.plugin.version>
     <jar.plugin.version>3.2.2</jar.plugin.version>
     <scm.plugin.version>1.13.0</scm.plugin.version>
+    <patch.plugin.version>1.2</patch.plugin.version>
 
     <!-- Test dependency versions -->
     <junit.version>5.9.0</junit.version>
@@ -423,6 +424,29 @@
               <scmVersionType>tag</scmVersionType>
               <skipCheckoutIfExists>true</skipCheckoutIfExists>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- The jOAI container is missing a required dependency on some machines -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-patch-plugin</artifactId>
+        <version>${patch.plugin.version}</version>
+        <configuration>
+          <patchDirectory>src/test/resources/</patchDirectory>
+          <patches>
+            <patch>joai-Dockerfile.patch</patch>
+          </patches>
+          <originalFile>${project.build.directory}/checkout/joai/Dockerfile</originalFile>
+        </configuration>
+        <executions>
+          <execution>
+            <id>patch-joai-Dockerfile</id>
+            <phase>generate-test-resources</phase>
+            <goals>
+              <goal>apply</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
