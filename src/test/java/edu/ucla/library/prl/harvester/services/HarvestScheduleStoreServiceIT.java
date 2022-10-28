@@ -196,23 +196,37 @@ public class HarvestScheduleStoreServiceIT {
                     aContext.verify(() -> {
                         assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                         assertTrue(error.getMessage().contains(String.valueOf(newID)));
-
-                        aContext.completeNow();
-                    });
+                    }).completeNow();
                 }).onSuccess(select -> {
                     aContext.failNow("delete failed");
                 });
-            }).onFailure(aContext::failNow);
+            });
         }).onFailure(aContext::failNow);
+    }
 
-        /*
-         * final int instID = 1; myScheduleStoreProxy.removeInstitution(instID).onSuccess(result -> {
-         * myScheduleStoreProxy.getInstitution(instID).onFailure(details -> { final ServiceException error =
-         * (ServiceException) details; aContext.verify(() -> { assertEquals(Error.NOT_FOUND.ordinal(),
-         * error.failureCode()); assertTrue(error.getMessage().contains(String.valueOf(instID)));
-         * aContext.completeNow(); }); }).onSuccess(select -> { aContext.failNow("delete failed"); });
-         * }).onFailure(aContext::failNow);
-         */
+    /**
+     * Tests updating institution in db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testUpdateInstitution(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int instID = 1;
+        myScheduleStoreProxy.getInstitution(instID).onSuccess(original -> {
+            final Institution modified =
+                    new Institution(original.getName(), "changing description", "changing location",
+                            original.getEmail(), original.getPhone(), original.getWebContact(), original.getWebsite());
+            myScheduleStoreProxy.updateInstitution(instID, modified).onSuccess(result -> {
+                myScheduleStoreProxy.getInstitution(instID).onSuccess(updated -> {
+                    aContext.verify(() -> {
+                        assertTrue(updated.getName().equals(original.getName()));
+                        assertTrue(updated.getDescription().equals(modified.getDescription()));
+                    }).completeNow();
+                });
+            });
+        }).onFailure(aContext::failNow);
     }
 
 }
