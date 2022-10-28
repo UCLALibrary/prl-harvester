@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester.services;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,9 +20,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
-import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.Tuple;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -45,6 +47,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String ADD_INST = "INSERT INTO public.institutions(name, description, location, email," +
             " phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id";
+
+    /**
+     * The select query for all institutions.
+     */
+    private static final String LIST_INSTS = "SELECT * FROM public.institutions ORDER BY name";
 
     /**
      * The postgres database (and default user) name.
@@ -102,8 +109,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<List<Institution>> listInstitutions() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(LIST_INSTS).execute();
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            final List<Institution> allInstitutions = new ArrayList<>();
+            final RowIterator<Row> iterator = select.iterator();
+            while (iterator.hasNext()) {
+                allInstitutions.add(new Institution(iterator.next().toJson()));
+            }
+            return Future.succeededFuture(allInstitutions);
+        });
     }
 
     @Override
