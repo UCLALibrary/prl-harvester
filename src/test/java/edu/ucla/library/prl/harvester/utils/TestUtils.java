@@ -19,6 +19,9 @@ import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
 import org.jeasy.random.randomizers.RegularExpressionRandomizer;
 import org.jeasy.random.randomizers.SentenceRandomizer;
 
+/**
+ * Utilities related to working with test objects.
+ */
 public final class TestUtils {
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
@@ -39,6 +42,11 @@ public final class TestUtils {
     private TestUtils() {
     }
 
+    /**
+     * Gets a random {@link Institution} for testing.
+     *
+     * @return A random Institution object
+     */
     public static Institution getRandomInstitution()
             throws AddressException, MalformedURLException, NumberParseException {
 

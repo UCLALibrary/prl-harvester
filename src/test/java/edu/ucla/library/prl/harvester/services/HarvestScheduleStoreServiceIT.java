@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
@@ -186,21 +187,32 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testDeleteInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int instID = 1;
-        myScheduleStoreProxy.removeInstitution(instID).onSuccess(result -> {
-            myScheduleStoreProxy.getInstitution(instID).onFailure(details -> {
-                final ServiceException error = (ServiceException) details;
+        final Institution toDelete = TestUtils.getRandomInstitution();
+        myScheduleStoreProxy.addInstitution(toDelete).onSuccess(newID -> {
+            myScheduleStoreProxy.removeInstitution(newID.intValue()).onSuccess(result -> {
+                myScheduleStoreProxy.getInstitution(newID.intValue()).onFailure(details -> {
+                    final ServiceException error = (ServiceException) details;
 
-                aContext.verify(() -> {
-                    assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
-                    assertTrue(error.getMessage().contains(String.valueOf(instID)));
+                    aContext.verify(() -> {
+                        assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                        assertTrue(error.getMessage().contains(String.valueOf(newID)));
 
-                    aContext.completeNow();
+                        aContext.completeNow();
+                    });
+                }).onSuccess(select -> {
+                    aContext.failNow("delete failed");
                 });
-            }).onSuccess(select -> {
-                aContext.failNow("delete failed");
-            });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
+
+        /*
+         * final int instID = 1; myScheduleStoreProxy.removeInstitution(instID).onSuccess(result -> {
+         * myScheduleStoreProxy.getInstitution(instID).onFailure(details -> { final ServiceException error =
+         * (ServiceException) details; aContext.verify(() -> { assertEquals(Error.NOT_FOUND.ordinal(),
+         * error.failureCode()); assertTrue(error.getMessage().contains(String.valueOf(instID)));
+         * aContext.completeNow(); }); }).onSuccess(select -> { aContext.failNow("delete failed"); });
+         * }).onFailure(aContext::failNow);
+         */
     }
 
 }
