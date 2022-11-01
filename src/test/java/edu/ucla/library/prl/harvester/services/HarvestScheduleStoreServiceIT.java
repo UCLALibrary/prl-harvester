@@ -13,15 +13,11 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Optional;
 
 import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -102,16 +98,8 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testAddInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final String myName = "Acme Looniversity";
-        final String myDescription = "Wacky University";
-        final String myLocation = "Acme Acres";
-        final Optional<InternetAddress> myEmail = Optional.of(new InternetAddress("bugs@ebunny.com"));
-        final Optional<PhoneNumber> myPhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 1000", null));
-        final Optional<URL> myContact = Optional.of(new URL("http://acme.edu/1/contact"));
-        final URL myWebsite = new URL("http://acme.edu/1");
-        final Institution inst =
-                new Institution(myName, myDescription, myLocation, myEmail, myPhone, myContact, myWebsite);
-        myScheduleStoreProxy.addInstitution(inst).onSuccess(result -> {
+        final Institution toAdd = TestUtils.getRandomInstitution();
+        myScheduleStoreProxy.addInstitution(toAdd).onSuccess(result -> {
             aContext.verify(() -> {
                 assertTrue(result.intValue() >= 1);
             }).completeNow();
