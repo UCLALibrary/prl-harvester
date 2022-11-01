@@ -224,8 +224,11 @@ public class HarvestScheduleStoreServiceIT {
                         assertTrue(updated.getName().equals(original.getName()));
                         assertTrue(updated.getDescription().equals(modified.getDescription()));
                     }).completeNow();
+                    aContext.completeNow();
                 });
+                aContext.completeNow();
             });
+            aContext.completeNow();
         }).onFailure(aContext::failNow);
     }
 
