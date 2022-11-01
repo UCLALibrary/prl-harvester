@@ -175,7 +175,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                             anInstitutionId));
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
-        }).compose(insert -> {
+        }).compose(update -> {
             return Future.succeededFuture();
         });
     }
