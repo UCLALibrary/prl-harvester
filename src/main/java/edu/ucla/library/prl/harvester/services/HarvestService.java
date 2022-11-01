@@ -2,6 +2,7 @@
 package edu.ucla.library.prl.harvester.services;
 
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.JobResult;
 
 import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
@@ -31,9 +32,7 @@ public interface HarvestService {
      * @return The service instance
      */
     static HarvestService create(final Vertx aVertx, final JsonObject aConfig) {
-        // FIXME: this is incorrect, instantiate an implementing class instead
-        // TODO: depending on implementation, consider returning Future<HarvestService> instead
-        return createProxy(aVertx);
+        return new HarvestServiceImpl(aVertx, aConfig);
     }
 
     /**
@@ -52,7 +51,7 @@ public interface HarvestService {
      * @param aJob The harvest job to run
      * @return A Future that succeeds if the harvest job succeeded
      */
-    Future<Object> run(Job aJob); // FIXME: use more appropriate return type
+    Future<JobResult> run(Job aJob);
 
     /**
      * Closes the underlying resources used by this service.
