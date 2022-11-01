@@ -57,6 +57,18 @@ public final class Config {
     public static final String DB_RECONNECT_INTERVAL = "DB_RECONNECT_INTERVAL";
 
     /**
+     * The ENV property for the Solr core URL.
+     */
+    public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
+
+    // Below are additional configuration options required by test classes (i.e., not the application).
+
+    /**
+     * The test configuration property for the data provider's base URL.
+     */
+    public static final String TEST_PROVIDER_BASE_URL = "TEST_PROVIDER_BASE_URL";
+
+    /**
      * Constant classes should have private constructors.
      */
     private Config() {

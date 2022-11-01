@@ -16,10 +16,9 @@ then
     export AWS_ENDPOINT_URL="http://${S3_PORT_4566_TCP_ADDR}:${S3_PORT_4566_TCP_PORT}"
 fi
 
-# Create S3 buckets
+# Create S3 bucket
 
 aws s3 mb --endpoint-url ${AWS_ENDPOINT_URL} s3://thumbnails-source
-aws s3 mb --endpoint-url ${AWS_ENDPOINT_URL} s3://thumbnails-target
 
 # Uploads a file to S3
 

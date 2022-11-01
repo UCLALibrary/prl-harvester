@@ -1,0 +1,12 @@
+diff --git a/Dockerfile b/Dockerfile
+index f07bb5c..efc7550 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -21,6 +21,7 @@ COPY --from=builder /war/ ./ROOT/
+ RUN \
+   wget -O ../lib/woodstox-core-5.0.3.jar 'https://search.maven.org/remotecontent?filepath=com/fasterxml/woodstox/woodstox-core/5.0.3/woodstox-core-5.0.3.jar' && \
+   wget -O ../lib/stax2-api-4.0.0.jar 'https://search.maven.org/remotecontent?filepath=org/codehaus/woodstox/stax2-api/4.0.0/stax2-api-4.0.0.jar' && \
++  wget -O ../lib/xalan-2.7.2.jar 'https://search.maven.org/remotecontent?filepath=xalan/xalan/2.7.2/xalan-2.7.2.jar' && \
+   rm -r docs/ examples/ host-manager/ manager/ && \
+   mkdir -p /joai/config/harvester /joai/config/repository && \
+   ln -s /joai/config/harvester /usr/local/tomcat/webapps/ROOT/WEB-INF/harvester_settings_and_data && \
