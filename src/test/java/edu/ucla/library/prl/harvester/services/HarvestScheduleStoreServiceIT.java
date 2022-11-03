@@ -177,8 +177,8 @@ public class HarvestScheduleStoreServiceIT {
             throws AddressException, MalformedURLException, NumberParseException {
         final Institution toDelete = TestUtils.getRandomInstitution();
         myScheduleStoreProxy.addInstitution(toDelete).onSuccess(newID -> {
-            myScheduleStoreProxy.removeInstitution(newID.intValue()).onSuccess(result -> {
-                myScheduleStoreProxy.getInstitution(newID.intValue()).onFailure(details -> {
+            myScheduleStoreProxy.removeInstitution(newID).onSuccess(result -> {
+                myScheduleStoreProxy.getInstitution(newID).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;
 
                     aContext.verify(() -> {

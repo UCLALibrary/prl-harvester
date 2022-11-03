@@ -94,7 +94,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     @Override
-    public Future<Institution> getInstitution(final int anInstitutionId) {
+    public Future<Institution> getInstitution(final Integer anInstitutionId) {
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(GET_INST).execute(Tuple.of(anInstitutionId));
         }).recover(error -> {
@@ -181,7 +181,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     @Override
-    public Future<Void> removeInstitution(final int anInstitutionId) {
+    public Future<Void> removeInstitution(final Integer anInstitutionId) {
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(DEL_INST).execute(Tuple.of(anInstitutionId));
         }).recover(error -> {
