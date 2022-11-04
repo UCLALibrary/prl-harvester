@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
@@ -36,6 +40,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
+
+    /**
+     * Parses and formats phone numbers.
+     */
+    private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
     /**
      * The select-one query for institutions.
@@ -140,7 +149,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalAsString(anInstitution.getPhone()),
+                            getOptionalPhoneAsString(anInstitution.getPhone()),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
@@ -164,13 +173,27 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }
     }
 
+    /**
+     * Converts Optional phone number values to String for use in prepared queries.
+     *
+     * @param aPhoneParam An Optional used as a query param
+     * @return The String representation of the Optional value, or an empty string if Optional is empty
+     */
+    private String getOptionalPhoneAsString(final Optional<PhoneNumber> aPhoneParam) {
+        if (aPhoneParam.isPresent()) {
+            return PHONE_NUMBER_UTIL.format(aPhoneParam.get(), PhoneNumberFormat.INTERNATIONAL);
+        } else {
+            return String.valueOf("");
+        }
+    }
+
     @Override
     public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(UPDATE_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalAsString(anInstitution.getPhone()),
+                            getOptionalPhoneAsString(anInstitution.getPhone()),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString(),
                             anInstitutionId));
         }).recover(error -> {

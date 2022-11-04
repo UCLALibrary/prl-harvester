@@ -52,6 +52,7 @@
 
     <!-- Test dependency versions -->
     <junit.version>5.9.0</junit.version>
+    <jeasy.version>5.0.0</jeasy.version>
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
@@ -244,7 +245,7 @@
     <dependency>
       <groupId>org.jeasy</groupId>
       <artifactId>easy-random-randomizers</artifactId>
-      <version>5.0.0</version>
+      <version>${jeasy.version}</version>
       <scope>test</scope>
     </dependency>
 

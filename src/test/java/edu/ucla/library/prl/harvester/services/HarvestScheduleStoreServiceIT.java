@@ -188,7 +188,7 @@ public class HarvestScheduleStoreServiceIT {
                 }).onSuccess(select -> {
                     aContext.failNow("delete failed");
                 });
-            });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
@@ -212,11 +212,8 @@ public class HarvestScheduleStoreServiceIT {
                         assertTrue(updated.getName().equals(original.getName()));
                         assertTrue(updated.getDescription().equals(modified.getDescription()));
                     }).completeNow();
-                    aContext.completeNow();
-                });
-                aContext.completeNow();
-            });
-            aContext.completeNow();
+                }).onFailure(aContext::failNow);
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
