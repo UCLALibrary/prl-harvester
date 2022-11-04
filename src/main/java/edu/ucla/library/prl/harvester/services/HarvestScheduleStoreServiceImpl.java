@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
@@ -38,6 +42,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
 
     /**
+     * Parses and formats phone numbers.
+     */
+    private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
+
+    /**
      * The select-one query for institutions.
      */
     private static final String GET_INST = "SELECT * FROM public.institutions WHERE id = $1";
@@ -52,6 +61,17 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = "SELECT * FROM public.institutions ORDER BY name";
+
+    /**
+     * The delete query for an institution.
+     */
+    private static final String DEL_INST = "DELETE FROM public.institutions WHERE id = $1";
+
+    /**
+     * The update query for an institution.
+     */
+    private static final String UPDATE_INST = "UPDATE public.institutions SET name=$1, description=$2," +
+            " location=$3, email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8";
 
     /**
      * The postgres database (and default user) name.
@@ -83,7 +103,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     @Override
-    public Future<Institution> getInstitution(final int anInstitutionId) {
+    public Future<Institution> getInstitution(final Integer anInstitutionId) {
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(GET_INST).execute(Tuple.of(anInstitutionId));
         }).recover(error -> {
@@ -129,7 +149,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalAsString(anInstitution.getPhone()),
+                            getOptionalPhoneAsString(anInstitution.getPhone()),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
@@ -153,16 +173,45 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }
     }
 
-    @Override
-    public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+    /**
+     * Converts Optional phone number values to String for use in prepared queries.
+     *
+     * @param aPhoneParam An Optional used as a query param
+     * @return The String representation of the Optional value, or an empty string if Optional is empty
+     */
+    private String getOptionalPhoneAsString(final Optional<PhoneNumber> aPhoneParam) {
+        if (aPhoneParam.isPresent()) {
+            return PHONE_NUMBER_UTIL.format(aPhoneParam.get(), PhoneNumberFormat.INTERNATIONAL);
+        } else {
+            return String.valueOf("");
+        }
     }
 
     @Override
-    public Future<Void> removeInstitution(final int anInstitutionId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+    public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(UPDATE_INST)
+                    .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
+                            anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
+                            getOptionalPhoneAsString(anInstitution.getPhone()),
+                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString(),
+                            anInstitutionId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(update -> {
+            return Future.succeededFuture();
+        });
+    }
+
+    @Override
+    public Future<Void> removeInstitution(final Integer anInstitutionId) {
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(DEL_INST).execute(Tuple.of(anInstitutionId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(delete -> {
+            return Future.succeededFuture();
+        });
     }
 
     @Override

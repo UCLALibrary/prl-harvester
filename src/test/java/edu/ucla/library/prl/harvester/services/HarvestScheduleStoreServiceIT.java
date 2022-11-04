@@ -7,20 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Optional;
 
 import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -101,16 +98,8 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testAddInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final String myName = "Acme Looniversity";
-        final String myDescription = "Wacky University";
-        final String myLocation = "Acme Acres";
-        final Optional<InternetAddress> myEmail = Optional.of(new InternetAddress("bugs@ebunny.com"));
-        final Optional<PhoneNumber> myPhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 1000", null));
-        final Optional<URL> myContact = Optional.of(new URL("http://acme.edu/1/contact"));
-        final URL myWebsite = new URL("http://acme.edu/1");
-        final Institution inst =
-                new Institution(myName, myDescription, myLocation, myEmail, myPhone, myContact, myWebsite);
-        myScheduleStoreProxy.addInstitution(inst).onSuccess(result -> {
+        final Institution toAdd = TestUtils.getRandomInstitution();
+        myScheduleStoreProxy.addInstitution(toAdd).onSuccess(result -> {
             aContext.verify(() -> {
                 assertTrue(result.intValue() >= 1);
             }).completeNow();
@@ -174,6 +163,57 @@ public class HarvestScheduleStoreServiceIT {
                 assertTrue(instList.size() >= 3);
                 assertTrue(instList.get(0).getName().equals(SAMPLE_NAME));
             }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests deleting institution from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testDeleteInstitution(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final Institution toDelete = TestUtils.getRandomInstitution();
+        myScheduleStoreProxy.addInstitution(toDelete).onSuccess(newID -> {
+            myScheduleStoreProxy.removeInstitution(newID).onSuccess(result -> {
+                myScheduleStoreProxy.getInstitution(newID).onFailure(details -> {
+                    final ServiceException error = (ServiceException) details;
+
+                    aContext.verify(() -> {
+                        assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                        assertTrue(error.getMessage().contains(String.valueOf(newID)));
+                    }).completeNow();
+                }).onSuccess(select -> {
+                    aContext.failNow("delete failed");
+                });
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests updating institution in db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testUpdateInstitution(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int instID = 1;
+        myScheduleStoreProxy.getInstitution(instID).onSuccess(original -> {
+            final Institution modified =
+                    new Institution(original.getName(), "changing description", "changing location",
+                            original.getEmail(), original.getPhone(), original.getWebContact(), original.getWebsite());
+            myScheduleStoreProxy.updateInstitution(instID, modified).onSuccess(result -> {
+                myScheduleStoreProxy.getInstitution(instID).onSuccess(updated -> {
+                    aContext.verify(() -> {
+                        assertTrue(updated.getName().equals(original.getName()));
+                        assertTrue(updated.getDescription().equals(modified.getDescription()));
+                    }).completeNow();
+                }).onFailure(aContext::failNow);
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 

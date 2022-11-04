@@ -53,7 +53,7 @@ public interface HarvestScheduleStoreService {
      * @param anInstitutionId The unique local ID for the institution
      * @return A Future that succeeds if the institution exists
      */
-    Future<Institution> getInstitution(int anInstitutionId);
+    Future<Institution> getInstitution(Integer anInstitutionId);
 
     /**
      * Gets the list of all institutions.
@@ -85,7 +85,7 @@ public interface HarvestScheduleStoreService {
      * @param anInstitutionId The unique local ID for the institution
      * @return A Future that succeeds if the institution was removed
      */
-    Future<Void> removeInstitution(int anInstitutionId);
+    Future<Void> removeInstitution(Integer anInstitutionId);
 
     /**
      * Gets a harvest job.
