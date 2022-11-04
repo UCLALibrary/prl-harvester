@@ -2,10 +2,16 @@
 package edu.ucla.library.prl.harvester.utils;
 
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.ParseException;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -18,11 +24,17 @@ import org.jeasy.random.randomizers.EmailRandomizer;
 import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
 import org.jeasy.random.randomizers.RegularExpressionRandomizer;
 import org.jeasy.random.randomizers.SentenceRandomizer;
+import org.jeasy.random.randomizers.collection.ListRandomizer;
+import org.jeasy.random.randomizers.time.ZonedDateTimeRandomizer;
+
+import org.quartz.CronExpression;
 
 /**
  * Utilities related to working with test objects.
  */
 public final class TestUtils {
+
+    private static final Random RANDOMIZER = new Random();
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
@@ -38,6 +50,10 @@ public final class TestUtils {
             new RegularExpressionRandomizer("^\\+\\d{1,3} \\d{3} \\d{3} \\d{4}$");
 
     private static final SentenceRandomizer RAND_STRING = new SentenceRandomizer();
+
+    private static final ZonedDateTimeRandomizer RAND_DATE = new ZonedDateTimeRandomizer();
+
+    // private static final ListRandomizer<List<String>> RAND_LIST = new ListRandomizer<>(RAND_STRING);
 
     private TestUtils() {
     }
@@ -63,4 +79,37 @@ public final class TestUtils {
                 randWebsite);
     }
 
+    /**
+     * Gets a random {@link Job} for testing.
+     *
+     * @return A random Institution object
+     */
+    public static Job getRandomJob() 
+            throws MalformedURLException, ParseException {
+
+        final int randListSize = RANDOMIZER.nextInt(5) + 1;
+        final int randID = RANDOMIZER.nextInt(3) + 1;
+        final URL randURL = new URL(URL_PREFIX.concat(RAND_URL.getRandomValue()));
+        final List<String> randSets = new ArrayList<>(randListSize);
+        final ZonedDateTime randDate = RAND_DATE.getRandomValue();
+        final CronExpression randCron = new CronExpression(buildCron(randDate));
+
+        for (int index = 0; index < randListSize; index++) {
+            randSets.add(RAND_STRING.getRandomValue());
+        }
+
+        return new Job(randID, randURL, randSets, randCron, randDate);
+    }
+
+    private static String buildCron(ZonedDateTime aSourceDate) {
+        final String blank = " ";
+        final StringBuffer cronExpression = new StringBuffer();
+
+        cronExpression.append(aSourceDate.getMinute()).append(blank);
+        cronExpression.append(aSourceDate.getHour()).append(blank);
+        cronExpression.append(aSourceDate.getDayOfMonth()).append(blank);
+        cronExpression.append(aSourceDate.getMonthValue()).append(blank);
+        cronExpression.append(aSourceDate.getDayOfWeek().getValue());
+        return cronExpression.toString();
+    }
 }
