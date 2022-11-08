@@ -232,8 +232,7 @@ public class HarvestScheduleStoreServiceIT {
         myScheduleStoreProxy.getJob(jobID).onSuccess(job -> {
             aContext.verify(() -> {
                 assertTrue(job != null);
-                LOGGER.info("sample = " + SAMPLE_CRON + "\tdb = " + job.getScheduleCronExpression());
-                assertTrue(job.getScheduleCronExpression().equals(SAMPLE_CRON));
+                assertTrue(job.getScheduleCronExpression().toString().equals(SAMPLE_CRON));
             }).completeNow();
         }).onFailure(aContext::failNow);
     }

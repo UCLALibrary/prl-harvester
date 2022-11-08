@@ -74,16 +74,33 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             " location=$3, email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8";
 
     /**
-     * The select-one query for institutions.
+     * The select-one query for jobs.
      */
     private static final String GET_JOB = "SELECT * FROM public.harvestjobs WHERE id = $1";
 
     /**
-     * The insert query for institutions.
+     * The insert query for jobs.
      */
     private static final String ADD_JOB =
             "INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets," +
                     " lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id";
+
+    /**
+     * The select query for all jobs.
+     */
+    private static final String LIST_JOBS = "SELECT * FROM public.harvestjobs ORDER BY institutionID";
+
+    /**
+     * The delete query for a job.
+     */
+    private static final String DEL_JOB = "DELETE FROM public.harvestjobs WHERE id = $1";
+
+    /**
+     * The update query for a job.
+     */
+    private static final String UPDATE_JOB =
+            "UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3," +
+                    " scheduleCronExpression=$4 WHERE id = $5";
 
     /**
      * The postgres database (and default user) name.
@@ -243,8 +260,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<List<Job>> listJobs() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(LIST_JOBS).execute();
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            final List<Job> allJobs = new ArrayList<>();
+            final RowIterator<Row> iterator = select.iterator();
+            while (iterator.hasNext()) {
+                allJobs.add(new Job(iterator.next().toJson()));
+            }
+            return Future.succeededFuture(allJobs);
+        });
     }
 
     @Override
@@ -265,14 +292,27 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(UPDATE_JOB)
+                    .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), aJob.getMetadataPrefix(),
+                            getOptionalAsString(aJob.getSets()), aJob.getScheduleCronExpression().toString(),
+                            getOptionalAsString(aJob.getLastSuccessfulRun()), aJobId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(update -> {
+            return Future.succeededFuture();
+        });
     }
 
     @Override
     public Future<Void> removeJob(final int aJobId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(DEL_JOB).execute(Tuple.of(aJobId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(delete -> {
+            return Future.succeededFuture();
+        });
     }
 
     @Override
