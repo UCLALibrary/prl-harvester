@@ -51,7 +51,7 @@ public class HarvestScheduleStoreServiceIT {
 
     private static final String SAMPLE_NAME = "Sample 1";
 
-    private static final String SAMPLE_CRON = "15 20 8 10 *";
+    private static final String SAMPLE_CRON = "0 0/30 8-9 5,20 * ?";
 
     private MessageConsumer<?> myHarvestScheduleStoreService;
 
@@ -232,6 +232,7 @@ public class HarvestScheduleStoreServiceIT {
         myScheduleStoreProxy.getJob(jobID).onSuccess(job -> {
             aContext.verify(() -> {
                 assertTrue(job != null);
+                LOGGER.info("sample = " + SAMPLE_CRON + "\tdb = " + job.getScheduleCronExpression());
                 assertTrue(job.getScheduleCronExpression().equals(SAMPLE_CRON));
             }).completeNow();
         }).onFailure(aContext::failNow);
