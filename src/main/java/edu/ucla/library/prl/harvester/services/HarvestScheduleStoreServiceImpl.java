@@ -74,6 +74,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             " location=$3, email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8";
 
     /**
+     * The select-one query for institutions.
+     */
+    private static final String GET_JOB = "SELECT * FROM public.harvestjobs WHERE id = $1";
+
+    /**
+     * The insert query for institutions.
+     */
+    private static final String ADD_JOB =
+            "INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets," +
+                    " lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id";
+
+    /**
      * The postgres database (and default user) name.
      */
     private static final String POSTGRES = "postgres";
@@ -216,8 +228,17 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Job> getJob(final int aJobId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(GET_JOB).execute(Tuple.of(aJobId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            if (hasSingleRow(select)) {
+                return Future.succeededFuture(new Job(select.iterator().next().toJson()));
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_007, aJobId)));
+        });
     }
 
     @Override
@@ -228,8 +249,18 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Integer> addJob(final Job aJob) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(ADD_JOB)
+                    .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
+                            aJob.getMetadataPrefix(), getOptionalAsString(aJob.getSets()),
+                            aJob.getScheduleCronExpression().toString(),
+                            getOptionalAsString(aJob.getLastSuccessfulRun())));
+        }).recover(error -> {
+            LOGGER.error(MessageCodes.PRL_006, error.getMessage());
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(insert -> {
+            return Future.succeededFuture(insert.iterator().next().getInteger("id"));
+        });
     }
 
     @Override

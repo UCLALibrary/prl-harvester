@@ -51,6 +51,8 @@ public class HarvestScheduleStoreServiceIT {
 
     private static final String SAMPLE_NAME = "Sample 1";
 
+    private static final String SAMPLE_CRON = "15 20 8 10 *";
+
     private MessageConsumer<?> myHarvestScheduleStoreService;
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
@@ -215,6 +217,48 @@ public class HarvestScheduleStoreServiceIT {
                 }).onFailure(aContext::failNow);
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests getting job by ID from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int jobID = 1;
+        myScheduleStoreProxy.getJob(jobID).onSuccess(job -> {
+            aContext.verify(() -> {
+                assertTrue(job != null);
+                assertTrue(job.getScheduleCronExpression().equals(SAMPLE_CRON));
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests handling bad job ID in get job.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetJobBadID(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int badID = -1;
+        myScheduleStoreProxy.getJob(badID).onFailure(details -> {
+            final ServiceException error = (ServiceException) details;
+
+            aContext.verify(() -> {
+                assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                assertTrue(error.getMessage().contains(String.valueOf(badID)));
+
+                aContext.completeNow();
+            });
+        }).onSuccess(result -> {
+            aContext.failNow("this shouldn't happen");
+        });
     }
 
 }

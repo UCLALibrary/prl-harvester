@@ -24,7 +24,6 @@ import org.jeasy.random.randomizers.EmailRandomizer;
 import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
 import org.jeasy.random.randomizers.RegularExpressionRandomizer;
 import org.jeasy.random.randomizers.SentenceRandomizer;
-import org.jeasy.random.randomizers.collection.ListRandomizer;
 import org.jeasy.random.randomizers.time.ZonedDateTimeRandomizer;
 
 import org.quartz.CronExpression;
@@ -84,8 +83,7 @@ public final class TestUtils {
      *
      * @return A random Institution object
      */
-    public static Job getRandomJob() 
-            throws MalformedURLException, ParseException {
+    public static Job getRandomJob() throws MalformedURLException, ParseException {
 
         final int randListSize = RANDOMIZER.nextInt(5) + 1;
         final int randID = RANDOMIZER.nextInt(3) + 1;
@@ -101,7 +99,7 @@ public final class TestUtils {
         return new Job(randID, randURL, randSets, randCron, randDate);
     }
 
-    private static String buildCron(ZonedDateTime aSourceDate) {
+    private static String buildCron(final ZonedDateTime aSourceDate) {
         final String blank = " ";
         final StringBuffer cronExpression = new StringBuffer();
 
