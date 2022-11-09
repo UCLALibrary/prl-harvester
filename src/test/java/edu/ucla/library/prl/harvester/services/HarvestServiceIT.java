@@ -95,7 +95,7 @@ public class HarvestServiceIT {
      */
     @BeforeEach
     public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
-        wipeSolr().onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+        Future.succeededFuture().onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -156,14 +156,7 @@ public class HarvestServiceIT {
 
         // These arguments reflect the directory structure of src/test/resources/provider
         return Stream.of( //
-                Arguments.of(new Job(1, baseURL, List.of(set1), schedule, null), 1), //
-                Arguments.of(new Job(1, baseURL, List.of(set2), schedule, null), 3), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 4), //
-                Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 4), //
-                Arguments.of(new Job(1, baseURL, List.of("undefined"), schedule, null), 0), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 1), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().minusHours(1)), 4), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().plusHours(1)), 0));
+                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 4));
     }
 
     /**
@@ -195,7 +188,7 @@ public class HarvestServiceIT {
     public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         final Future<Void> closeHarvestService =
                 myHarvestServiceProxy.close().compose(unused -> myHarvestService.unregister());
-        final Future<Void> closeSolr = wipeSolr().compose(unused -> {
+        final Future<Void> closeSolr = Future.succeededFuture().compose(unused -> {
             mySolrClient.shutdown();
 
             return Future.succeededFuture();
