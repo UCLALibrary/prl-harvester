@@ -1140,16 +1140,16 @@
      <transformer name="qecBooster" class="org.apache.solr.response.transform.EditorialMarkerFactory" />
     -->
 
-    <!-- PRL -->
+  <!-- PRL -->
 
-    <!-- The configuration below was necessary to get around the following CORB issue I was seeing during testing:
+  <!-- The configuration below was necessary to get around the following CORB issue I was seeing during testing:
 
-         The resource from "http://localhost:8080/solr/prl/select?q=prrla_member_title:*&rows=0&wt=json&sort=prrla_member_title%20asc&indent=true&facet=true&facet.field=prrla_member_title&json.wrf=__ng_jsonp__.__req0.finished"
-         was blocked due to MIME type ("application/json") mismatch (X-Content-Type-Options: nosniff).
+       The resource from "http://localhost:8080/solr/prl/select?q=prrla_member_title:*&rows=0&wt=json&sort=prrla_member_title%20asc&indent=true&facet=true&facet.field=prrla_member_title&json.wrf=__ng_jsonp__.__req0.finished"
+       was blocked due to MIME type ("application/json") mismatch (X-Content-Type-Options: nosniff).
 
-         Basically, the front-end injects the JSON-P payload into a script tag, which the browser only allows if the content type is JavaScript.
-    -->
-    <queryResponseWriter name="jsonp" class="solr.JSONResponseWriter">
-      <str name="content-type">text/javascript</str>
-    </queryResponseWriter>
+       Basically, the front-end injects the JSON-P payload into a script tag, which the browser only allows if the content type is JavaScript.
+  -->
+  <queryResponseWriter name="jsonp" class="solr.JSONResponseWriter">
+    <str name="content-type">text/javascript</str>
+  </queryResponseWriter>
 </config>
