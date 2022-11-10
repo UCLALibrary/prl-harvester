@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
@@ -13,6 +14,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.net.MalformedURLException;
+import java.text.ParseException;
 
 import javax.mail.internet.AddressException;
 
@@ -259,6 +261,23 @@ public class HarvestScheduleStoreServiceIT {
         }).onSuccess(result -> {
             aContext.failNow("this shouldn't happen");
         });
+    }
+
+    /**
+     * Tests inserting job record in db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException, ParseException {
+        final Job toAdd = TestUtils.getRandomJob();
+        myScheduleStoreProxy.addJob(toAdd).onSuccess(result -> {
+            aContext.verify(() -> {
+                assertTrue(result.intValue() >= 1);
+            }).completeNow();
+        }).onFailure(aContext::failNow);
     }
 
 }

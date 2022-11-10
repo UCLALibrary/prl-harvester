@@ -41,6 +41,8 @@ public final class TestUtils {
 
     private static final String CONTACT_POSTFIX = "/contact";
 
+    private static final String QUESTION = "?";
+
     private static final EmailRandomizer RAND_EMAIL = new EmailRandomizer();
 
     private static final Ipv4AddressRandomizer RAND_URL = new Ipv4AddressRandomizer();
@@ -103,11 +105,12 @@ public final class TestUtils {
         final String blank = " ";
         final StringBuffer cronExpression = new StringBuffer();
 
+        cronExpression.append(aSourceDate.getSecond()).append(blank);
         cronExpression.append(aSourceDate.getMinute()).append(blank);
         cronExpression.append(aSourceDate.getHour()).append(blank);
         cronExpression.append(aSourceDate.getDayOfMonth()).append(blank);
         cronExpression.append(aSourceDate.getMonthValue()).append(blank);
-        cronExpression.append(aSourceDate.getDayOfWeek().getValue());
+        cronExpression.append(QUESTION);
         return cronExpression.toString();
     }
 }

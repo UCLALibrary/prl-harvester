@@ -283,7 +283,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                             aJob.getScheduleCronExpression().toString(),
                             getOptionalAsString(aJob.getLastSuccessfulRun())));
         }).recover(error -> {
-            LOGGER.error(MessageCodes.PRL_006, error.getMessage());
+            LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger("id"));
