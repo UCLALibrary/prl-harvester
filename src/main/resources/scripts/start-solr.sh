@@ -10,6 +10,6 @@ mkdir /var/solr/data/lib && \
 ln -s -t /var/solr/data/lib \
     /opt/solr/modules/analysis-extras/lib/{solr-analysis-extras-*.jar,icu4j-*.jar,lucene-analysis-icu-*.jar} && \
 
-cp /root/{schema.xml,solrconfig.xml} /var/solr/data/prl/conf/ && \
+cp /root/{managed-schema.xml,solrconfig.xml} /var/solr/data/prl/conf/ && \
 
 solr-foreground
