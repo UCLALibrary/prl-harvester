@@ -1028,4 +1028,75 @@
      </similarity>
     -->
 
+    <!-- PRL -->
+
+    <!-- Institution docs -->
+
+    <field name="prrla_member_title" type="string" />
+    <field name="prrla_member_description" type="string" />
+    <field name="prrla_member_location" type="string" />
+    <field name="prrla_member_email" type="string" />
+    <field name="prrla_member_phone" type="string" />
+    <field name="prrla_member_website" type="string" />
+    <field name="prrla_member_latitude" type="string" />
+    <field name="prrla_member_longitude" type="string" />
+
+    <!-- Item docs -->
+
+    <fieldType name="prrla_facet" class="solr.TextField" positionIncrementGap="100">
+      <analyzer>
+        <tokenizer class="solr.KeywordTokenizerFactory" />
+        <filter class="solr.TrimFilterFactory" />
+      </analyzer>
+    </fieldType>
+
+    <fieldtype name="text_cjk_prrla" class="solr.TextField" positionIncrementGap="10000" autoGeneratePhraseQueries="false">
+      <analyzer>
+        <!-- remove spaces among hangul and han chars if there is at least one hangul char -->
+        <!-- a korean char guaranteed at the start of the pattern:  pattern="(\p{Hangul}\p{Han}*)\s+(?=[\p{Hangul}\p{Han}])" -->
+        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([\p{InHangul_Jamo}\p{InHangul_Compatibility_Jamo}\p{InHangul_Syllables}][\p{InBopomofo}\p{InBopomofo_Extended}\p{InCJK_Compatibility}\p{InCJK_Compatibility_Forms}\p{InCJK_Compatibility_Ideographs}\p{InCJK_Compatibility_Ideographs_Supplement}\p{InCJK_Radicals_Supplement}\p{InCJK_Symbols_And_Punctuation}\p{InCJK_Unified_Ideographs}\p{InCJK_Unified_Ideographs_Extension_A}\p{InCJK_Unified_Ideographs_Extension_B}\p{InKangxi_Radicals}\p{InHalfwidth_And_Fullwidth_Forms}\p{InIdeographic_Description_Characters}]*)\s+(?=[\p{InHangul_Jamo}\p{InHangul_Compatibility_Jamo}\p{InHangul_Syllables}\p{InBopomofo}\p{InBopomofo_Extended}\p{InCJK_Compatibility}\p{InCJK_Compatibility_Forms}\p{InCJK_Compatibility_Ideographs}\p{InCJK_Compatibility_Ideographs_Supplement}\p{InCJK_Radicals_Supplement}\p{InCJK_Symbols_And_Punctuation}\p{InCJK_Unified_Ideographs}\p{InCJK_Unified_Ideographs_Extension_A}\p{InCJK_Unified_Ideographs_Extension_B}\p{InKangxi_Radicals}\p{InHalfwidth_And_Fullwidth_Forms}\p{InIdeographic_Description_Characters}])" replacement="$1" />
+        <!-- a korean char guaranteed at the end of the pattern:    pattern="([\p{Hangul}\p{Han}])\s+(?=[\p{Han}\s]*\p{Hangul})" -->
+        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="([\p{InHangul_Jamo}\p{InHangul_Compatibility_Jamo}\p{InHangul_Syllables}\p{InBopomofo}\p{InBopomofo_Extended}\p{InCJK_Compatibility}\p{InCJK_Compatibility_Forms}\p{InCJK_Compatibility_Ideographs}\p{InCJK_Compatibility_Ideographs_Supplement}\p{InCJK_Radicals_Supplement}\p{InCJK_Symbols_And_Punctuation}\p{InCJK_Unified_Ideographs}\p{InCJK_Unified_Ideographs_Extension_A}\p{InCJK_Unified_Ideographs_Extension_B}\p{InKangxi_Radicals}\p{InHalfwidth_And_Fullwidth_Forms}\p{InIdeographic_Description_Characters}])\s+(?=[\p{InBopomofo}\p{InBopomofo_Extended}\p{InCJK_Compatibility}\p{InCJK_Compatibility_Forms}\p{InCJK_Compatibility_Ideographs}\p{InCJK_Compatibility_Ideographs_Supplement}\p{InCJK_Radicals_Supplement}\p{InCJK_Symbols_And_Punctuation}\p{InCJK_Unified_Ideographs}\p{InCJK_Unified_Ideographs_Extension_A}\p{InCJK_Unified_Ideographs_Extension_B}\p{InKangxi_Radicals}\p{InHalfwidth_And_Fullwidth_Forms}\p{InIdeographic_Description_Characters}\s]*[\p{InHangul_Jamo}\p{InHangul_Compatibility_Jamo}\p{InHangul_Syllables}])" replacement="$1" />
+        <tokenizer class="solr.ICUTokenizerFactory" />
+        <filter class="solr.CJKWidthFilterFactory" />
+        <!--
+             the ICU transform provided by Solr for traditional Han characters to simplified Han characters is incomplete.  Some Japanese modern Kanji characters are not included in the transform, so Japanese search results for these modern Kanji characters won't include the corresponding traditional Kanji character.
+             <filter class="edu.stanford.lucene.analysis.CJKFoldingFilterFactory"/>-->
+        <filter class="solr.ICUTransformFilterFactory" id="Traditional-Simplified" />
+        <filter class="solr.ICUTransformFilterFactory" id="Katakana-Hiragana" />
+        <filter class="solr.ICUFoldingFilterFactory" /> <!-- NFKC, case folding, diacritics removed -->
+        <filter class="solr.CJKBigramFilterFactory" han="true" hiragana="true" katakana="true" hangul="true" outputUnigrams="true" />
+      </analyzer>
+    </fieldtype>
+
+    <!-- Dublin Core -->
+    <field name="type_keyword" type="prrla_facet" multiValued="true" />
+    <field name="title_keyword" type="prrla_facet" multiValued="true" />
+    <field name="creator_keyword" type="prrla_facet" multiValued="true" />
+    <dynamicField name="*_keyword" type="string" multiValued="true" />
+
+    <!-- Non-DC fields -->
+    <field name="collectionName" type="prrla_facet" multiValued="true" />
+    <field name="institutionName" type="prrla_facet" />
+    <field name="external_link" type="string" />
+    <field name="alternate_external_link" type="string" multiValued="true" />
+    <field name="decade" type="string" multiValued="true" />
+    <field name="sort_decade" type="string" />
+    <field name="first_title" type="prrla_facet" />
+    <field name="thumbnail_url" type="string" />
+
+    <!-- Keyword search -->
+    <field name="text" type="text_general" stored="false" multiValued="true" />
+    <copyField source="*_keyword" dest="text" />
+    <copyField source="collectionName" dest="text" />
+    <copyField source="institutionName" dest="text" />
+    <copyField source="id" dest="text" />
+
+    <!-- Multi-lingual keyword search -->
+    <field name="text_multi" type="text_cjk_prrla" stored="false" multiValued="true" />
+    <copyField source="*_keyword" dest="text_multi" />
+    <copyField source="collectionName" dest="text_multi" />
+    <copyField source="institutionName" dest="text_multi" />
+    <copyField source="id" dest="text_multi" />
+
 </schema>
