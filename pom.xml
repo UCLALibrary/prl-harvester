@@ -542,13 +542,13 @@
                 <containerNamePattern>${project.artifactId}_solr</containerNamePattern>
                 <volumes>
                   <bind>
-                    <volume>${project.basedir}/src/main/resources/scripts/:/root/</volume>
+                    <volume>${project.basedir}/src/main/resources/:/root/</volume>
                   </bind>
                 </volumes>
                 <ports>
                   <port>${test.solr.port}:8983</port>
                 </ports>
-                <cmd>/root/start-solr.sh</cmd>
+                <cmd>/root/scripts/start-solr.sh</cmd>
                 <wait>
                   <http>
                     <url>http://localhost:${test.solr.port}/solr/prl/admin/ping</url>
@@ -559,36 +559,6 @@
                 </wait>
               </run>
             </solr>
-            <solr-initializer>
-              <name>solr-initializer</name>
-              <build>
-                <args>
-                  <ALPINE_TAG>${docker.alpine.version}</ALPINE_TAG>
-                </args>
-                <!-- Imports the Solr configuration script -->
-                <assembly>
-                  <name>solr-initializer-assembly</name>
-                  <inline>
-                    <files>
-                      <file>
-                        <source>${project.basedir}/src/main/resources/scripts/configure-solr.sh</source>
-                        <destName>docker-entrypoint.sh</destName>
-                      </file>
-                    </files>
-                  </inline>
-                </assembly>
-                <dockerFile>${project.basedir}/src/test/docker/solr-initializer/Dockerfile</dockerFile>
-              </build>
-              <run>
-                <containerNamePattern>${project.artifactId}_solr-initializer</containerNamePattern>
-                <links>
-                  <link>solr:solr</link>
-                </links>
-                <wait>
-                  <exit>0</exit>
-                </wait>
-              </run>
-            </solr-initializer>
             <s3>
               <name>localstack/localstack:${docker.localstack.version}</name>
               <run>
