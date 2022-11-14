@@ -216,6 +216,30 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }
     }
 
+    /**
+     * Converts Optional phone number values to String for use in prepared queries.
+     *
+     * @param aPhoneParam An Optional used as a query param
+     * @return The String representation of the Optional value, or an empty string if Optional is empty
+     */
+    private String getOptionalListAsArray(final Optional<List<String>> aListParam) {
+        final String open = "{";
+        final String close = "}";
+        final String quote = "\"";
+        final String comma = ",";
+        if (aListParam.isPresent()) {
+            final StringBuffer buffer = new StringBuffer(open);
+            for (String entry : aListParam.get()) {
+                buffer.append(quote).append(entry).append(quote).append(comma);
+            }
+            buffer.deleteCharAt(buffer.lastIndexOf(comma));
+            buffer.append(close);
+            return buffer.toString();
+        } else {
+            return open.concat(close);
+        }
+    }
+
     @Override
     public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
         return myDbConnectionPool.withConnection(connection -> {
@@ -279,9 +303,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(ADD_JOB)
                     .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
-                            aJob.getMetadataPrefix(), getOptionalAsString(aJob.getSets()),
-                            aJob.getScheduleCronExpression().toString(),
-                            getOptionalAsString(aJob.getLastSuccessfulRun())));
+                            aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
+                            getOptionalAsString(aJob.getLastSuccessfulRun()),
+                            aJob.getScheduleCronExpression().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
