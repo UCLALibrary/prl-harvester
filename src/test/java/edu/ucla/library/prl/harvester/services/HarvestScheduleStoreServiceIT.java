@@ -148,7 +148,7 @@ public class HarvestScheduleStoreServiceIT {
                 aContext.completeNow();
             });
         }).onSuccess(result -> {
-            aContext.failNow("this shouldn't happen");
+            aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_011, badID));
         });
     }
 
@@ -259,7 +259,7 @@ public class HarvestScheduleStoreServiceIT {
                 aContext.completeNow();
             });
         }).onSuccess(result -> {
-            aContext.failNow("this shouldn't happen");
+            aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_012, badID));
         });
     }
 

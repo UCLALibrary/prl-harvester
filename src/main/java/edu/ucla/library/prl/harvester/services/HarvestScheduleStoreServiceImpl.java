@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester.services;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +46,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * Parses and formats phone numbers.
      */
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
+
+    /**
+     * Constant of ID primary key fields.
+     */
+    private static final String ID = "id";
 
     /**
      * The select-one query for institutions.
@@ -184,7 +190,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger("id"));
+            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
         });
     }
 
@@ -219,24 +225,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * Converts Optional phone number values to String for use in prepared queries.
      *
-     * @param aPhoneParam An Optional used as a query param
-     * @return The String representation of the Optional value, or an empty string if Optional is empty
+     * @param aListParam An Optional used as a query param
+     * @return The String[] representation of the Optional value, or an empty string[] if Optional is empty
      */
-    private String getOptionalListAsArray(final Optional<List<String>> aListParam) {
-        final String open = "{";
-        final String close = "}";
-        final String quote = "\"";
-        final String comma = ",";
+    private String[] getOptionalListAsArray(final Optional<List<String>> aListParam) {
         if (aListParam.isPresent()) {
-            final StringBuffer buffer = new StringBuffer(open);
-            for (String entry : aListParam.get()) {
-                buffer.append(quote).append(entry).append(quote).append(comma);
-            }
-            buffer.deleteCharAt(buffer.lastIndexOf(comma));
-            buffer.append(close);
-            return buffer.toString();
+            return aListParam.get().toArray(new String[aListParam.get().size()]);
         } else {
-            return open.concat(close);
+            return new String[0];
         }
     }
 
@@ -304,13 +300,13 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_JOB)
                     .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
                             aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
-                            getOptionalAsString(aJob.getLastSuccessfulRun()),
+                            OffsetDateTime.from(aJob.getLastSuccessfulRun().get()),
                             aJob.getScheduleCronExpression().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger("id"));
+            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
         });
     }
 

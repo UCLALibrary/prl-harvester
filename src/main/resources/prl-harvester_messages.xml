@@ -16,5 +16,7 @@
   <entry key="PRL_008">Starting job {} at {}</entry>
   <entry key="PRL_009">Error during job insert: {}</entry>
   <entry key="PRL_010">No job found for ID: {}</entry>
+  <entry key="PRL_011">Institution found for fake ID: {}</entry>
+  <entry key="PRL_012">Job found for fake ID: {}</entry>
 
 </properties>
