@@ -48,7 +48,7 @@ public final class TestUtils {
     private static final Ipv4AddressRandomizer RAND_URL = new Ipv4AddressRandomizer();
 
     private static final RegularExpressionRandomizer RAND_PHONE =
-            new RegularExpressionRandomizer("^\\+\\d{1,3} \\d{3} \\d{3} \\d{4}$");
+            new RegularExpressionRandomizer("^\\+1 310 [2-9]\\d{2} \\d{4}$");
 
     private static final SentenceRandomizer RAND_STRING = new SentenceRandomizer();
 

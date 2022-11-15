@@ -5,6 +5,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -223,9 +224,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     /**
-     * Converts Optional phone number values to String for use in prepared queries.
+     * Converts Optional list values to String array for use in prepared queries.
      *
-     * @param aListParam An Optional used as a query param
+     * @param aListParam An Optional list used as a query param
      * @return The String[] representation of the Optional value, or an empty string[] if Optional is empty
      */
     private String[] getOptionalListAsArray(final Optional<List<String>> aListParam) {
@@ -233,6 +234,20 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return aListParam.get().toArray(new String[aListParam.get().size()]);
         } else {
             return new String[0];
+        }
+    }
+
+    /**
+     * Converts Optional zoned timestamp value to offset time value for use in prepared queries.
+     *
+     * @param aTimeParam An Optional zoned timestamp used as a query param
+     * @return The OffsetDateTime representation of the Optional value, or a null if Optional is empty
+     */
+    private OffsetDateTime getOptionalTimeAsOffset(final Optional<ZonedDateTime> aTimeParam) {
+        if (aTimeParam.isPresent()) {
+            return OffsetDateTime.from(aTimeParam.get());
+        } else {
+            return null;
         }
     }
 
@@ -300,7 +315,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_JOB)
                     .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
                             aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
-                            OffsetDateTime.from(aJob.getLastSuccessfulRun().get()),
+                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
                             aJob.getScheduleCronExpression().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
@@ -314,9 +329,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(UPDATE_JOB)
-                    .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), aJob.getMetadataPrefix(),
-                            getOptionalAsString(aJob.getSets()), aJob.getScheduleCronExpression().toString(),
-                            getOptionalAsString(aJob.getLastSuccessfulRun()), aJobId));
+                    .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), getOptionalListAsArray(aJob.getSets()),
+                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
+                            aJob.getScheduleCronExpression().toString(), aJobId));
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(update -> {
