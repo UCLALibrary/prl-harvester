@@ -58,6 +58,8 @@ public class HarvestScheduleStoreServiceIT {
 
     private static final String SAMPLE_CRON = "0 0/30 8-9 5,20 * ?";
 
+    private static final String UPDATE_URL = "http://new.url.com";
+
     private MessageConsumer<?> myHarvestScheduleStoreService;
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
@@ -339,7 +341,7 @@ public class HarvestScheduleStoreServiceIT {
         final int jobID = 1;
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(original.getInstitutionID(), new URL("http://new.url.com"),
+                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL),
                         original.getSets().get(), original.getScheduleCronExpression(), ZonedDateTime.now());
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
@@ -368,7 +370,7 @@ public class HarvestScheduleStoreServiceIT {
         final int badInstID = -1;
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(badInstID, new URL("http://new.url.com"), original.getSets().get(),
+                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().get(),
                         original.getScheduleCronExpression(), ZonedDateTime.now());
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
