@@ -36,7 +36,7 @@ public final class Job {
     /**
      * JSON key for the metadata prefix.
      */
-    static final String METADATA_PREFIX = "metadataPpefix";
+    static final String METADATA_PREFIX = "metadataprefix";
 
     /**
      * JSON key for the list of sets.

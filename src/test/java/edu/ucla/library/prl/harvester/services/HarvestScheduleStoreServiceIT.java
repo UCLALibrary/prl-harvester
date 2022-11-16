@@ -2,6 +2,7 @@
 package edu.ucla.library.prl.harvester.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Error;
@@ -345,6 +346,35 @@ public class HarvestScheduleStoreServiceIT {
                         aContext.verify(() -> {
                             assertTrue(updated.getInstitutionID() == original.getInstitutionID());
                             assertTrue(updated.getRepositoryBaseURL().equals(modified.getRepositoryBaseURL()));
+                        }).completeNow();
+                    }).onFailure(aContext::failNow);
+                }).onFailure(aContext::failNow);
+            } catch (MalformedURLException details) {
+                aContext.failNow(details);
+            }
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests updating job in db with bad institution ID.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testUpdateJobBadID(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int jobID = 1;
+        final int badInstID = -1;
+        myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
+            try {
+                final Job modified = new Job(badInstID, new URL("http://new.url.com"), original.getSets().get(),
+                        original.getScheduleCronExpression(), ZonedDateTime.now());
+                myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
+                    myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
+                        aContext.verify(() -> {
+                            assertTrue(updated.getInstitutionID() == original.getInstitutionID());
+                            assertFalse(updated.getRepositoryBaseURL().equals(modified.getRepositoryBaseURL()));
                         }).completeNow();
                     }).onFailure(aContext::failNow);
                 }).onFailure(aContext::failNow);
