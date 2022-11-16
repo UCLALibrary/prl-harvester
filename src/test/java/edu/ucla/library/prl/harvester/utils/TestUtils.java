@@ -54,8 +54,6 @@ public final class TestUtils {
 
     private static final ZonedDateTimeRandomizer RAND_DATE = new ZonedDateTimeRandomizer();
 
-    // private static final ListRandomizer<List<String>> RAND_LIST = new ListRandomizer<>(RAND_STRING);
-
     private TestUtils() {
     }
 
@@ -83,7 +81,7 @@ public final class TestUtils {
     /**
      * Gets a random {@link Job} for testing.
      *
-     * @return A random Institution object
+     * @return A random Job object
      */
     public static Job getRandomJob() throws MalformedURLException, ParseException {
 
@@ -95,7 +93,7 @@ public final class TestUtils {
         final CronExpression randCron = new CronExpression(buildCron(randDate));
 
         for (int index = 0; index < randListSize; index++) {
-            randSets.add(RAND_STRING.getRandomValue());
+            randSets.add(RAND_STRING.getRandomValue().replaceAll("\\s", ""));
         }
 
         return new Job(randID, randURL, randSets, randCron, randDate);

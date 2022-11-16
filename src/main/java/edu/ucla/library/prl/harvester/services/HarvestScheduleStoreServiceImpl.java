@@ -289,7 +289,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                 return Future.succeededFuture(new Job(select.iterator().next().toJson()));
             }
             return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_007, aJobId)));
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_010, aJobId)));
         });
     }
 
