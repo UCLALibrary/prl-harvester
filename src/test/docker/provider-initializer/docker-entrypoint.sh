@@ -28,7 +28,7 @@ add_metadata_dir() {
 
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/metadata_dir-validate.do \
         --data-raw "command=addMetadataDir&dirMetadataFormat=oai_dc" \
-        --data-urlencode "dirNickname=Test Set \"${set_spec}\"" \
+        --data-urlencode "dirNickname=Test Set ${set_spec}" \
         --data-urlencode "dirPath=/joai/data/${set_spec}" \
     | render_joai_response
 
@@ -42,7 +42,7 @@ define_set() {
     echo -e "`bold '--- Set definition ---'`\n"
 
     curl -s -X POST ${JOAI_SERVICE_URL}/admin/set_definition-validate.do \
-        --data-urlencode "setName=Test Set \"${set_spec}\"" \
+        --data-raw "setName=Test Set ${set_spec}" \
         --data-urlencode "includedDirs=/joai/data/${set_spec}" \
         --data-urlencode "setSpec=${set_spec}" \
         --data-raw "include_radio=include_radio_3&limit_radio=limit_radio_1&exclude_radio=exclude_radio_1" \

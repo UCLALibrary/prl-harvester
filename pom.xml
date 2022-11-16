@@ -540,10 +540,15 @@
               <name>solr:${solr.version}</name>
               <run>
                 <containerNamePattern>${project.artifactId}_solr</containerNamePattern>
+                <volumes>
+                  <bind>
+                    <volume>${project.basedir}/src/main/resources/:/root/</volume>
+                  </bind>
+                </volumes>
                 <ports>
                   <port>${test.solr.port}:8983</port>
                 </ports>
-                <cmd>solr-create -c prl</cmd>
+                <cmd>/root/scripts/start-solr.sh</cmd>
                 <wait>
                   <http>
                     <url>http://localhost:${test.solr.port}/solr/prl/admin/ping</url>
