@@ -341,8 +341,8 @@ public class HarvestScheduleStoreServiceIT {
         final int jobID = 1;
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL),
-                        original.getSets().get(), original.getScheduleCronExpression(), ZonedDateTime.now());
+                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getSets().get(),
+                        original.getScheduleCronExpression(), ZonedDateTime.now());
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
                         aContext.verify(() -> {
