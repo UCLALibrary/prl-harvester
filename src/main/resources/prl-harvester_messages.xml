@@ -20,5 +20,7 @@
   <entry key="PRL_012">Job found for fake ID: {}</entry>
   <entry key="PRL_013">Failed to delete instituion with ID: {}</entry>
   <entry key="PRL_014">Failed to delete job with ID: {}</entry>
+  <entry key="PRL_015">Failed job update: no match for job ID {} and institution ID {}</entry>
+  <entry key="PRL_016">Job found for fake nstitution ID: {}</entry>
 
 </properties>

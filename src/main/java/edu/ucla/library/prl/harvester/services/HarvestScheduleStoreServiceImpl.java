@@ -107,7 +107,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String UPDATE_JOB =
             "UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3," +
-                    " scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6";
+                    " scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6 RETURNING institutionID";
 
     /**
      * The postgres database (and default user) name.
@@ -335,7 +335,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(update -> {
-            return Future.succeededFuture();
+            if (hasSingleRow(update)) {
+                return Future.succeededFuture();
+            }
+            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR,
+                    LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
         });
     }
 

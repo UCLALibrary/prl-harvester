@@ -25,10 +25,15 @@ public enum Error {
     INTERNAL_ERROR,
 
     /**
-     * The failure code if the database service runs a "get" query that finds no matching rows (e.g., for a the access
-     * mode of an item that hasn't been registered in the items table).
+     * The failure code if the database service runs a "get/update" query that finds no matching rows
      */
     NOT_FOUND,
+
+    /**
+     * The failure code if the database service runs a "get/update" query that finds 2+ matching rows when there should
+     * only be one
+     */
+    TOO_MANY_MATCHES,
 
     /**
      * The failure code if the database service is asked to perform a "set" query with malformed data.

@@ -2,7 +2,6 @@
 package edu.ucla.library.prl.harvester.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Error;
@@ -372,14 +371,18 @@ public class HarvestScheduleStoreServiceIT {
             try {
                 final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().get(),
                         original.getScheduleCronExpression(), ZonedDateTime.now());
-                myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
-                    myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
-                        aContext.verify(() -> {
-                            assertTrue(updated.getInstitutionID() == original.getInstitutionID());
-                            assertFalse(updated.getRepositoryBaseURL().equals(modified.getRepositoryBaseURL()));
-                        }).completeNow();
-                    }).onFailure(aContext::failNow);
-                }).onFailure(aContext::failNow);
+                myScheduleStoreProxy.updateJob(jobID, modified).onFailure(details -> {
+                    final ServiceException error = (ServiceException) details;
+
+                    aContext.verify(() -> {
+                        assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                        assertTrue(error.getMessage().contains(String.valueOf(badInstID)));
+
+                        aContext.completeNow();
+                    });
+                }).onSuccess(result -> {
+                    aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_016, badInstID));
+                });
             } catch (MalformedURLException details) {
                 aContext.failNow(details);
             }
