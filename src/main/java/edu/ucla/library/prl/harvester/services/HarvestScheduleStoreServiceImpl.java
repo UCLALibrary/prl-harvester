@@ -107,7 +107,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String UPDATE_JOB =
             "UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3," +
-                    " scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6 RETURNING institutionID";
+                    " scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6";
 
     /**
      * The postgres database (and default user) name.
