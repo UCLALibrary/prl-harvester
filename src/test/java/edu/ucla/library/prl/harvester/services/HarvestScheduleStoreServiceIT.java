@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
@@ -13,6 +14,9 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.ParseException;
+import java.time.ZonedDateTime;
 
 import javax.mail.internet.AddressException;
 
@@ -50,6 +54,10 @@ public class HarvestScheduleStoreServiceIT {
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
     private static final String SAMPLE_NAME = "Sample 1";
+
+    private static final String SAMPLE_CRON = "0 0/30 8-9 5,20 * ?";
+
+    private static final String UPDATE_URL = "http://new.url.com";
 
     private MessageConsumer<?> myHarvestScheduleStoreService;
 
@@ -144,7 +152,7 @@ public class HarvestScheduleStoreServiceIT {
                 aContext.completeNow();
             });
         }).onSuccess(result -> {
-            aContext.failNow("this shouldn't happen");
+            aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_011, badID));
         });
     }
 
@@ -186,7 +194,7 @@ public class HarvestScheduleStoreServiceIT {
                         assertTrue(error.getMessage().contains(String.valueOf(newID)));
                     }).completeNow();
                 }).onSuccess(select -> {
-                    aContext.failNow("delete failed");
+                    aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_013, newID));
                 });
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
@@ -214,6 +222,170 @@ public class HarvestScheduleStoreServiceIT {
                     }).completeNow();
                 }).onFailure(aContext::failNow);
             }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests getting job by ID from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int jobID = 1;
+        myScheduleStoreProxy.getJob(jobID).onSuccess(job -> {
+            aContext.verify(() -> {
+                assertTrue(job != null);
+                assertTrue(job.getScheduleCronExpression().toString().equals(SAMPLE_CRON));
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests handling bad job ID in get job.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testGetJobBadID(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int badID = -1;
+        myScheduleStoreProxy.getJob(badID).onFailure(details -> {
+            final ServiceException error = (ServiceException) details;
+
+            aContext.verify(() -> {
+                assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                assertTrue(error.getMessage().contains(String.valueOf(badID)));
+
+                aContext.completeNow();
+            });
+        }).onSuccess(result -> {
+            aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_012, badID));
+        });
+    }
+
+    /**
+     * Tests inserting job record in db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException, ParseException {
+        final Job toAdd = TestUtils.getRandomJob();
+        myScheduleStoreProxy.addJob(toAdd).onSuccess(result -> {
+            aContext.verify(() -> {
+                assertTrue(result.intValue() >= 1);
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests getting all jobs from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testListJobs(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        myScheduleStoreProxy.listJobs().onSuccess(jobList -> {
+            aContext.verify(() -> {
+                assertTrue(jobList != null);
+                assertTrue(jobList.size() >= 3);
+                assertTrue(jobList.get(0).getScheduleCronExpression().toString().equals(SAMPLE_CRON));
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests deleting job from db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testDeleteJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException, ParseException {
+        final Job toDelete = TestUtils.getRandomJob();
+        myScheduleStoreProxy.addJob(toDelete).onSuccess(newID -> {
+            myScheduleStoreProxy.removeJob(newID).onSuccess(result -> {
+                myScheduleStoreProxy.getJob(newID).onFailure(details -> {
+                    final ServiceException error = (ServiceException) details;
+
+                    aContext.verify(() -> {
+                        assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                        assertTrue(error.getMessage().contains(String.valueOf(newID)));
+                    }).completeNow();
+                }).onSuccess(select -> {
+                    aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_014, newID));
+                });
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests updating job in db.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testUpdateJob(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int jobID = 1;
+        myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
+            try {
+                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getSets().get(),
+                        original.getScheduleCronExpression(), ZonedDateTime.now());
+                myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
+                    myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
+                        aContext.verify(() -> {
+                            assertTrue(updated.getInstitutionID() == original.getInstitutionID());
+                            assertTrue(updated.getRepositoryBaseURL().equals(modified.getRepositoryBaseURL()));
+                        }).completeNow();
+                    }).onFailure(aContext::failNow);
+                }).onFailure(aContext::failNow);
+            } catch (MalformedURLException details) {
+                aContext.failNow(details);
+            }
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests updating job in db with bad institution ID.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testUpdateJobBadID(final Vertx aVertx, final VertxTestContext aContext)
+            throws AddressException, MalformedURLException, NumberParseException {
+        final int jobID = 1;
+        final int badInstID = -1;
+        myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
+            try {
+                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().get(),
+                        original.getScheduleCronExpression(), ZonedDateTime.now());
+                myScheduleStoreProxy.updateJob(jobID, modified).onFailure(details -> {
+                    final ServiceException error = (ServiceException) details;
+
+                    aContext.verify(() -> {
+                        assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
+                        assertTrue(error.getMessage().contains(String.valueOf(badInstID)));
+
+                        aContext.completeNow();
+                    });
+                }).onSuccess(result -> {
+                    aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_016, badInstID));
+                });
+            } catch (MalformedURLException details) {
+                aContext.failNow(details);
+            }
         }).onFailure(aContext::failNow);
     }
 

@@ -4,6 +4,8 @@ package edu.ucla.library.prl.harvester.services;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +49,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
 
     /**
+     * Constant of ID primary key fields.
+     */
+    private static final String ID = "id";
+
+    /**
      * The select-one query for institutions.
      */
     private static final String GET_INST = "SELECT * FROM public.institutions WHERE id = $1";
@@ -72,6 +79,35 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String UPDATE_INST = "UPDATE public.institutions SET name=$1, description=$2," +
             " location=$3, email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8";
+
+    /**
+     * The select-one query for jobs.
+     */
+    private static final String GET_JOB = "SELECT * FROM public.harvestjobs WHERE id = $1";
+
+    /**
+     * The insert query for jobs.
+     */
+    private static final String ADD_JOB =
+            "INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets," +
+                    " lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id";
+
+    /**
+     * The select query for all jobs.
+     */
+    private static final String LIST_JOBS = "SELECT * FROM public.harvestjobs ORDER BY institutionID";
+
+    /**
+     * The delete query for a job.
+     */
+    private static final String DEL_JOB = "DELETE FROM public.harvestjobs WHERE id = $1";
+
+    /**
+     * The update query for a job.
+     */
+    private static final String UPDATE_JOB =
+            "UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3," +
+                    " scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6";
 
     /**
      * The postgres database (and default user) name.
@@ -155,7 +191,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger("id"));
+            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
         });
     }
 
@@ -184,6 +220,34 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return PHONE_NUMBER_UTIL.format(aPhoneParam.get(), PhoneNumberFormat.INTERNATIONAL);
         } else {
             return String.valueOf("");
+        }
+    }
+
+    /**
+     * Converts Optional list values to String array for use in prepared queries.
+     *
+     * @param aListParam An Optional list used as a query param
+     * @return The String[] representation of the Optional value, or an empty string[] if Optional is empty
+     */
+    private String[] getOptionalListAsArray(final Optional<List<String>> aListParam) {
+        if (aListParam.isPresent()) {
+            return aListParam.get().toArray(new String[aListParam.get().size()]);
+        } else {
+            return new String[0];
+        }
+    }
+
+    /**
+     * Converts Optional zoned timestamp value to offset time value for use in prepared queries.
+     *
+     * @param aTimeParam An Optional zoned timestamp used as a query param
+     * @return The OffsetDateTime representation of the Optional value, or a null if Optional is empty
+     */
+    private OffsetDateTime getOptionalTimeAsOffset(final Optional<ZonedDateTime> aTimeParam) {
+        if (aTimeParam.isPresent()) {
+            return OffsetDateTime.from(aTimeParam.get());
+        } else {
+            return null;
         }
     }
 
@@ -216,32 +280,78 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Job> getJob(final int aJobId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(GET_JOB).execute(Tuple.of(aJobId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            if (hasSingleRow(select)) {
+                return Future.succeededFuture(new Job(select.iterator().next().toJson()));
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_010, aJobId)));
+        });
     }
 
     @Override
     public Future<List<Job>> listJobs() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(LIST_JOBS).execute();
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(select -> {
+            final List<Job> allJobs = new ArrayList<>();
+            final RowIterator<Row> iterator = select.iterator();
+            while (iterator.hasNext()) {
+                allJobs.add(new Job(iterator.next().toJson()));
+            }
+            return Future.succeededFuture(allJobs);
+        });
     }
 
     @Override
     public Future<Integer> addJob(final Job aJob) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(ADD_JOB)
+                    .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
+                            aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
+                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
+                            aJob.getScheduleCronExpression().toString()));
+        }).recover(error -> {
+            LOGGER.error(MessageCodes.PRL_009, error.getMessage());
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(insert -> {
+            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
+        });
     }
 
     @Override
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(UPDATE_JOB)
+                    .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), getOptionalListAsArray(aJob.getSets()),
+                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
+                            aJob.getScheduleCronExpression().toString(), aJobId, aJob.getInstitutionID()));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+        }).compose(update -> {
+            if (hasSingleRow(update)) {
+                return Future.succeededFuture();
+            }
+            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR,
+                    LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
+        });
     }
 
     @Override
     public Future<Void> removeJob(final int aJobId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myDbConnectionPool.withConnection(connection -> {
+            return connection.preparedQuery(DEL_JOB).execute(Tuple.of(aJobId));
+        }).recover(error -> {
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+        }).compose(delete -> {
+            return Future.succeededFuture();
+        });
     }
 
     @Override
