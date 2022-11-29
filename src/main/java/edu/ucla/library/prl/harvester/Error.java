@@ -30,12 +30,6 @@ public enum Error {
     NOT_FOUND,
 
     /**
-     * The failure code if the database service runs a "get/update" query that finds 2+ matching rows when there should
-     * only be one
-     */
-    TOO_MANY_MATCHES,
-
-    /**
      * The failure code if the database service is asked to perform a "set" query with malformed data.
      */
     MALFORMED_INPUT_DATA,
