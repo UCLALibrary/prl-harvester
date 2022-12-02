@@ -41,18 +41,18 @@ CREATE TABLE public.institutions (
     location text NOT NULL,
     email text,
     phone text,
-    webContact text,
+    "webContact" text,
     website text NOT NULL
 );
 
 CREATE TABLE public.harvestjobs (
     id SERIAL PRIMARY KEY,
-    institutionID INT,
-    repositoryBaseURL TEXT NOT NULL,
-    metadataPrefix TEXT NOT NULL,
+    "institutionId" INT,
+    "repositoryBaseUrl" TEXT NOT NULL,
+    "metadataPrefix" TEXT NOT NULL,
     sets TEXT [],
-    lastSuccessfulRun TIMESTAMPTZ,
-    scheduleCronExpression TEXT NOT NULL
+    "lastSuccessfulRun" TIMESTAMPTZ,
+    "scheduleCronExpression" TEXT NOT NULL
 );
 
 ALTER TABLE public.institutions OWNER TO postgres;
