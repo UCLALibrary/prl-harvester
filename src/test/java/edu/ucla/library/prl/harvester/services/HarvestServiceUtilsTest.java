@@ -45,32 +45,6 @@ public class HarvestServiceUtilsTest {
     }
 
     /**
-     * Tests {@link HarvestServiceUtils#getDecadesAscending(List)}.
-     *
-     * @param aDates A list of strings contained in a record's dc:date fields
-     * @param anExpectedResult
-     * @param aVertx A Vert.x instance
-     * @param aContext A test context
-     */
-    @ParameterizedTest
-    @MethodSource
-    public void testGetDecadesAscending(final List<String> aDates, final List<Integer> anExpectedResult,
-            final Vertx aVertx, final VertxTestContext aContext) {
-        aContext.verify(() -> {
-            assertEquals(anExpectedResult, HarvestServiceUtils.getDecadesAscending(aDates));
-        }).completeNow();
-    }
-
-    /**
-     * FIXME
-     *
-     * @return The arguments for the corresponding {@link ParameterizedTest}
-     */
-    Stream<Arguments> testGetDecadesAscending() {
-        return Stream.of(Arguments.of(List.of("FIXME"), List.of(2005)));
-    }
-
-    /**
      * Tests {@link HarvestServiceUtils#scoreURL(URL, String, URL)}.
      *
      * @param aURL The URL to score

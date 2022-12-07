@@ -17,18 +17,13 @@ import org.apache.solr.common.SolrInputDocument;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
-import org.dspace.xoai.serviceprovider.ServiceProvider;
-import org.dspace.xoai.serviceprovider.client.HttpOAIClient;
 import org.dspace.xoai.serviceprovider.exceptions.BadArgumentException;
 import org.dspace.xoai.serviceprovider.exceptions.NoSetHierarchyException;
-import org.dspace.xoai.serviceprovider.model.Context;
-import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
 import org.dspace.xoai.serviceprovider.parameters.ListRecordsParameters;
 
 import com.google.common.collect.ImmutableList;
 
 import edu.ucla.library.prl.harvester.Config;
-import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -212,7 +207,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         myVertx.<ImmutableList<Set>>executeBlocking(execution -> {
             try {
-                final Iterator<Set> synchronousResult = getNewOaipmhClient(aBaseURL).listSets();
+                final Iterator<Set> synchronousResult = HarvestServiceUtils.getNewOaipmhClient(aBaseURL).listSets();
 
                 execution.complete(ImmutableList.copyOf(synchronousResult));
             } catch (final NoSetHierarchyException details) {
@@ -241,7 +236,8 @@ public class HarvestServiceImpl implements HarvestService {
 
         myVertx.<ImmutableList<Record>>executeBlocking(execution -> {
             try {
-                final Iterator<Record> synchronousResult = getNewOaipmhClient(aBaseURL).listRecords(aParams);
+                final Iterator<Record> synchronousResult =
+                        HarvestServiceUtils.getNewOaipmhClient(aBaseURL).listRecords(aParams);
 
                 execution.complete(ImmutableList.copyOf(synchronousResult));
             } catch (final BadArgumentException details) {
@@ -256,24 +252,6 @@ public class HarvestServiceImpl implements HarvestService {
         });
 
         return promise.future();
-    }
-
-    /**
-     * Gets a new OAI-PMH client.
-     * <p>
-     * Reusing a {@link ServiceProvider} instance causes IllegalStateException due to mishandling of the underlying
-     * input stream, so we must instantiate a new one for every OAI-PMH request.
-     * <p>
-     * Related: <a href="https://github.com/DSpace/xoai/issues/55">DSpace/xoai/issues/55</a>
-     *
-     * @param aBaseURL An OAI-PMH base URL
-     * @return A new OAI-PMH client instance
-     */
-    private static ServiceProvider getNewOaipmhClient(final URL aBaseURL) {
-        final Context context = new Context().withOAIClient(new HttpOAIClient(aBaseURL.toString()))
-                .withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
-
-        return new ServiceProvider(context);
     }
 
     @Override
