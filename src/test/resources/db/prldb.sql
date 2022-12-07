@@ -34,30 +34,30 @@ SET default_table_access_method = heap;
 -- Name: items; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.institutions (
-    id SERIAL PRIMARY KEY,
-    name text NOT NULL,
-    description text NOT NULL,
-    location text NOT NULL,
-    email text,
-    phone text,
+CREATE TABLE public."institutions" (
+    "id" SERIAL PRIMARY KEY,
+    "name" text NOT NULL,
+    "description" text NOT NULL,
+    "location" text NOT NULL,
+    "email" text,
+    "phone" text,
     "webContact" text,
-    website text NOT NULL
+    "website" text NOT NULL
 );
 
-CREATE TABLE public.harvestjobs (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE public."harvestjobs" (
+    "id" SERIAL PRIMARY KEY,
     "institutionId" INT,
     "repositoryBaseUrl" TEXT NOT NULL,
     "metadataPrefix" TEXT NOT NULL,
-    sets TEXT [],
+    "sets" TEXT [],
     "lastSuccessfulRun" TIMESTAMPTZ,
     "scheduleCronExpression" TEXT NOT NULL
 );
 
-ALTER TABLE public.institutions OWNER TO postgres;
+ALTER TABLE public."institutions" OWNER TO postgres;
 
-ALTER TABLE public.harvestjobs OWNER TO postgres;
+ALTER TABLE public."harvestjobs" OWNER TO postgres;
 
 --
 -- Name: COLUMN institutions.id; Type: COMMENT; Schema: public; Owner: postgres
@@ -191,9 +191,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prl;
 -- sample entires for unit/integration test
 --
 
-INSERT INTO public.institutions(name, description, location, email, phone, webContact, website) VALUES('Sample 1', 'A sample institution', 'Here', 'this@that.com', '+1 888 123 4567', 'http://acme.edu/1/contact', 'http://acme.edu/1');
-INSERT INTO public.institutions(name, description, location, email, phone, webContact, website) VALUES('Sample 2', 'Another sample', 'There', 'that@theother.com', '+1 888 890 1234', 'http://acme.edu/1/contact', 'http://acme.edu/1');
-INSERT INTO public.institutions(name, description, location, email, phone, webContact, website) VALUES('Sample 3', 'A third sample', 'Everywhere', 'no@where.com', '+1 888 567 8901', 'http://acme.edu/1/contact', 'http://acme.edu/1');
+INSERT INTO public."institutions"(name, description, location, email, phone, webContact, website) VALUES('Sample 1', 'A sample institution', 'Here', 'this@that.com', '+1 888 123 4567', 'http://acme.edu/1/contact', 'http://acme.edu/1');
+INSERT INTO public."institutions"(name, description, location, email, phone, webContact, website) VALUES('Sample 2', 'Another sample', 'There', 'that@theother.com', '+1 888 890 1234', 'http://acme.edu/1/contact', 'http://acme.edu/1');
+INSERT INTO public."institutions"(name, description, location, email, phone, webContact, website) VALUES('Sample 3', 'A third sample', 'Everywhere', 'no@where.com', '+1 888 567 8901', 'http://acme.edu/1/contact', 'http://acme.edu/1');
 
 
 INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(1, 'http://acme.edu/', 'oai_dc', '{"this", "that", "the_other"}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');

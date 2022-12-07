@@ -56,20 +56,21 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The select-one query for institutions.
      */
-    private static final String GET_INST = "SELECT name, description, location, email," +
-            " phone, \"webContact\", website FROM public.institutions WHERE id = $1";
+    private static final String GET_INST = "SELECT \"name\", \"description\", \"location\", \"email\"," +
+            " \"phone\", \"webContact\", \"website\" FROM public.institutions WHERE id = $1";
 
     /**
      * The insert query for institutions.
      */
-    private static final String ADD_INST = "INSERT INTO public.institutions(name, description, location, email," +
-            " phone, \"webContact\", website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id";
+    private static final String ADD_INST =
+            "INSERT INTO public.institutions(\"name\", \"description\", \"location\", \"email\"," +
+                    " \"phone\", \"webContact\", \"website\") VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id";
 
     /**
      * The select query for all institutions.
      */
-    private static final String LIST_INSTS = "SELECT name, description, location, email," +
-            " phone, \"webContact\", website FROM public.institutions ORDER BY name";
+    private static final String LIST_INSTS = "SELECT \"name\", \"description\", \"location\", \"email\"," +
+            " \"phone\", \"webContact\", \"website\" FROM public.institutions ORDER BY name";
 
     /**
      * The delete query for an institution.
@@ -79,8 +80,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The update query for an institution.
      */
-    private static final String UPDATE_INST = "UPDATE public.institutions SET name=$1, description=$2," +
-            " location=$3, email=$4, phone=$5, \"webContact\"=$6, website=$7 WHERE id = $8";
+    private static final String UPDATE_INST = "UPDATE public.institutions SET \"name\"=$1, \"description\"=$2," +
+            " \"location\"=$3, \"email\"=$4, \"phone\"=$5, \"webContact\"=$6, \"website\"=$7 WHERE id = $8";
 
     /**
      * The select-one query for jobs.
