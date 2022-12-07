@@ -22,6 +22,12 @@ import org.apache.solr.common.SolrInputDocument;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.xoai.Element;
+import org.dspace.xoai.serviceprovider.ServiceProvider;
+import org.dspace.xoai.serviceprovider.client.HttpOAIClient;
+import org.dspace.xoai.serviceprovider.model.Context;
+import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
+
+import edu.ucla.library.prl.harvester.Constants;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -193,7 +199,7 @@ final class HarvestServiceUtils {
 
                 switch (entry.getKey()) {
                     case DC_DATE:
-                        final List<Integer> decades = getDecadesAscending(entry.getValue());
+                        final List<Integer> decades = DateUtils.getDecadesAscending(entry.getValue());
 
                         if (!decades.isEmpty()) {
                             doc.addField("decade", decades);
@@ -224,15 +230,6 @@ final class HarvestServiceUtils {
         }
 
         return strings;
-    }
-
-    /**
-     * @param aDates A list of strings contained in a record's dc:date fields
-     * @return The list of decades to which all the dates in the record belong, sorted in ascending order
-     */
-    static List<Integer> getDecadesAscending(final List<String> aDates) {
-        // FIXME: this implementation is incorrect
-        return List.of(2000 + "FIXME".length());
     }
 
     /**
@@ -318,5 +315,23 @@ final class HarvestServiceUtils {
             // It's okay if there is no thumbnail
             return Future.succeededFuture(Optional.<URL>empty());
         });
+    }
+
+    /**
+     * Gets a new OAI-PMH client.
+     * <p>
+     * Reusing a {@link ServiceProvider} instance causes IllegalStateException due to mishandling of the underlying
+     * input stream, so we must instantiate a new one for every OAI-PMH request.
+     * <p>
+     * Related: <a href="https://github.com/DSpace/xoai/issues/55">DSpace/xoai/issues/55</a>
+     *
+     * @param aBaseURL An OAI-PMH base URL
+     * @return A new OAI-PMH client instance
+     */
+    static ServiceProvider getNewOaipmhClient(final URL aBaseURL) {
+        final Context context = new Context().withOAIClient(new HttpOAIClient(aBaseURL.toString()))
+                .withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
+
+        return new ServiceProvider(context);
     }
 }
