@@ -87,8 +87,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String GET_JOB =
             "SELECT institutionId AS \"institutionId\", repositoryBaseUrl AS \"repositoryBaseUrl\", " +
-            "metadataPrefix AS \"metadataPrefix\", sets, lastSuccessfulRun AS \"lastSuccessfulRun\", " +
-            "scheduleCronExpression AS \"scheduleCronExpression\" FROM public.harvestjobs WHERE id = $1";
+                    "metadataPrefix AS \"metadataPrefix\", sets, lastSuccessfulRun AS \"lastSuccessfulRun\", " +
+                    "scheduleCronExpression AS \"scheduleCronExpression\" FROM public.harvestjobs WHERE id = $1";
 
     /**
      * The insert query for jobs.
@@ -100,8 +100,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The select query for all jobs. N.b. awkward format to satisfy checkstyle rules
      */
-    private static final String LIST_JOBS =
-            "SELECT institutionId AS \"institutionId\", repositoryBaseUrl AS " +
+    private static final String LIST_JOBS = "SELECT institutionId AS \"institutionId\", repositoryBaseUrl AS " +
             "\"repositoryBaseUrl\", metadataPrefix AS \"metadataPrefix\", sets, lastSuccessfulRun AS " +
             "\"lastSuccessfulRun\", scheduleCronExpression AS \"scheduleCronExpression\" " +
             "FROM public.harvestjobs ORDER BY \"institutionId\"";
