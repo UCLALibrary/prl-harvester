@@ -136,16 +136,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         """;
 
     /**
-     * The postgres database (and default user) name.
-     */
-    private static final String POSTGRES = "postgres";
-
-    /**
-     * The database's default hostname.
-     */
-    private static final String DEFAULT_HOSTNAME = "localhost";
-
-    /**
      * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
      */
     private static final int INTERNAL_ERROR = Error.INTERNAL_ERROR.ordinal();
@@ -377,16 +367,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * @return The database's connection options
      */
     private PgConnectOptions getConnectionOpts(final JsonObject aConfig) {
-        final String dbHost = aConfig.getString(Config.DB_HOST, DEFAULT_HOSTNAME);
-        final int dbPort = aConfig.getInteger(Config.DB_PORT, 5432);
-        final String dbName = aConfig.getString(Config.DB_NAME, POSTGRES);
-        final String dbUser = aConfig.getString(Config.DB_USERNAME, POSTGRES);
-        final String dbPassword = aConfig.getString(Config.DB_PASSWORD);
         final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
         final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
 
-        return new PgConnectOptions().setPort(dbPort).setHost(dbHost).setDatabase(dbName).setUser(dbUser)
-                .setPassword(dbPassword).setReconnectAttempts(dbReconnectAttempts)
+        return PgConnectOptions.fromEnv() //
+                .setReconnectAttempts(dbReconnectAttempts) //
                 .setReconnectInterval(dbReconnectInterval);
     }
 

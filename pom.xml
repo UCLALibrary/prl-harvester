@@ -397,6 +397,7 @@
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+            <PGHOSTADDR>localhost</PGHOSTADDR>
             <PGDATABASE>postgres</PGDATABASE>
             <PGUSER>${test.db.user}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
@@ -934,6 +935,7 @@
                 </configurationParameters>
               </properties>
               <environmentVariables>
+                <PGHOSTADDR>localhost</PGHOSTADDR>
                 <PGDATABASE>postgres</PGDATABASE>
                 <PGUSER>${test.db.user}</PGUSER>
                 <PGPASSWORD>${test.db.password}</PGPASSWORD>
