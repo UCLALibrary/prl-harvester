@@ -5,7 +5,6 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -243,9 +242,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * @param aTimeParam An Optional zoned timestamp used as a query param
      * @return The OffsetDateTime representation of the Optional value, or a null if Optional is empty
      */
-    private OffsetDateTime getOptionalTimeAsOffset(final Optional<ZonedDateTime> aTimeParam) {
+    private OffsetDateTime getOptionalTimeAsOffset(final Optional<OffsetDateTime> aTimeParam) {
         if (aTimeParam.isPresent()) {
-            return OffsetDateTime.from(aTimeParam.get());
+            return aTimeParam.get();
         } else {
             return null;
         }

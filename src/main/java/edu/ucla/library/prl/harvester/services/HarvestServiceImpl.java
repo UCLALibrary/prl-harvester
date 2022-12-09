@@ -2,7 +2,7 @@
 package edu.ucla.library.prl.harvester.services;
 
 import java.net.URL;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -98,7 +98,7 @@ public class HarvestServiceImpl implements HarvestService {
                 final String institutionName = institution.getName();
 
                 final List<String> targetSets;
-                final ZonedDateTime startTime;
+                final OffsetDateTime startTime;
                 final Future<List<Record>> harvest;
 
                 if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
@@ -109,7 +109,7 @@ public class HarvestServiceImpl implements HarvestService {
                     targetSets = new LinkedList<>(setNameLookup.keySet());
                 }
 
-                startTime = ZonedDateTime.now();
+                startTime = OffsetDateTime.now();
 
                 LOGGER.debug(MessageCodes.PRL_008, aJob.toJson(), startTime);
 
@@ -144,7 +144,7 @@ public class HarvestServiceImpl implements HarvestService {
      * @return The list of OAI-PMH records
      */
     private Future<List<Record>> listRecords(final URL aBaseURL, final List<String> aSets, final String aMetadataPrefix,
-            final Optional<ZonedDateTime> aFrom) {
+            final Optional<OffsetDateTime> aFrom) {
         @SuppressWarnings("rawtypes")
         final List<Future> selectiveHarvests = new LinkedList<>();
 

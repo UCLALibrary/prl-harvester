@@ -1,7 +1,7 @@
 
 package edu.ucla.library.prl.harvester;
 
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 
@@ -27,7 +27,7 @@ public class JobResult {
     /**
      * The time when the job was started.
      */
-    private final ZonedDateTime myStartTime;
+    private final OffsetDateTime myStartTime;
 
     /**
      * The number of records harvested.
@@ -40,7 +40,7 @@ public class JobResult {
      * @param aStartTime The time when the job was started
      * @param aRecordCount The number of records harvested
      */
-    public JobResult(final ZonedDateTime aStartTime, final int aRecordCount) {
+    public JobResult(final OffsetDateTime aStartTime, final int aRecordCount) {
         myStartTime = Objects.requireNonNull(aStartTime);
         myRecordCount = aRecordCount;
     }
@@ -49,7 +49,7 @@ public class JobResult {
      * Instantiates a job result from its JSON representation.
      * <p>
      * <b>This constructor is meant to be used only by generated service proxy code!</b>
-     * {@link #JobResult(ZonedDateTime, int)} should be used everywhere else.
+     * {@link #JobResult(OffsetDateTime, int)} should be used everywhere else.
      *
      * @param aJsonObject A job result represented as JSON
      * @throws InvalidJobResultJsonException If the JSON representation is invalid
@@ -62,7 +62,7 @@ public class JobResult {
 
         if (startTime != null) {
             try {
-                myStartTime = ZonedDateTime.parse(startTime);
+                myStartTime = OffsetDateTime.parse(startTime);
             } catch (final DateTimeParseException details) {
                 throw new InvalidJobResultJsonException(details, MessageCodes.PRL_004, START_TIME,
                         details.getMessage());
@@ -92,7 +92,7 @@ public class JobResult {
     /**
      * @return The start time
      */
-    public ZonedDateTime getStartTime() {
+    public OffsetDateTime getStartTime() {
         return myStartTime;
     }
 

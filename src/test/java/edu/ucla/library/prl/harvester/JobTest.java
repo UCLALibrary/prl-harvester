@@ -8,7 +8,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +50,7 @@ public class JobTest {
     @ParameterizedTest
     @MethodSource
     void testJobSerDe(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final ZonedDateTime aLastSuccessfulRun) {
+            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
         final Job job =
                 new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
         final JsonObject json = new JsonObject() //
@@ -59,7 +59,7 @@ public class JobTest {
                 .put(Job.SETS, Optional.ofNullable(aSets).orElse(null)) //
                 .put(Job.SCHEDULE_CRON_EXPRESSION, aScheduleCronExpression.getCronExpression()) //
                 .put(Job.LAST_SUCCESSFUL_RUN,
-                        Optional.ofNullable(aLastSuccessfulRun).map(ZonedDateTime::toString).orElse(null));
+                        Optional.ofNullable(aLastSuccessfulRun).map(OffsetDateTime::toString).orElse(null));
         final Job jobFromJson = new Job(json);
 
         // If the JSON representations are equal, then serialization works
@@ -84,7 +84,7 @@ public class JobTest {
         final URL exampleURL = new URL("http://example.com/1/oai");
         final List<String> exampleSets = List.of("set1:subset1", "set1:subset2");
         final CronExpression exampleSchedule = new CronExpression("0 0 3 1 * ?");
-        final ZonedDateTime exampleTimestamp = ZonedDateTime.parse("2000-01-01T00:00Z");
+        final OffsetDateTime exampleTimestamp = OffsetDateTime.parse("2000-01-01T00:00Z");
 
         return Stream.of( //
                 Arguments.of(1, exampleURL, null, exampleSchedule, null), //
@@ -138,7 +138,7 @@ public class JobTest {
         final String validSchedule = new CronExpression("* * * * * ?").toString();
         final String invalidSchedule = "* * * * *"; // Minimum of six elements is required
 
-        final String validTimestamp = ZonedDateTime.parse("2010-01-01T00:00Z").toString();
+        final String validTimestamp = OffsetDateTime.parse("2010-01-01T00:00Z").toString();
         final String invalidTimestamp = LocalDate.of(2020, 1, 1).toString(); // Missing time component
 
         return Stream.of( //
@@ -162,7 +162,7 @@ public class JobTest {
     @ParameterizedTest
     @MethodSource
     void testJobNullArguments(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final ZonedDateTime aLastSuccessfulRun) {
+            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
         assertThrows(NullPointerException.class, () -> {
             new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
         });
@@ -177,7 +177,7 @@ public class JobTest {
         final URL validURL = new URL("http://example.com/3/oai");
         final List<String> validSets = List.of();
         final CronExpression validSchedule = new CronExpression("0 0 * * * ?");
-        final ZonedDateTime validTimestamp = ZonedDateTime.parse("2020-01-01T00:00Z");
+        final OffsetDateTime validTimestamp = OffsetDateTime.parse("2020-01-01T00:00Z");
 
         return Stream.of( //
                 Arguments.of(1, null, validSets, validSchedule, validTimestamp), //
