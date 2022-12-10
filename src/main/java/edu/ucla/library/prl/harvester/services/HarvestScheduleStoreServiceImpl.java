@@ -4,7 +4,6 @@ package edu.ucla.library.prl.harvester.services;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -236,20 +235,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }
     }
 
-    /**
-     * Converts Optional zoned timestamp value to offset time value for use in prepared queries.
-     *
-     * @param aTimeParam An Optional zoned timestamp used as a query param
-     * @return The OffsetDateTime representation of the Optional value, or a null if Optional is empty
-     */
-    private OffsetDateTime getOptionalTimeAsOffset(final Optional<OffsetDateTime> aTimeParam) {
-        if (aTimeParam.isPresent()) {
-            return aTimeParam.get();
-        } else {
-            return null;
-        }
-    }
-
     @Override
     public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
         return myDbConnectionPool.withConnection(connection -> {
@@ -314,8 +299,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_JOB)
                     .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
                             aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
-                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
-                            aJob.getScheduleCronExpression().toString()));
+                            aJob.getLastSuccessfulRun().orElse(null), aJob.getScheduleCronExpression().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
@@ -329,8 +313,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(UPDATE_JOB)
                     .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), getOptionalListAsArray(aJob.getSets()),
-                            getOptionalTimeAsOffset(aJob.getLastSuccessfulRun()),
-                            aJob.getScheduleCronExpression().toString(), aJobId, aJob.getInstitutionID()));
+                            aJob.getLastSuccessfulRun().orElse(null), aJob.getScheduleCronExpression().toString(),
+                            aJobId, aJob.getInstitutionID()));
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(update -> {
