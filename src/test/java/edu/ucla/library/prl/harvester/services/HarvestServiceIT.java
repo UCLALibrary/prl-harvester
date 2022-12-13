@@ -84,7 +84,7 @@ public class HarvestServiceIT {
 
             myHarvestService = binder.setAddress(HarvestService.ADDRESS).register(HarvestService.class,
                     HarvestService.create(aVertx, config));
-            myHarvestServiceProxy = HarvestService.createProxy(aVertx);
+            myHarvestServiceProxy = HarvestService.createProxy(aVertx, config);
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
                     .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(aVertx, config));
 

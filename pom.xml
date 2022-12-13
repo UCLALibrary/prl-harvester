@@ -395,6 +395,7 @@
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
           <environmentVariables>
+            <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
             <PGDATABASE>postgres</PGDATABASE>
             <PGUSER>${test.db.user}</PGUSER>
@@ -524,6 +525,7 @@
                   <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
+                  <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
                 <dependsOn>
