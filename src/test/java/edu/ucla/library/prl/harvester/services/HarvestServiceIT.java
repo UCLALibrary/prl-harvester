@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.util.NamedList;
 
 import org.junit.jupiter.api.AfterAll;
@@ -123,20 +124,13 @@ public class HarvestServiceIT {
     public void testRun(final Job aJob, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
         myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
-            final CompletionStage<QueryResponse> query;
-            final NamedList<String> solrParams = new NamedList<>();
-
-            solrParams.add("q", SOLR_SELECT_ALL);
-
-            query = mySolrClient.query(solrParams.toSolrParams());
-
-            Future.fromCompletionStage(query).onSuccess(queryResponse -> {
-                LOGGER.debug(queryResponse.toString());
+            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+                LOGGER.debug(queryResults.toString());
 
                 aContext.verify(() -> {
                     // Check that the two counts agree
                     assertEquals(anExpectedRecordCount, jobResult.getRecordCount());
-                    assertEquals(anExpectedRecordCount, queryResponse.getResults().size());
+                    assertEquals(anExpectedRecordCount, queryResults.getNumFound());
                 }).completeNow();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
@@ -164,6 +158,42 @@ public class HarvestServiceIT {
                 Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 1), //
                 Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().minusHours(1)), 4), //
                 Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().plusHours(1)), 0));
+    }
+
+    /**
+     * Tests that the harvesting of production OAI-PMH data providers succeeds.
+     *
+     * @param aJob A harvest job
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @ParameterizedTest
+    @MethodSource
+    public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
+        myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
+            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+                LOGGER.debug(queryResults.toString());
+
+                aContext.verify(() -> {
+                    assertEquals(jobResult.getRecordCount(), queryResults.getNumFound());
+                }).completeNow();
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @return The arguments for the corresponding {@link ParameterizedTest}
+     * @throws MalformedURLException
+     * @throws ParseException
+     */
+    Stream<Arguments> testRunRealProvider() throws MalformedURLException, ParseException {
+        // The schedule is irrelevant here, but we need something to instantiate Jobs with
+        final URL baseURL = new URL("https://digital.library.ucla.edu/catalog/oai");
+        final String huxley = "member_of_collection_ids_ssim:2zv35200zz-89112";
+        final CronExpression schedule = new CronExpression("0 * * * * ?");
+
+        return Stream.of( //
+                Arguments.of(new Job(1, baseURL, List.of(huxley), schedule, null)));
     }
 
     /**
@@ -204,5 +234,20 @@ public class HarvestServiceIT {
         CompositeFuture
                 .all(closeHarvestService.compose(unused -> myHarvestScheduleStoreService.unregister()), closeSolr)
                 .onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @return A Future that resolves to the list of all documents
+     */
+    private static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
+        final CompletionStage<SolrDocumentList> results;
+        final NamedList<String> solrParams = new NamedList<>();
+
+        solrParams.add("q", SOLR_SELECT_ALL);
+
+        results = aSolrClient.query(solrParams.toSolrParams()).thenApply(QueryResponse::getResults);
+
+        return Future.fromCompletionStage(results);
     }
 }
