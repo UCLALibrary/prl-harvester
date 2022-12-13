@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -43,6 +44,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.serviceproxy.ServiceBinder;
@@ -169,6 +171,7 @@ public class HarvestServiceIT {
      */
     @ParameterizedTest
     @MethodSource
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
         myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
             getAllDocuments(mySolrClient).onSuccess(queryResults -> {
