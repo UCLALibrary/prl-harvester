@@ -213,13 +213,7 @@ public class HarvestServiceImpl implements HarvestService {
             } catch (final NoSetHierarchyException details) {
                 execution.fail(details.getCause());
             }
-        }, false, execution -> {
-            if (execution.succeeded()) {
-                promise.complete(execution.result());
-            } else {
-                promise.fail(execution.cause());
-            }
-        });
+        }, false, promise);
 
         return promise.future();
     }
@@ -243,13 +237,7 @@ public class HarvestServiceImpl implements HarvestService {
             } catch (final BadArgumentException details) {
                 execution.fail(details.getCause());
             }
-        }, false, execution -> {
-            if (execution.succeeded()) {
-                promise.complete(execution.result());
-            } else {
-                promise.fail(execution.cause());
-            }
-        });
+        }, false, promise);
 
         return promise.future();
     }
