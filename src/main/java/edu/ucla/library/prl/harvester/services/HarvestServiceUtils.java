@@ -143,9 +143,11 @@ final class HarvestServiceUtils {
             for (final Element element : allElements) {
                 final String name = element.getName();
                 final String value = element.getFields().get(0).getValue();
+                final boolean valueIsNotThumbnailURL =
+                        thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
                 // Skip over the thumbnail URL
-                if (ITEM_URL_FIELD_PATTERN.matcher(name).matches() && !value.equals(thumbnailURL.get().toString())) {
+                if (ITEM_URL_FIELD_PATTERN.matcher(name).matches() && valueIsNotThumbnailURL) {
                     try {
                         possibleItemUrls.add(new URL(value));
                     } catch (final MalformedURLException details) {
@@ -177,10 +179,11 @@ final class HarvestServiceUtils {
                 final String name = element.getName();
                 // Each element contains just a text node
                 final String value = element.getFields().get(0).getValue();
+                final boolean valueIsNotThumbnailURL =
+                        thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
                 // Skip over the item URLs and thumbnail URL
-                if (DC_ELEMENTS.contains(name) && !value.equals(thumbnailURL.get().toString()) &&
-                        !stringifiedItemUrls.contains(value)) {
+                if (DC_ELEMENTS.contains(name) && valueIsNotThumbnailURL && !stringifiedItemUrls.contains(value)) {
                     if (dcElementsMap.containsKey(name)) {
                         dcElementsMap.get(name).add(value);
                     } else {
