@@ -28,6 +28,10 @@ import org.dspace.xoai.serviceprovider.model.Context;
 import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
 
 import edu.ucla.library.prl.harvester.Constants;
+import edu.ucla.library.prl.harvester.MessageCodes;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -38,7 +42,13 @@ import io.vertx.ext.web.client.WebClient;
 /**
  * A collection of utility methods for processing OAI-PMH records.
  */
+@SuppressWarnings("PMD.ExcessiveImports")
 final class HarvestServiceUtils {
+
+    /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(HarvestServiceUtils.class, MessageCodes.BUNDLE);
 
     /**
      * dc:date
@@ -137,6 +147,8 @@ final class HarvestServiceUtils {
             final List<String> stringifiedItemUrls;
 
             if (thumbnailURL.isPresent()) {
+                LOGGER.debug(MessageCodes.PRL_018, recordIdentifier, thumbnailURL.get());
+
                 doc.addField("thumbnail_url", thumbnailURL.get().toString());
             }
 
@@ -297,6 +309,8 @@ final class HarvestServiceUtils {
 
             return headRequest.send().compose(response -> {
                 final String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
+
+                LOGGER.trace(MessageCodes.PRL_017, headRequest.method(), url, response.statusCode(), contentType);
 
                 if (contentType.contains("image")) {
                     return Future.succeededFuture(url);
