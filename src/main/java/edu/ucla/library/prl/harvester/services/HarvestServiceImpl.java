@@ -94,8 +94,8 @@ public class HarvestServiceImpl implements HarvestService {
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
         return CompositeFuture.all(listSets, getInstitution).compose(results -> {
-            final List<Set> sets = results.<List<Set>>resultAt(0);
-            final Institution institution = results.<Institution>resultAt(1);
+            final List<Set> sets = results.resultAt(0);
+            final Institution institution = results.resultAt(1);
             final Map<String, String> setNameLookup =
                     sets.stream().collect(Collectors.toMap(Set::getSpec, Set::getName));
             final String institutionName = institution.getName();
