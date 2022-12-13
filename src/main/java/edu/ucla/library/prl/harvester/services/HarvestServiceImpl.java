@@ -24,6 +24,7 @@ import org.dspace.xoai.serviceprovider.parameters.ListRecordsParameters;
 import com.google.common.collect.ImmutableList;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -88,45 +89,46 @@ public class HarvestServiceImpl implements HarvestService {
     @Override
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
+        final int institutionID = aJob.getInstitutionID();
+        final Future<ImmutableList<Set>> listSets = listSetsAsync(baseURL);
+        final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
-        return listSetsAsync(baseURL).compose(sets -> {
+        return CompositeFuture.all(listSets, getInstitution).compose(results -> {
+            final List<Set> sets = results.<List<Set>>resultAt(0);
+            final Institution institution = results.<Institution>resultAt(1);
             final Map<String, String> setNameLookup =
                     sets.stream().collect(Collectors.toMap(Set::getSpec, Set::getName));
-            final int institutionID = aJob.getInstitutionID();
+            final String institutionName = institution.getName();
 
-            return myHarvestScheduleStoreService.getInstitution(institutionID).compose(institution -> {
-                final String institutionName = institution.getName();
+            final List<String> targetSets;
+            final OffsetDateTime startTime;
+            final Future<List<Record>> harvest;
 
-                final List<String> targetSets;
-                final OffsetDateTime startTime;
-                final Future<List<Record>> harvest;
+            if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
+                // Harvest only the specified sets
+                targetSets = aJob.getSets().get();
+            } else {
+                // Harvest all sets in the repository
+                targetSets = new LinkedList<>(setNameLookup.keySet());
+            }
 
-                if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
-                    // Harvest only the specified sets
-                    targetSets = aJob.getSets().get();
+            startTime = OffsetDateTime.now();
+
+            LOGGER.debug(MessageCodes.PRL_008, aJob.toJson(), startTime);
+
+            // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
+            harvest = listRecords(baseURL, targetSets, aJob.getMetadataPrefix(), aJob.getLastSuccessfulRun());
+
+            return harvest.compose(records -> {
+                final Future<Void> solrResult;
+
+                if (!records.isEmpty()) {
+                    solrResult = updateSolr(records, institutionName, baseURL, setNameLookup).mapEmpty();
                 } else {
-                    // Harvest all sets in the repository
-                    targetSets = new LinkedList<>(setNameLookup.keySet());
+                    solrResult = Future.succeededFuture();
                 }
 
-                startTime = OffsetDateTime.now();
-
-                LOGGER.debug(MessageCodes.PRL_008, aJob.toJson(), startTime);
-
-                // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
-                harvest = listRecords(baseURL, targetSets, aJob.getMetadataPrefix(), aJob.getLastSuccessfulRun());
-
-                return harvest.compose(records -> {
-                    final Future<Void> solrResult;
-
-                    if (!records.isEmpty()) {
-                        solrResult = updateSolr(records, institutionName, baseURL, setNameLookup).mapEmpty();
-                    } else {
-                        solrResult = Future.succeededFuture();
-                    }
-
-                    return solrResult.map(nil -> new JobResult(startTime, records.size()));
-                });
+                return solrResult.map(nil -> new JobResult(startTime, records.size()));
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
