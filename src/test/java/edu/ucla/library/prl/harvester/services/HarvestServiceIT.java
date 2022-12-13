@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
@@ -162,8 +162,8 @@ public class HarvestServiceIT {
                 Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 4), //
                 Arguments.of(new Job(1, baseURL, List.of("undefined"), schedule, null), 0), //
                 Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 1), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().minusHours(1)), 4), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().plusHours(1)), 0));
+                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().minusHours(1)), 4), //
+                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().plusHours(1)), 0));
     }
 
     /**
