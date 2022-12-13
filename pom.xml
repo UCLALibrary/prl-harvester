@@ -404,6 +404,7 @@
             <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
             <TEST_PROVIDER_BASE_URL>http://localhost:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
           </environmentVariables>
+          <excludedGroups>real-provider</excludedGroups>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
@@ -975,6 +976,21 @@
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>test-real-providers</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <excludedGroups>none</excludedGroups>
+            </configuration>
           </plugin>
         </plugins>
       </build>

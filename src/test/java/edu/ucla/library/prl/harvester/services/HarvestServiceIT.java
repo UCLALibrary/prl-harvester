@@ -20,6 +20,7 @@ import org.apache.solr.common.util.NamedList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -171,6 +172,7 @@ public class HarvestServiceIT {
      */
     @ParameterizedTest
     @MethodSource
+    @Tag("real-provider")
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
         myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
