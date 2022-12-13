@@ -99,7 +99,7 @@ public class HarvestServiceIT {
      */
     @BeforeEach
     public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
-        wipeSolr().onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+        wipeSolr().onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -107,11 +107,11 @@ public class HarvestServiceIT {
      *
      * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
      */
-    private Future<Void> wipeSolr() {
+    private Future<UpdateResponse> wipeSolr() {
         final CompletionStage<UpdateResponse> wipeSolr =
-                mySolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(unused -> mySolrClient.commit());
+                mySolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> mySolrClient.commit());
 
-        return Future.fromCompletionStage(wipeSolr).mapEmpty();
+        return Future.fromCompletionStage(wipeSolr);
     }
 
     /**
@@ -229,16 +229,15 @@ public class HarvestServiceIT {
     @AfterAll
     public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         final Future<Void> closeHarvestService =
-                myHarvestServiceProxy.close().compose(unused -> myHarvestService.unregister());
-        final Future<Void> closeSolr = wipeSolr().compose(unused -> {
+                myHarvestServiceProxy.close().compose(nil -> myHarvestService.unregister());
+        final Future<Void> closeSolr = wipeSolr().compose(result -> {
             mySolrClient.shutdown();
 
             return Future.succeededFuture();
         });
 
-        CompositeFuture
-                .all(closeHarvestService.compose(unused -> myHarvestScheduleStoreService.unregister()), closeSolr)
-                .onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+        CompositeFuture.all(closeHarvestService.compose(nil -> myHarvestScheduleStoreService.unregister()), closeSolr)
+                .onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**

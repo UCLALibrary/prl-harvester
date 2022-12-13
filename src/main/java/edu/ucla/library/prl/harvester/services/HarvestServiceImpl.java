@@ -125,7 +125,7 @@ public class HarvestServiceImpl implements HarvestService {
                         solrResult = Future.succeededFuture();
                     }
 
-                    return solrResult.map(unused -> new JobResult(startTime, records.size()));
+                    return solrResult.map(nil -> new JobResult(startTime, records.size()));
                 });
             });
         }).recover(details -> {
