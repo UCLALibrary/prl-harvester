@@ -4,7 +4,7 @@ package edu.ucla.library.prl.harvester;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
@@ -76,7 +76,7 @@ public final class Job {
     /**
      * The timestamp of the last successful run of this job; will be empty at first.
      */
-    private final Optional<ZonedDateTime> myLastSuccessfulRun;
+    private final Optional<OffsetDateTime> myLastSuccessfulRun;
 
     /**
      * Instantiates a job.
@@ -88,7 +88,7 @@ public final class Job {
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
     public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final ZonedDateTime aLastSuccessfulRun) {
+            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
         myInstitutionID = anInstitutionID;
         myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
         mySets = Optional.ofNullable(aSets);
@@ -100,7 +100,7 @@ public final class Job {
      * Instantiates a job from its JSON representation.
      * <p>
      * <b>This constructor is meant to be used only by generated service proxy code!</b>
-     * {@link #Job(int, URL, List, CronExpression, ZonedDateTime)} should be used everywhere else.
+     * {@link #Job(int, URL, List, CronExpression, OffsetDateTime)} should be used everywhere else.
      *
      * @param aJsonObject A job represented as JSON
      * @throws InvalidJobJsonException If the JSON representation is invalid
@@ -145,7 +145,7 @@ public final class Job {
 
         myLastSuccessfulRun = Optional.ofNullable(aJsonObject.getString(LAST_SUCCESSFUL_RUN)).map(datetime -> {
             try {
-                return ZonedDateTime.parse(datetime);
+                return OffsetDateTime.parse(datetime);
             } catch (final DateTimeParseException details) {
                 throw new InvalidJobJsonException(details, MessageCodes.PRL_004, LAST_SUCCESSFUL_RUN,
                         details.getMessage());
@@ -162,7 +162,7 @@ public final class Job {
                 .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
                 .put(SETS, getSets().orElse(null)) //
                 .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
-                .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(ZonedDateTime::toString).orElse(null));
+                .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(OffsetDateTime::toString).orElse(null));
     }
 
     /**
@@ -203,7 +203,7 @@ public final class Job {
     /**
      * @return The optional last successful run
      */
-    public Optional<ZonedDateTime> getLastSuccessfulRun() {
+    public Optional<OffsetDateTime> getLastSuccessfulRun() {
         return myLastSuccessfulRun;
     }
 }

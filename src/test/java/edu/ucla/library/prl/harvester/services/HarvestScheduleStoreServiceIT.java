@@ -16,7 +16,7 @@ import info.freelibrary.util.LoggerFactory;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 
 import javax.mail.internet.AddressException;
 
@@ -341,7 +341,7 @@ public class HarvestScheduleStoreServiceIT {
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
                 final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getSets().get(),
-                        original.getScheduleCronExpression(), ZonedDateTime.now());
+                        original.getScheduleCronExpression(), OffsetDateTime.now());
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
                         aContext.verify(() -> {
@@ -370,7 +370,7 @@ public class HarvestScheduleStoreServiceIT {
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
                 final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().get(),
-                        original.getScheduleCronExpression(), ZonedDateTime.now());
+                        original.getScheduleCronExpression(), OffsetDateTime.now());
                 myScheduleStoreProxy.updateJob(jobID, modified).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;
 

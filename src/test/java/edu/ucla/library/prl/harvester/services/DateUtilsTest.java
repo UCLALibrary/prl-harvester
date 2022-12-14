@@ -4,7 +4,6 @@ package edu.ucla.library.prl.harvester.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -54,7 +53,7 @@ public class DateUtilsTest {
                         List.of(1970)),
                 Arguments.of(List.of("Feb-76"), List.of(1970)), //
                 Arguments.of(List.of("1300-1200 BC"),
-                        IntStream.range(-130, -120 + 1).map(n -> 10 * n).boxed().collect(Collectors.toList())),
+                        IntStream.range(-130, -120 + 1).map(n -> 10 * n).boxed().toList()),
                 Arguments.of(List.of("2nd C BC"), List.of(-200, -190, -180, -170, -160, -150, -140, -130, -120, -110)),
                 Arguments.of(List.of("3rd C AD"), List.of(200, 210, 220, 230, 240, 250, 260, 270, 280, 290)), //
                 Arguments.of(List.of("1993-03 - 1993-05"), List.of(1990)), //
@@ -75,13 +74,13 @@ public class DateUtilsTest {
                 Arguments.of(List.of("1980-03/1980-07"), List.of(1980)), //
                 Arguments.of(List.of("12 Mar 1976. 2.00am"), List.of(1970)), //
                 Arguments.of(List.of("1600-1040 BC"),
-                        IntStream.range(-160, -104 + 1).map(n -> 10 * n).boxed().collect(Collectors.toList())),
+                        IntStream.range(-160, -104 + 1).map(n -> 10 * n).boxed().toList()),
                 Arguments.of(List.of("1600-1046 BC"),
-                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().collect(Collectors.toList())),
+                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().toList()),
                 Arguments.of(List.of("1600 BC - 1046 BC"),
-                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().collect(Collectors.toList())),
+                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().toList()),
                 Arguments.of(List.of("1600 BC-1046 BC"),
-                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().collect(Collectors.toList())),
+                        IntStream.range(-160, -105 + 1).map(n -> 10 * n).boxed().toList()),
                 Arguments.of(List.of("Notamonth 11 (1968)"), List.of(1960)), //
                 Arguments.of(List.of("Notamonth 46 (1968)"), List.of(1960)), //
                 Arguments.of(List.of("2012-29-02"), List.of(2010)), //

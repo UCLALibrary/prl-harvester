@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.stream.Stream;
 
@@ -37,7 +37,7 @@ public class JobResultTest {
      */
     @Test
     void testJobResultSerDe() {
-        final ZonedDateTime exampleStartTime = ZonedDateTime.parse("2000-01-01T00:00Z");
+        final OffsetDateTime exampleStartTime = OffsetDateTime.parse("2000-01-01T00:00Z");
         final int exampleRecordCount = 10;
 
         final JobResult jobResult = new JobResult(exampleStartTime, exampleRecordCount);
@@ -83,7 +83,7 @@ public class JobResultTest {
      * @throws DateTimeParseException
      */
     static Stream<Arguments> testJobResultInvalidJsonRepresentation() throws DateTimeParseException {
-        final String validTimestamp = ZonedDateTime.parse("2010-01-01T00:00Z").toString();
+        final String validTimestamp = OffsetDateTime.parse("2010-01-01T00:00Z").toString();
         final String invalidTimestamp = LocalDate.of(2020, 1, 1).toString(); // Missing time component
 
         return Stream.of( //

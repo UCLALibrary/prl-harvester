@@ -6,18 +6,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.util.NamedList;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +45,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.serviceproxy.ServiceBinder;
@@ -81,7 +85,7 @@ public class HarvestServiceIT {
 
             myHarvestService = binder.setAddress(HarvestService.ADDRESS).register(HarvestService.class,
                     HarvestService.create(aVertx, config));
-            myHarvestServiceProxy = HarvestService.createProxy(aVertx);
+            myHarvestServiceProxy = HarvestService.createProxy(aVertx, config);
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
                     .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(aVertx, config));
 
@@ -95,7 +99,7 @@ public class HarvestServiceIT {
      */
     @BeforeEach
     public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
-        wipeSolr().onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+        wipeSolr().onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -103,11 +107,11 @@ public class HarvestServiceIT {
      *
      * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
      */
-    private Future<Void> wipeSolr() {
+    private Future<UpdateResponse> wipeSolr() {
         final CompletionStage<UpdateResponse> wipeSolr =
-                mySolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(unused -> mySolrClient.commit());
+                mySolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> mySolrClient.commit());
 
-        return Future.fromCompletionStage(wipeSolr).mapEmpty();
+        return Future.fromCompletionStage(wipeSolr);
     }
 
     /**
@@ -123,20 +127,13 @@ public class HarvestServiceIT {
     public void testRun(final Job aJob, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
         myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
-            final CompletionStage<QueryResponse> query;
-            final NamedList<String> solrParams = new NamedList<>();
-
-            solrParams.add("q", SOLR_SELECT_ALL);
-
-            query = mySolrClient.query(solrParams.toSolrParams());
-
-            Future.fromCompletionStage(query).onSuccess(queryResponse -> {
-                LOGGER.debug(queryResponse.toString());
+            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+                LOGGER.debug(queryResults.toString());
 
                 aContext.verify(() -> {
                     // Check that the two counts agree
                     assertEquals(anExpectedRecordCount, jobResult.getRecordCount());
-                    assertEquals(anExpectedRecordCount, queryResponse.getResults().size());
+                    assertEquals(anExpectedRecordCount, queryResults.getNumFound());
                 }).completeNow();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
@@ -156,14 +153,52 @@ public class HarvestServiceIT {
 
         // These arguments reflect the directory structure of src/test/resources/provider
         return Stream.of( //
-                Arguments.of(new Job(1, baseURL, List.of(set1), schedule, null), 1), //
+                Arguments.of(new Job(1, baseURL, List.of(set1), schedule, null), 2), //
                 Arguments.of(new Job(1, baseURL, List.of(set2), schedule, null), 3), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 4), //
-                Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 4), //
+                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 5), //
+                Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 5), //
                 Arguments.of(new Job(1, baseURL, List.of("undefined"), schedule, null), 0), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 1), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().minusHours(1)), 4), //
-                Arguments.of(new Job(1, baseURL, null, schedule, ZonedDateTime.now().plusHours(1)), 0));
+                Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 2), //
+                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().minusHours(1)), 5), //
+                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().plusHours(1)), 0));
+    }
+
+    /**
+     * Tests that the harvesting of production OAI-PMH data providers succeeds.
+     *
+     * @param aJob A harvest job
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @ParameterizedTest
+    @MethodSource
+    @Tag("real-provider")
+    @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
+    public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
+        myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
+            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+                LOGGER.debug(queryResults.toString());
+
+                aContext.verify(() -> {
+                    assertEquals(jobResult.getRecordCount(), queryResults.getNumFound());
+                }).completeNow();
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @return The arguments for the corresponding {@link ParameterizedTest}
+     * @throws MalformedURLException
+     * @throws ParseException
+     */
+    Stream<Arguments> testRunRealProvider() throws MalformedURLException, ParseException {
+        // The schedule is irrelevant here, but we need something to instantiate Jobs with
+        final URL baseURL = new URL("https://digital.library.ucla.edu/catalog/oai");
+        final String huxley = "member_of_collection_ids_ssim:2zv35200zz-89112";
+        final CronExpression schedule = new CronExpression("0 * * * * ?");
+
+        return Stream.of( //
+                Arguments.of(new Job(1, baseURL, List.of(huxley), schedule, null)));
     }
 
     /**
@@ -194,15 +229,29 @@ public class HarvestServiceIT {
     @AfterAll
     public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         final Future<Void> closeHarvestService =
-                myHarvestServiceProxy.close().compose(unused -> myHarvestService.unregister());
-        final Future<Void> closeSolr = wipeSolr().compose(unused -> {
+                myHarvestServiceProxy.close().compose(nil -> myHarvestService.unregister());
+        final Future<Void> closeSolr = wipeSolr().compose(result -> {
             mySolrClient.shutdown();
 
             return Future.succeededFuture();
         });
 
-        CompositeFuture
-                .all(closeHarvestService.compose(unused -> myHarvestScheduleStoreService.unregister()), closeSolr)
-                .onSuccess(unused -> aContext.completeNow()).onFailure(aContext::failNow);
+        CompositeFuture.all(closeHarvestService.compose(nil -> myHarvestScheduleStoreService.unregister()), closeSolr)
+                .onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @return A Future that resolves to the list of all documents
+     */
+    private static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
+        final CompletionStage<SolrDocumentList> results;
+        final NamedList<String> solrParams = new NamedList<>();
+
+        solrParams.add("q", SOLR_SELECT_ALL);
+
+        results = aSolrClient.query(solrParams.toSolrParams()).thenApply(QueryResponse::getResults);
+
+        return Future.fromCompletionStage(results);
     }
 }

@@ -28,6 +28,10 @@ import org.dspace.xoai.serviceprovider.model.Context;
 import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
 
 import edu.ucla.library.prl.harvester.Constants;
+import edu.ucla.library.prl.harvester.MessageCodes;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -38,7 +42,13 @@ import io.vertx.ext.web.client.WebClient;
 /**
  * A collection of utility methods for processing OAI-PMH records.
  */
+@SuppressWarnings("PMD.ExcessiveImports")
 final class HarvestServiceUtils {
+
+    /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(HarvestServiceUtils.class, MessageCodes.BUNDLE);
 
     /**
      * dc:date
@@ -137,15 +147,19 @@ final class HarvestServiceUtils {
             final List<String> stringifiedItemUrls;
 
             if (thumbnailURL.isPresent()) {
+                LOGGER.debug(MessageCodes.PRL_018, recordIdentifier, thumbnailURL.get());
+
                 doc.addField("thumbnail_url", thumbnailURL.get().toString());
             }
 
             for (final Element element : allElements) {
                 final String name = element.getName();
                 final String value = element.getFields().get(0).getValue();
+                final boolean valueIsNotThumbnailURL =
+                        thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
                 // Skip over the thumbnail URL
-                if (ITEM_URL_FIELD_PATTERN.matcher(name).matches() && !value.equals(thumbnailURL.get().toString())) {
+                if (ITEM_URL_FIELD_PATTERN.matcher(name).matches() && valueIsNotThumbnailURL) {
                     try {
                         possibleItemUrls.add(new URL(value));
                     } catch (final MalformedURLException details) {
@@ -177,10 +191,11 @@ final class HarvestServiceUtils {
                 final String name = element.getName();
                 // Each element contains just a text node
                 final String value = element.getFields().get(0).getValue();
+                final boolean valueIsNotThumbnailURL =
+                        thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
                 // Skip over the item URLs and thumbnail URL
-                if (DC_ELEMENTS.contains(name) && !value.equals(thumbnailURL.get().toString()) &&
-                        !stringifiedItemUrls.contains(value)) {
+                if (DC_ELEMENTS.contains(name) && valueIsNotThumbnailURL && !stringifiedItemUrls.contains(value)) {
                     if (dcElementsMap.containsKey(name)) {
                         dcElementsMap.get(name).add(value);
                     } else {
@@ -294,6 +309,8 @@ final class HarvestServiceUtils {
 
             return headRequest.send().compose(response -> {
                 final String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
+
+                LOGGER.trace(MessageCodes.PRL_017, headRequest.method(), url, response.statusCode(), contentType);
 
                 if (contentType.contains("image")) {
                     return Future.succeededFuture(url);

@@ -7,7 +7,7 @@ import edu.ucla.library.prl.harvester.Job;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +24,7 @@ import org.jeasy.random.randomizers.EmailRandomizer;
 import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
 import org.jeasy.random.randomizers.RegularExpressionRandomizer;
 import org.jeasy.random.randomizers.SentenceRandomizer;
-import org.jeasy.random.randomizers.time.ZonedDateTimeRandomizer;
+import org.jeasy.random.randomizers.time.OffsetDateTimeRandomizer;
 
 import org.quartz.CronExpression;
 
@@ -52,7 +52,7 @@ public final class TestUtils {
 
     private static final SentenceRandomizer RAND_STRING = new SentenceRandomizer();
 
-    private static final ZonedDateTimeRandomizer RAND_DATE = new ZonedDateTimeRandomizer();
+    private static final OffsetDateTimeRandomizer RAND_DATE = new OffsetDateTimeRandomizer();
 
     private TestUtils() {
     }
@@ -89,7 +89,7 @@ public final class TestUtils {
         final int randID = RANDOMIZER.nextInt(3) + 1;
         final URL randURL = new URL(URL_PREFIX.concat(RAND_URL.getRandomValue()));
         final List<String> randSets = new ArrayList<>(randListSize);
-        final ZonedDateTime randDate = RAND_DATE.getRandomValue();
+        final OffsetDateTime randDate = RAND_DATE.getRandomValue();
         final CronExpression randCron = new CronExpression(buildCron(randDate));
 
         for (int index = 0; index < randListSize; index++) {
@@ -99,7 +99,7 @@ public final class TestUtils {
         return new Job(randID, randURL, randSets, randCron, randDate);
     }
 
-    private static String buildCron(final ZonedDateTime aSourceDate) {
+    private static String buildCron(final OffsetDateTime aSourceDate) {
         final String blank = " ";
         final StringBuffer cronExpression = new StringBuffer();
 

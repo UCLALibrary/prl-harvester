@@ -19,7 +19,6 @@ import edu.ucla.library.prl.harvester.MediaType;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
@@ -31,11 +30,6 @@ import io.vertx.junit5.VertxTestContext;
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
 public class StatusHandlerIT {
-
-    /**
-     * The application configuration.
-     */
-    private JsonObject myConfig;
 
     /**
      * A WebClient for calling the HTTP API.
@@ -56,7 +50,6 @@ public class StatusHandlerIT {
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
-            myConfig = config;
             myWebClient = WebClient.create(aVertx);
             myPort = config.getInteger(Config.HTTP_PORT, 8888);
 
