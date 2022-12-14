@@ -57,6 +57,11 @@ public final class Config {
     public static final String DB_RECONNECT_INTERVAL = "DB_RECONNECT_INTERVAL";
 
     /**
+     * The ENV property for the harvest timeout (in milliseconds).
+     */
+    public static final String HARVEST_TIMEOUT = "HARVEST_TIMEOUT";
+
+    /**
      * The ENV property for the Solr core URL.
      */
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";

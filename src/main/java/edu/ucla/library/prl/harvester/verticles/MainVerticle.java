@@ -62,7 +62,7 @@ public class MainVerticle extends AbstractVerticle {
         // Load the OpenAPI specification
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
             // Associate handlers with operation IDs from the OpenAPI spec
-            routeBuilder.operation(Op.GET_STATUS).handler(new StatusHandler(vertx));
+            routeBuilder.operation(Op.GET_STATUS).handler(new StatusHandler());
 
             return routeBuilder.createRouter();
         });

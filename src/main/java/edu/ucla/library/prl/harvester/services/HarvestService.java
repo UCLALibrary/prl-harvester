@@ -1,6 +1,7 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
 
@@ -9,6 +10,7 @@ import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
 
@@ -39,10 +41,14 @@ public interface HarvestService {
      * Creates an instance of the service proxy.
      *
      * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
      * @return A service proxy instance
      */
-    static HarvestService createProxy(final Vertx aVertx) {
-        return new ServiceProxyBuilder(aVertx).setAddress(ADDRESS).build(HarvestService.class);
+    static HarvestService createProxy(final Vertx aVertx, final JsonObject aConfig) {
+        final long timeout = aConfig.getLong(Config.HARVEST_TIMEOUT, DeliveryOptions.DEFAULT_TIMEOUT);
+
+        return new ServiceProxyBuilder(aVertx).setAddress(ADDRESS)
+                .setOptions(new DeliveryOptions().setSendTimeout(timeout)).build(HarvestService.class);
     }
 
     /**

@@ -35,7 +35,7 @@ public class MainVerticleTest {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        aVertx.deployVerticle(MainVerticle.class.getName()).onSuccess(unused -> aContext.completeNow())
+        aVertx.deployVerticle(MainVerticle.class.getName()).onSuccess(deploymentID -> aContext.completeNow())
                 .onFailure(aContext::failNow);
     }
 
