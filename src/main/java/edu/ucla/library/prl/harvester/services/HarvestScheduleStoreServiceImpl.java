@@ -55,25 +55,25 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
-	    SELECT name, description, location, email, phone, webContact AS "webContact", 
-            website FROM public.institutions WHERE id = $1
-            """;            
+        SELECT name, description, location, email, phone, webContact AS "webContact",
+               website FROM public.institutions WHERE id = $1
+               """;
 
     /**
      * The insert query for institutions.
      */
     private static final String ADD_INST = """
-            INSERT INTO public.institutions(name, description, location, email,
-            phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id
-	    """;
+               INSERT INTO public.institutions(name, description, location, email,
+               phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id
+        """;
 
     /**
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = """
-	    SELECT name, description, location, email, phone, 
-            webContact AS "webContact", website FROM public.institutions ORDER BY name
-            """;
+        SELECT name, description, location, email, phone,
+               webContact AS "webContact", website FROM public.institutions ORDER BY name
+               """;
 
     /**
      * The delete query for an institution.
@@ -84,35 +84,35 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The update query for an institution.
      */
     private static final String UPDATE_INST = """
-            UPDATE public.institutions SET name=$1, description=$2, location=$3, 
-            email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8
-            """;
+        UPDATE public.institutions SET name=$1, description=$2, location=$3,
+        email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8
+        """;
 
     /**
      * The select-one query for jobs.
      */
     private static final String GET_JOB = """
-            SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl", 
-            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun", 
-            scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs WHERE id = $1
-            """;
+        SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl",
+        metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+        scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs WHERE id = $1
+        """;
 
     /**
      * The insert query for jobs.
      */
     private static final String ADD_JOB = """
-            INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets, 
-            lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id
-            """;
+        INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets,
+        lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id
+        """;
 
     /**
      * The select query for all jobs. N.b. awkward format to satisfy checkstyle rules
      */
     private static final String LIST_JOBS = """
-	    SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl", 
-            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
-            scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs ORDER BY "institutionId"
-            """;
+        SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl",
+               metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+               scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs ORDER BY "institutionId"
+               """;
 
     /**
      * The delete query for a job.
@@ -123,9 +123,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The update query for a job.
      */
     private static final String UPDATE_JOB = """
-            UPDATE public.harvestjobs SET repositoryBaseUrl=$1, sets=$2, lastSuccessfulRun=$3,
-            scheduleCronExpression=$4 WHERE id = $5 AND institutionId = $6
-            """;
+        UPDATE public.harvestjobs SET repositoryBaseUrl=$1, sets=$2, lastSuccessfulRun=$3,
+        scheduleCronExpression=$4 WHERE id = $5 AND institutionId = $6
+        """;
 
     /**
      * The postgres database (and default user) name.
