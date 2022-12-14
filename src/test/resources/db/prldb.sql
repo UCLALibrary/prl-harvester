@@ -114,16 +114,16 @@ COMMENT ON COLUMN public.institutions.website IS 'The website for an institution
 COMMENT ON COLUMN public.harvestjobs.id IS 'The unique identifier for a harvest job';
 
 --
--- Name: COLUMN harvestjobs.institutionID; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN harvestjobs.institutionId; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN public.harvestjobs.institutionID IS 'The unique identifier for a related institution';
+COMMENT ON COLUMN public.harvestjobs.institutionId IS 'The unique identifier for a related institution';
 
 --
--- Name: COLUMN harvestjobs.repositoryBaseURL; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN harvestjobs.repositoryBaseUrl; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN public.harvestjobs.repositoryBaseURL IS 'The base URL for a harvested repository';
+COMMENT ON COLUMN public.harvestjobs.repositoryBaseUrl IS 'The base URL for a harvested repository';
 
 --
 -- Name: COLUMN harvestjobs.metadataPrefix; Type: COMMENT; Schema: public; Owner: postgres
@@ -160,7 +160,7 @@ COPY public.institutions (id, name, description, location, email, phone, webCont
 -- Name: origins; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.harvestjobs (id, institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun,
+COPY public.harvestjobs (id, institutionId, repositoryBaseUrl, metadataPrefix, sets, lastSuccessfulRun,
   scheduleCronExpression) FROM stdin;
 \.
 
@@ -197,8 +197,8 @@ INSERT INTO public.institutions(name, description, location, email, phone, webCo
 INSERT INTO public.institutions(name, description, location, email, phone, webContact, website) VALUES('Sample 3', 'A third sample', 'Everywhere', 'no@where.com', '+1 888 567 8901', 'http://acme.edu/1/contact', 'http://acme.edu/1');
 
 
-INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(1, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
-INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(2, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
-INSERT INTO public.harvestjobs(institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(3, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
+INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(1, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
+INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(2, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
+INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES(3, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
 
 
