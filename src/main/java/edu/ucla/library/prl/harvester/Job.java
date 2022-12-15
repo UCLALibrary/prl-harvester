@@ -26,12 +26,12 @@ public final class Job {
     /**
      * The JSON key for the institution ID.
      */
-    static final String INSTITUTION_ID = "institutionId";
+    static final String INSTITUTION_ID = "institutionID";
 
     /**
      * The JSON key for the repository base URL.
      */
-    static final String REPOSITORY_BASE_URL = "repositoryBaseUrl";
+    static final String REPOSITORY_BASE_URL = "repositoryBaseURL";
 
     /**
      * JSON key for the metadata prefix.

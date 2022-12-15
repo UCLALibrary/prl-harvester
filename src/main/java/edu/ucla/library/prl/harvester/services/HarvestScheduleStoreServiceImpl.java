@@ -92,7 +92,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for jobs.
      */
     private static final String GET_JOB = """
-        SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl",
+        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
         metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
         scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs WHERE id = $1
         """;
@@ -109,7 +109,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all jobs. N.b. awkward format to satisfy checkstyle rules
      */
     private static final String LIST_JOBS = """
-        SELECT institutionId AS "institutionId", repositoryBaseUrl AS "repositoryBaseUrl",
+        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
                metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
                scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs ORDER BY "institutionId"
                """;
@@ -123,8 +123,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The update query for a job.
      */
     private static final String UPDATE_JOB = """
-        UPDATE public.harvestjobs SET repositoryBaseUrl=$1, sets=$2, lastSuccessfulRun=$3,
-        scheduleCronExpression=$4 WHERE id = $5 AND institutionId = $6
+        UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3,
+        scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6
         """;
 
     /**
