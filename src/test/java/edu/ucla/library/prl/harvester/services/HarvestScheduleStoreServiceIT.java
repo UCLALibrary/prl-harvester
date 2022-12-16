@@ -298,6 +298,7 @@ public class HarvestScheduleStoreServiceIT {
                 assertTrue(jobList != null);
                 assertTrue(jobList.size() >= 3);
                 assertTrue(jobList.get(0).getScheduleCronExpression().toString().equals(SAMPLE_CRON));
+                assertTrue(jobList.get(0).getID().isPresent());
             }).completeNow();
         }).onFailure(aContext::failNow);
     }

@@ -24,6 +24,11 @@ import io.vertx.core.json.JsonObject;
 public final class Job {
 
     /**
+     * The JSON key for the ID.
+     */
+    public static final String ID = "id";
+
+    /**
      * The JSON key for the institution ID.
      */
     static final String INSTITUTION_ID = "institutionID";
@@ -52,6 +57,11 @@ public final class Job {
      * JSON key for the last successful run.
      */
     static final String LAST_SUCCESSFUL_RUN = "lastSuccessfulRun";
+
+    /**
+     * The identifier of the job.
+     */
+    private final Optional<Integer> myID;
 
     /**
      * The identifier of the institution that this job should be associated with.
@@ -89,6 +99,7 @@ public final class Job {
      */
     public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
             final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
+        myID = Optional.empty();
         myInstitutionID = anInstitutionID;
         myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
         mySets = Optional.ofNullable(aSets);
@@ -99,7 +110,9 @@ public final class Job {
     /**
      * Instantiates a job from its JSON representation.
      * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
+     * Note that the JSON representation may contain an ID, which must have been assigned by the database.
+     * <p>
+     * <b>This constructor is meant to be used only by the service code (generated or otherwise)!</b>
      * {@link #Job(int, URL, List, CronExpression, OffsetDateTime)} should be used everywhere else.
      *
      * @param aJsonObject A job represented as JSON
@@ -112,6 +125,8 @@ public final class Job {
         final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
         final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
         final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
+
+        myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (institutionID != null) {
             myInstitutionID = institutionID;
@@ -157,12 +172,23 @@ public final class Job {
      * @return The JSON representation of the job
      */
     public JsonObject toJson() {
-        return new JsonObject() //
+        final JsonObject json = new JsonObject() //
                 .put(INSTITUTION_ID, getInstitutionID()) //
                 .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
                 .put(SETS, getSets().orElse(null)) //
                 .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
                 .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(OffsetDateTime::toString).orElse(null));
+
+        myID.ifPresent(id -> json.put(ID, id));
+
+        return json;
+    }
+
+    /**
+     * @return The optional ID
+     */
+    public Optional<Integer> getID() {
+        return myID;
     }
 
     /**

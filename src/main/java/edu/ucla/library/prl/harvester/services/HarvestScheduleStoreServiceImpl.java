@@ -115,7 +115,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String LIST_JOBS = """
         SELECT
-            institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
+            id, institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
             metadataprefix AS "metadataPrefix", sets, lastsuccessfulrun AS "lastSuccessfulRun",
             schedulecronexpression AS "scheduleCronExpression"
         FROM public.harvestjobs
