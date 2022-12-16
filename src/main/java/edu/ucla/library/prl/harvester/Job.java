@@ -26,17 +26,17 @@ public final class Job {
     /**
      * The JSON key for the institution ID.
      */
-    static final String INSTITUTION_ID = "institutionid";
+    static final String INSTITUTION_ID = "institutionID";
 
     /**
      * The JSON key for the repository base URL.
      */
-    static final String REPOSITORY_BASE_URL = "repositorybaseurl";
+    static final String REPOSITORY_BASE_URL = "repositoryBaseURL";
 
     /**
      * JSON key for the metadata prefix.
      */
-    static final String METADATA_PREFIX = "metadataprefix";
+    static final String METADATA_PREFIX = "metadataPrefix";
 
     /**
      * JSON key for the list of sets.
@@ -46,12 +46,12 @@ public final class Job {
     /**
      * JSON key for the schedule.
      */
-    static final String SCHEDULE_CRON_EXPRESSION = "schedulecronexpression";
+    static final String SCHEDULE_CRON_EXPRESSION = "scheduleCronExpression";
 
     /**
      * JSON key for the last successful run.
      */
-    static final String LAST_SUCCESSFUL_RUN = "lastsuccessfulrun";
+    static final String LAST_SUCCESSFUL_RUN = "lastSuccessfulRun";
 
     /**
      * The identifier of the institution that this job should be associated with.
