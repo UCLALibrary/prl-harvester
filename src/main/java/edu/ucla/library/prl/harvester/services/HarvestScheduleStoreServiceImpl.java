@@ -106,7 +106,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         """;
 
     /**
-     * The select query for all jobs. N.b. awkward format to satisfy checkstyle rules
+     * The select query for all jobs.
      */
     private static final String LIST_JOBS = """
         SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",

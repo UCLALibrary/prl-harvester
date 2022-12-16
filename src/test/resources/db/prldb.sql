@@ -169,8 +169,7 @@ COPY public.harvestjobs (id, institutionID, repositoryBaseURL, metadataPrefix, s
 --
 
 ALTER TABLE ONLY public.harvestjobs
-    ADD CONSTRAINT harvestjobs_fkey FOREIGN KEY(institutionID) REFERENCES public.institutions(id)
-    ON DELETE CASCADE;;
+    ADD CONSTRAINT harvestjobs_fkey FOREIGN KEY(institutionID) REFERENCES public.institutions(id);
 
 --
 -- Name: TABLE institutions; Type: ACL; Schema: public; Owner: postgres
