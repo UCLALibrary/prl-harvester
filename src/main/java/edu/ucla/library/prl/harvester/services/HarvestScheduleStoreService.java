@@ -58,7 +58,8 @@ public interface HarvestScheduleStoreService {
     /**
      * Gets the list of all institutions.
      *
-     * @return A Future that succeeds with a list of all institutions (if any)
+     * @return A Future that succeeds with a list of all institutions (if any); these institutions must each have an
+     *         {@link Institution#ID} key
      */
     Future<List<Institution>> listInstitutions();
 

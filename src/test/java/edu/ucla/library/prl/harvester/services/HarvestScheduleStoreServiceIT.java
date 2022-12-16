@@ -170,6 +170,7 @@ public class HarvestScheduleStoreServiceIT {
                 assertTrue(instList != null);
                 assertTrue(instList.size() >= 3);
                 assertTrue(instList.get(0).getName().equals(SAMPLE_NAME));
+                assertTrue(instList.get(0).getID().isPresent());
             }).completeNow();
         }).onFailure(aContext::failNow);
     }

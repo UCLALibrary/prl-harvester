@@ -27,6 +27,11 @@ import io.vertx.core.json.JsonObject;
 public final class Institution {
 
     /**
+     * The JSON key for the ID.
+     */
+    public static final String ID = "id";
+
+    /**
      * The JSON key for the name.
      */
     static final String NAME = "name";
@@ -65,6 +70,11 @@ public final class Institution {
      * Parses and formats phone numbers.
      */
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
+
+    /**
+     * The institution's optional identifier.
+     */
+    private final Optional<Integer> myID;
 
     /**
      * The institution's name.
@@ -116,6 +126,7 @@ public final class Institution {
     public Institution(final String aName, final String aDescription, final String aLocation,
             final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
             final Optional<URL> aWebContact, final URL aWebsite) {
+        myID = Optional.empty();
         myName = Objects.requireNonNull(aName);
         myDescription = Objects.requireNonNull(aDescription);
         myLocation = Objects.requireNonNull(aLocation);
@@ -134,7 +145,9 @@ public final class Institution {
     /**
      * Instantiates an institution from its JSON representation.
      * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
+     * Note that the JSON representation may contain an ID, which must have been assigned by the database.
+     * <p>
+     * <b>This constructor is meant to be used only by the service code (generated or otherwise)!</b>
      * {@link #Institution(String, String, String, Optional, Optional, Optional, URL)} should be used everywhere else.
      *
      * @param aJsonObject An institution represented as JSON
@@ -151,6 +164,8 @@ public final class Institution {
         final Optional<PhoneNumber> phone;
         final Optional<URL> webContact;
         final String website = aJsonObject.getString(WEBSITE);
+
+        myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (name != null) {
             myName = name;
@@ -216,7 +231,7 @@ public final class Institution {
      * @return The JSON representation of the institution
      */
     public JsonObject toJson() {
-        return new JsonObject() //
+        final JsonObject json = new JsonObject() //
                 .put(NAME, getName()) //
                 .put(DESCRIPTION, getDescription()) //
                 .put(LOCATION, getLocation()) //
@@ -226,6 +241,17 @@ public final class Institution {
                         .orElse(null)) //
                 .put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null)) //
                 .put(WEBSITE, myWebsite.toString());
+
+        myID.ifPresent(id -> json.put(ID, id));
+
+        return json;
+    }
+
+    /**
+     * @return The optional ID
+     */
+    public Optional<Integer> getID() {
+        return myID;
     }
 
     /**

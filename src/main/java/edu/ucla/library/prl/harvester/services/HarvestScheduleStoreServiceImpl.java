@@ -72,7 +72,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = """
-        SELECT name, description, location, email, phone, webcontact AS "webContact", website
+        SELECT id, name, description, location, email, phone, webcontact AS "webContact", website
         FROM public.institutions
         ORDER BY name
         """;
