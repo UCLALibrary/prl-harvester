@@ -201,7 +201,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(ADD_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalPhoneAsString(anInstitution.getPhone()),
+                            anInstitution.getPhone().map(PhoneNumber::toString).orElse(null),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()));
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
@@ -220,20 +220,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private String getOptionalAsString(final Optional aParam) {
         if (aParam.isPresent()) {
             return aParam.get().toString();
-        } else {
-            return String.valueOf("");
-        }
-    }
-
-    /**
-     * Converts Optional phone number values to String for use in prepared queries.
-     *
-     * @param aPhoneParam An Optional used as a query param
-     * @return The String representation of the Optional value, or an empty string if Optional is empty
-     */
-    private String getOptionalPhoneAsString(final Optional<PhoneNumber> aPhoneParam) {
-        if (aPhoneParam.isPresent()) {
-            return PHONE_NUMBER_UTIL.format(aPhoneParam.get(), PhoneNumberFormat.INTERNATIONAL);
         } else {
             return String.valueOf("");
         }
@@ -259,7 +245,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return connection.preparedQuery(UPDATE_INST)
                     .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
                             anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalPhoneAsString(anInstitution.getPhone()),
+                            anInstitution.getPhone().map(PhoneNumber::toString).orElse(null),
                             getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString(),
                             anInstitutionId));
         }).recover(error -> {
