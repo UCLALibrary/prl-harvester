@@ -55,9 +55,10 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
-        SELECT name, description, location, email, phone, webContact AS "webContact",
-               website FROM public.institutions WHERE id = $1
-               """;
+        SELECT name, description, location, email, phone, webcontact AS "webContact", website
+        FROM public.institutions
+        WHERE id = $1
+        """;
 
     /**
      * The insert query for institutions.
@@ -71,9 +72,10 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = """
-        SELECT name, description, location, email, phone,
-               webContact AS "webContact", website FROM public.institutions ORDER BY name
-               """;
+        SELECT name, description, location, email, phone, webcontact AS "webContact", website
+        FROM public.institutions
+        ORDER BY name
+        """;
 
     /**
      * The delete query for an institution.
@@ -92,9 +94,12 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for jobs.
      */
     private static final String GET_JOB = """
-        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
-        metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
-        scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs WHERE id = $1
+        SELECT
+            institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
+            metadataprefix AS "metadataPrefix", sets, lastsuccessfulrun AS "lastSuccessfulRun",
+            schedulecronexpression AS "scheduleCronExpression"
+        FROM public.harvestjobs
+        WHERE id = $1
         """;
 
     /**
@@ -109,10 +114,13 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all jobs.
      */
     private static final String LIST_JOBS = """
-        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
-               metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
-               scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs ORDER BY "institutionID"
-               """;
+        SELECT
+            institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
+            metadataprefix AS "metadataPrefix", sets, lastsuccessfulrun AS "lastSuccessfulRun",
+            schedulecronexpression AS "scheduleCronExpression"
+        FROM public.harvestjobs
+        ORDER BY "institutionID"
+        """;
 
     /**
      * The delete query for a job.
