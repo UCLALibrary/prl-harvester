@@ -53,11 +53,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final TupleMapper<Job> JOB_MAPPER = TupleMapper.mapper(Job::toSqlTemplateParametersMap);
 
     /**
-     * Constant of ID primary key fields.
-     */
-    private static final String ID = "id";
-
-    /**
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
@@ -226,7 +221,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
+            return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
         });
     }
 
@@ -297,7 +292,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
+            return Future.succeededFuture(insert.iterator().next().getInteger(Job.ID));
         });
     }
 
