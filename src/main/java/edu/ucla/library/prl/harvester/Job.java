@@ -6,7 +6,9 @@ import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -15,6 +17,7 @@ import org.quartz.CronExpression;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.templates.SqlTemplate;
 
 /**
  * Represents an OAI-PMH harvest job.
@@ -172,16 +175,33 @@ public final class Job {
      * @return The JSON representation of the job
      */
     public JsonObject toJson() {
-        final JsonObject json = new JsonObject() //
-                .put(INSTITUTION_ID, getInstitutionID()) //
-                .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
-                .put(SETS, getSets().orElse(null)) //
-                .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
-                .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(OffsetDateTime::toString).orElse(null));
+        final JsonObject json = new JsonObject(toSqlTemplateParametersMap());
 
-        myID.ifPresent(id -> json.put(ID, id));
+        // Convert all the non-JSON types to JSON types
+        getSets().ifPresent(sets -> json.put(SETS, new JsonArray(sets)));
+        getLastSuccessfulRun().ifPresent(datetime -> json.put(LAST_SUCCESSFUL_RUN, datetime.toString()));
 
         return json;
+    }
+
+    /**
+     * @return The job as a map that can be used with {@link SqlTemplate} queries
+     */
+    public Map<String, Object> toSqlTemplateParametersMap() {
+        final Map<String, Object> map = new HashMap<>();
+
+        map.put(INSTITUTION_ID, getInstitutionID());
+        map.put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString());
+        map.put(METADATA_PREFIX, getMetadataPrefix());
+        // SqlTemplate parameter mapping requires that an array is represented as a Java array (not a List or JsonArray)
+        map.put(SETS, getSets().map(sets -> sets.toArray(new String[0])).orElse(null));
+        map.put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression());
+        // Likewise, timestamps must be represented as OffsetDateTime (not a String)
+        map.put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().orElse(null));
+
+        getID().ifPresent(id -> map.put(ID, id));
+
+        return map;
     }
 
     /**
@@ -231,5 +251,14 @@ public final class Job {
      */
     public Optional<OffsetDateTime> getLastSuccessfulRun() {
         return myLastSuccessfulRun;
+    }
+
+    /**
+     * @param aJob A job
+     * @param aJobID The ID to associate with the job
+     * @return A new Job with the optional {@link #ID} property
+     */
+    public static Job withID(final Job aJob, final Integer aJobID) {
+        return new Job(aJob.toJson().put(ID, aJobID));
     }
 }

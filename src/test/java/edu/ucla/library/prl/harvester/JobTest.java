@@ -2,6 +2,7 @@
 package edu.ucla.library.prl.harvester;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.MalformedURLException;
@@ -92,6 +93,37 @@ public class JobTest {
                 Arguments.of(3, exampleURL, List.of(), exampleSchedule, exampleTimestamp), //
                 Arguments.of(4, exampleURL, exampleSets, exampleSchedule, null), //
                 Arguments.of(5, exampleURL, exampleSets, exampleSchedule, exampleTimestamp));
+    }
+
+    /**
+     * Tests that {@link Job#withID} adds an ID to the otherwise-unchanged {@link Job}.
+     *
+     * @param anInstitutionID The identifier of the institution that this job should be associated with
+     * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
+     * @param aScheduleCronExpression The schedule on which this job should be run
+     * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
+     */
+    @ParameterizedTest
+    @MethodSource
+    void testJobWithID(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
+            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
+        final Job job =
+                new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+        final int jobID = 1;
+        final Job jobWithID = Job.withID(job, jobID);
+
+        assertNotEquals(job.toJson(), jobWithID.toJson());
+        assertEquals(job.toJson().put("id", jobID), jobWithID.toJson());
+    }
+
+    /**
+     * @return The arguments for the corresponding {@link ParameterizedTest}
+     * @throws MalformedURLException
+     * @throws ParseException
+     */
+    static Stream<Arguments> testJobWithID() throws MalformedURLException, ParseException {
+        return testJobSerDe();
     }
 
     /**

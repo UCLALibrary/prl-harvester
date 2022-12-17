@@ -3,6 +3,8 @@ package edu.ucla.library.prl.harvester;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ import info.freelibrary.util.IllegalArgumentI18nException;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.templates.SqlTemplate;
 
 /**
  * Represents a provider institution.
@@ -231,20 +234,27 @@ public final class Institution {
      * @return The JSON representation of the institution
      */
     public JsonObject toJson() {
-        final JsonObject json = new JsonObject() //
-                .put(NAME, getName()) //
-                .put(DESCRIPTION, getDescription()) //
-                .put(LOCATION, getLocation()) //
-                .put(EMAIL, getEmail().map(InternetAddress::toString).orElse(null)) //
-                .put(PHONE, getPhone() //
-                        .map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)) //
-                        .orElse(null)) //
-                .put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null)) //
-                .put(WEBSITE, myWebsite.toString());
+        return new JsonObject(toSqlTemplateParametersMap());
+    }
 
-        myID.ifPresent(id -> json.put(ID, id));
+    /**
+     * @return The institution as a map that can be used with {@link SqlTemplate} queries
+     */
+    public Map<String, Object> toSqlTemplateParametersMap() {
+        final Map<String, Object> map = new HashMap<>();
 
-        return json;
+        map.put(NAME, getName());
+        map.put(DESCRIPTION, getDescription());
+        map.put(LOCATION, getLocation());
+        map.put(EMAIL, getEmail().map(InternetAddress::toString).orElse(null));
+        map.put(PHONE,
+                getPhone().map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)).orElse(null));
+        map.put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null));
+        map.put(WEBSITE, getWebsite().toString());
+
+        getID().ifPresent(id -> map.put(ID, id));
+
+        return map;
     }
 
     /**
@@ -301,5 +311,14 @@ public final class Institution {
      */
     public URL getWebsite() {
         return myWebsite;
+    }
+
+    /**
+     * @param anInstitution An institution
+     * @param anInstitutionID The ID to associate with the institution
+     * @return A new Institution with the optional {@link #ID} property
+     */
+    public static Institution withID(final Institution anInstitution, final Integer anInstitutionID) {
+        return new Institution(anInstitution.toJson().put(ID, anInstitutionID));
     }
 }
