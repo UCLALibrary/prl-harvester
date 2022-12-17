@@ -238,7 +238,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                 return Future.succeededFuture();
             }
             return Future.failedFuture(
-+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
         });
     }
 
