@@ -5,10 +5,13 @@ src/main/generated
 dependency-reduced-pom.xml
 .flattened-pom.xml
 
-# Eclipse ID artifacts
+# Eclipse IDE artifacts
 .settings/
 .project
 .classpath
+
+# VS Code IDE artifacts
+.vscode/
 
 # Vert.x test artifacts
 file-uploads/
