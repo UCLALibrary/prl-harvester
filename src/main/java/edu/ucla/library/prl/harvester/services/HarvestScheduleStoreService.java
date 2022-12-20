@@ -3,6 +3,7 @@ package edu.ucla.library.prl.harvester.services;
 
 import java.util.List;
 
+import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 
@@ -12,7 +13,10 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
+import io.vertx.sqlclient.PoolOptions;
 
 /**
  * The interface of the event bus service that stores the information needed to schedule harvest jobs.
@@ -29,12 +33,11 @@ public interface HarvestScheduleStoreService {
     /**
      * Creates an instance of the service.
      *
-     * @param aVertx A Vert.x instance
-     * @param aConfig A configuration
+     * @param aDbConnectionPool A database connection pool
      * @return The service instance
      */
-    static HarvestScheduleStoreService create(final Vertx aVertx, final JsonObject aConfig) {
-        return new HarvestScheduleStoreServiceImpl(aVertx, aConfig);
+    static HarvestScheduleStoreService create(final PgPool aDbConnectionPool) {
+        return new HarvestScheduleStoreServiceImpl(aDbConnectionPool);
     }
 
     /**
@@ -136,4 +139,22 @@ public interface HarvestScheduleStoreService {
      */
     @ProxyClose
     Future<Void> close();
+
+    /**
+     * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
+     * @return A connection pool
+     */
+    static PgPool getConnectionPool(final Vertx aVertx, JsonObject aConfig) {
+        final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
+        final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
+        final int dbConnectionPoolMaxSize = aConfig.getInteger(Config.DB_CONNECTION_POOL_MAX_SIZE, 5);
+
+        final PgConnectOptions connectOptions = PgConnectOptions.fromEnv() //
+                .setReconnectAttempts(dbReconnectAttempts) //
+                .setReconnectInterval(dbReconnectInterval);
+        final PoolOptions poolOptions = new PoolOptions().setMaxSize(dbConnectionPoolMaxSize);
+
+        return PgPool.pool(aVertx, connectOptions, poolOptions);
+    }
 }

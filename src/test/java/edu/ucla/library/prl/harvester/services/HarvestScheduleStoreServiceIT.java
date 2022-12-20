@@ -35,6 +35,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceBinder;
 import io.vertx.serviceproxy.ServiceException;
 
@@ -63,6 +64,8 @@ public class HarvestScheduleStoreServiceIT {
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
 
+    private PgPool myDbConnectionPool;
+
     /**
      * Sets up the test service.
      *
@@ -74,9 +77,11 @@ public class HarvestScheduleStoreServiceIT {
         final ConfigRetriever retriever = ConfigRetriever.create(aVertx);
 
         retriever.getConfig().onSuccess(config -> {
-            final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(aVertx, config);
+            final PgPool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
+            final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(dbConnectionPool);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 
+            myDbConnectionPool = dbConnectionPool;
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
                     .register(HarvestScheduleStoreService.class, service);
             myScheduleStoreProxy = HarvestScheduleStoreService.createProxy(aVertx);
@@ -94,7 +99,8 @@ public class HarvestScheduleStoreServiceIT {
     @AfterAll
     public final void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         myScheduleStoreProxy.close().compose(result -> myHarvestScheduleStoreService.unregister())
-                .onSuccess(success -> aContext.completeNow()).onFailure(aContext::failNow);
+                .compose(result -> myDbConnectionPool.close()).onSuccess(success -> aContext.completeNow())
+                .onFailure(aContext::failNow);
     }
 
     /**
