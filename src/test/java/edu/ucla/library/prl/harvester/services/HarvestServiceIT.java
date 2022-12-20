@@ -48,6 +48,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceBinder;
 
 /**
@@ -71,6 +72,8 @@ public class HarvestServiceIT {
 
     private String myTestProviderBaseURL;
 
+    private PgPool myDbConnectionPool;
+
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -78,6 +81,7 @@ public class HarvestServiceIT {
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+            final PgPool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 
             myTestProviderBaseURL = config.getString(Config.TEST_PROVIDER_BASE_URL);
@@ -87,7 +91,9 @@ public class HarvestServiceIT {
                     HarvestService.create(aVertx, config));
             myHarvestServiceProxy = HarvestService.createProxy(aVertx, config);
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
-                    .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(aVertx, config));
+                    .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(dbConnectionPool));
+
+            myDbConnectionPool = dbConnectionPool;
 
             aContext.completeNow();
         }).onFailure(aContext::failNow);
@@ -237,7 +243,8 @@ public class HarvestServiceIT {
         });
 
         CompositeFuture.all(closeHarvestService.compose(nil -> myHarvestScheduleStoreService.unregister()), closeSolr)
-                .onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+                .compose(result -> myDbConnectionPool.close()).onSuccess(result -> aContext.completeNow())
+                .onFailure(aContext::failNow);
     }
 
     /**
