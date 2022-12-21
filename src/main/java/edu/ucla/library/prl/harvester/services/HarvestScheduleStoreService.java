@@ -16,6 +16,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 
 /**
@@ -36,7 +37,7 @@ public interface HarvestScheduleStoreService {
      * @param aDbConnectionPool A database connection pool
      * @return The service instance
      */
-    static HarvestScheduleStoreService create(final PgPool aDbConnectionPool) {
+    static HarvestScheduleStoreService create(final Pool aDbConnectionPool) {
         return new HarvestScheduleStoreServiceImpl(aDbConnectionPool);
     }
 
@@ -145,7 +146,7 @@ public interface HarvestScheduleStoreService {
      * @param aConfig A configuration
      * @return A connection pool
      */
-    static PgPool getConnectionPool(final Vertx aVertx, JsonObject aConfig) {
+    static Pool getConnectionPool(final Vertx aVertx, JsonObject aConfig) {
         final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
         final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
         final int dbConnectionPoolMaxSize = aConfig.getInteger(Config.DB_CONNECTION_POOL_MAX_SIZE, 5);

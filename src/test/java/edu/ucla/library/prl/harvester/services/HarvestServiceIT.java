@@ -8,18 +8,22 @@ import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import javax.mail.internet.AddressException;
+
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -30,9 +34,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import org.quartz.CronExpression;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
@@ -40,7 +48,6 @@ import info.freelibrary.util.LoggerFactory;
 import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -48,8 +55,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceBinder;
+import io.vertx.sqlclient.Pool;
 
 /**
  * Tests {@link HarvestService}.
@@ -62,17 +69,21 @@ public class HarvestServiceIT {
 
     private static final String SOLR_SELECT_ALL = "*:*";
 
+    private MessageConsumer<JsonObject> myHarvestScheduleStoreService;
+
+    private HarvestScheduleStoreService myHarvestScheduleStoreServiceProxy;
+
     private MessageConsumer<JsonObject> myHarvestService;
 
     private HarvestService myHarvestServiceProxy;
 
+    private Pool myDbConnectionPool;
+
     private JavaAsyncSolrClient mySolrClient;
 
-    private MessageConsumer<JsonObject> myHarvestScheduleStoreService;
+    private URL myTestProviderBaseURL;
 
-    private String myTestProviderBaseURL;
-
-    private PgPool myDbConnectionPool;
+    private Integer myTestInstitutionID;
 
     /**
      * @param aVertx A Vert.x instance
@@ -80,32 +91,59 @@ public class HarvestServiceIT {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
-            final PgPool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
+        ConfigRetriever.create(aVertx).getConfig().compose(config -> {
+            final Institution testInstitution;
+            final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
+            final HarvestScheduleStoreService scheduleStoreService =
+                    HarvestScheduleStoreService.create(dbConnectionPool);
+            final HarvestService service = HarvestService.create(aVertx, config);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 
-            myTestProviderBaseURL = config.getString(Config.TEST_PROVIDER_BASE_URL);
-            mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
-
-            myHarvestService = binder.setAddress(HarvestService.ADDRESS).register(HarvestService.class,
-                    HarvestService.create(aVertx, config));
-            myHarvestServiceProxy = HarvestService.createProxy(aVertx, config);
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
-                    .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(dbConnectionPool));
+                    .register(HarvestScheduleStoreService.class, scheduleStoreService);
+            myHarvestScheduleStoreServiceProxy = HarvestScheduleStoreService.createProxy(aVertx);
+
+            myHarvestService = binder.setAddress(HarvestService.ADDRESS).register(HarvestService.class, service);
+            myHarvestServiceProxy = HarvestService.createProxy(aVertx, config);
 
             myDbConnectionPool = dbConnectionPool;
+            mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
 
-            aContext.completeNow();
-        }).onFailure(aContext::failNow);
+            try {
+                myTestProviderBaseURL = new URL(config.getString(Config.TEST_PROVIDER_BASE_URL));
+                testInstitution = TestUtils.getRandomInstitution();
+            } catch (final AddressException | MalformedURLException | NumberParseException details) {
+                return Future.failedFuture(details);
+            }
+
+            return myHarvestScheduleStoreServiceProxy.addInstitution(testInstitution).compose(institutionID -> {
+                myTestInstitutionID = institutionID;
+
+                return Future.succeededFuture();
+            });
+        }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
-    @BeforeEach
+    @AfterEach
     public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
         wipeSolr().onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @AfterAll
+    public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
+        myHarvestServiceProxy.close().compose(result -> {
+            mySolrClient.shutdown();
+
+            return TestUtils.wipeDatabase(myDbConnectionPool).compose(nil -> myDbConnectionPool.close());
+        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -123,16 +161,23 @@ public class HarvestServiceIT {
     /**
      * Tests the harvesting of various jobs that should succeed.
      *
-     * @param aJob A harvest job
+     * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
+     * @param aScheduleCronExpression The schedule on which this job should be run
+     * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      * @param anExpectedRecordCount The expected number of records that would be harvested by the job
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @ParameterizedTest
     @MethodSource
-    public void testRun(final Job aJob, final int anExpectedRecordCount, final Vertx aVertx,
+    @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
+    public void testRun(final List<String> aSets, final CronExpression aScheduleCronExpression,
+            final OffsetDateTime aLastSuccessfulRun, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
-        myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
+        final Job job =
+                new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+
+        myHarvestServiceProxy.run(job).onSuccess(jobResult -> {
             getAllDocuments(mySolrClient).onSuccess(queryResults -> {
                 LOGGER.debug(queryResults.toString());
 
@@ -147,26 +192,24 @@ public class HarvestServiceIT {
 
     /**
      * @return The arguments for the corresponding {@link ParameterizedTest}
-     * @throws MalformedURLException
      * @throws ParseException
      */
-    Stream<Arguments> testRun() throws MalformedURLException, ParseException {
+    Stream<Arguments> testRun() throws ParseException {
         // The schedule is irrelevant here, but we need something to instantiate Jobs with
-        final URL baseURL = new URL(myTestProviderBaseURL);
         final String set1 = "set1";
         final String set2 = "set2";
         final CronExpression schedule = new CronExpression("* * * * * ?");
 
         // These arguments reflect the directory structure of src/test/resources/provider
         return Stream.of( //
-                Arguments.of(new Job(1, baseURL, List.of(set1), schedule, null), 2), //
-                Arguments.of(new Job(1, baseURL, List.of(set2), schedule, null), 3), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, set2), schedule, null), 5), //
-                Arguments.of(new Job(1, baseURL, List.of(), schedule, null), 5), //
-                Arguments.of(new Job(1, baseURL, List.of("undefined"), schedule, null), 0), //
-                Arguments.of(new Job(1, baseURL, List.of(set1, "nil"), schedule, null), 2), //
-                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().minusHours(1)), 5), //
-                Arguments.of(new Job(1, baseURL, null, schedule, OffsetDateTime.now().plusHours(1)), 0));
+                Arguments.of(List.of(set1), schedule, null, 2), //
+                Arguments.of(List.of(set2), schedule, null, 3), //
+                Arguments.of(List.of(set1, set2), schedule, null, 5), //
+                Arguments.of(List.of(), schedule, null, 5), //
+                Arguments.of(List.of("undefined"), schedule, null, 0), //
+                Arguments.of(List.of(set1, "nil"), schedule, null, 2), //
+                Arguments.of(null, schedule, OffsetDateTime.now().minusHours(1), 5), //
+                Arguments.of(null, schedule, OffsetDateTime.now().plusHours(1), 0));
     }
 
     /**
@@ -198,7 +241,8 @@ public class HarvestServiceIT {
      * @throws ParseException
      */
     Stream<Arguments> testRunRealProvider() throws MalformedURLException, ParseException {
-        // The schedule is irrelevant here, but we need something to instantiate Jobs with
+        // The schedule is irrelevant here, but we need something to instantiate Jobs
+        // with
         final URL baseURL = new URL("https://digital.library.ucla.edu/catalog/oai");
         final String huxley = "member_of_collection_ids_ssim:2zv35200zz-89112";
         final CronExpression schedule = new CronExpression("0 * * * * ?");
@@ -217,7 +261,8 @@ public class HarvestServiceIT {
      */
     public void testRunInvalidbaseURL(final Vertx aVertx, final VertxTestContext aContext)
             throws MalformedURLException, ParseException {
-        final Job job = new Job(1, new URL("http://example.com"), null, new CronExpression("0 0 * * * ?"), null);
+        final Job job = new Job(myTestInstitutionID, new URL("http://example.com"), null,
+                new CronExpression("0 0 * * * ?"), null);
 
         myHarvestServiceProxy.run(job).onFailure(details -> {
             LOGGER.debug(details.toString());
@@ -229,35 +274,13 @@ public class HarvestServiceIT {
     }
 
     /**
-     * @param aVertx A Vert.x instance
-     * @param aContext A test context
-     */
-    @AfterAll
-    public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
-        final Future<Void> closeHarvestService =
-                myHarvestServiceProxy.close().compose(nil -> myHarvestService.unregister());
-        final Future<Void> closeSolr = wipeSolr().compose(result -> {
-            mySolrClient.shutdown();
-
-            return Future.succeededFuture();
-        });
-
-        CompositeFuture.all(closeHarvestService.compose(nil -> myHarvestScheduleStoreService.unregister()), closeSolr)
-                .compose(result -> myDbConnectionPool.close()).onSuccess(result -> aContext.completeNow())
-                .onFailure(aContext::failNow);
-    }
-
-    /**
      * @param aSolrClient A Solr client
      * @return A Future that resolves to the list of all documents
      */
     private static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
-        final CompletionStage<SolrDocumentList> results;
-        final NamedList<String> solrParams = new NamedList<>();
-
-        solrParams.add("q", SOLR_SELECT_ALL);
-
-        results = aSolrClient.query(solrParams.toSolrParams()).thenApply(QueryResponse::getResults);
+        final SolrParams solrParams = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
+        final CompletionStage<SolrDocumentList> results =
+                aSolrClient.query(solrParams).thenApply(QueryResponse::getResults);
 
         return Future.fromCompletionStage(results);
     }

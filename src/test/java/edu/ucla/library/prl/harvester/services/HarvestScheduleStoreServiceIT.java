@@ -12,16 +12,21 @@ import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 
 import com.google.i18n.phonenumbers.NumberParseException;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,15 +34,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.quartz.CronExpression;
 
 import io.vertx.config.ConfigRetriever;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.pgclient.PgPool;
 import io.vertx.serviceproxy.ServiceBinder;
 import io.vertx.serviceproxy.ServiceException;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.templates.SqlTemplate;
+import io.vertx.sqlclient.templates.TupleMapper;
 
 /**
  * Tests {@linkHarvestScheduleStoreService}.
@@ -52,8 +63,6 @@ public class HarvestScheduleStoreServiceIT {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestScheduleStoreServiceIT.class, MessageCodes.BUNDLE);
 
-    private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
-
     private static final String SAMPLE_NAME = "Sample 1";
 
     private static final String SAMPLE_CRON = "0 0/30 8-9 5,20 * ?";
@@ -64,11 +73,13 @@ public class HarvestScheduleStoreServiceIT {
 
     private HarvestScheduleStoreService myScheduleStoreProxy;
 
-    private PgPool myDbConnectionPool;
+    private Pool myDbConnectionPool;
+
+    private List<Integer> myTestInstitutionIDs;
+
+    private List<Integer> myTestJobIDs;
 
     /**
-     * Sets up the test service.
-     *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
@@ -76,31 +87,130 @@ public class HarvestScheduleStoreServiceIT {
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         final ConfigRetriever retriever = ConfigRetriever.create(aVertx);
 
-        retriever.getConfig().onSuccess(config -> {
-            final PgPool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
+        retriever.getConfig().compose(config -> {
+            final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(dbConnectionPool);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 
-            myDbConnectionPool = dbConnectionPool;
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
                     .register(HarvestScheduleStoreService.class, service);
             myScheduleStoreProxy = HarvestScheduleStoreService.createProxy(aVertx);
+            myDbConnectionPool = dbConnectionPool;
 
-            aContext.completeNow();
-        }).onFailure(aContext::failNow);
+            return addInitialInstitutions(dbConnectionPool).compose(institutionIdRowSet -> {
+                final Function<Row, Integer> idSelector = row -> row.getInteger("id");
+                final List<Integer> institutionIds = getAllValues(institutionIdRowSet, idSelector);
+
+                LOGGER.debug("Institution IDs: {}", institutionIds);
+
+                myTestInstitutionIDs = institutionIds;
+
+                return addInitialJobs(dbConnectionPool, institutionIds).compose(jobIdRowSet -> {
+                    final List<Integer> jobIDs = getAllValues(jobIdRowSet, idSelector);
+
+                    LOGGER.debug("Job IDs: {}", jobIDs);
+
+                    myTestJobIDs = jobIDs;
+
+                    return Future.succeededFuture();
+                });
+            });
+        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
-     * Clean up the service client.
-     *
+     * @param aRowSet A set of results from executing a batch query
+     * @param aValueSelector A function that maps a row to a value within it
+     * @param <U> The type of the target value
+     * @return The result of applying the value selector function to each result
+     */
+    private static <U> List<U> getAllValues(final RowSet<Row> aRowSet, final Function<Row, U> aValueSelector) {
+        final List<U> values = new LinkedList<>();
+
+        RowSet<Row> rowSet = aRowSet;
+        do {
+            final U value = aValueSelector.apply(rowSet.iterator().next());
+
+            values.add(value);
+        } while ((rowSet = rowSet.next()) != null);
+
+        return values;
+    }
+
+    /**
+     * @param aConnectionPool A database connection pool
+     * @return The result of adding the institutions
+     */
+    private static Future<RowSet<Row>> addInitialInstitutions(final Pool aConnectionPool) {
+        try {
+            final List<Institution> institutions = List.of(
+                    new Institution(SAMPLE_NAME, "A sample institution", "Here",
+                            Optional.of(new InternetAddress("this@that.com")), Optional.empty(), Optional.empty(),
+                            new URL("http://acme1.edu")),
+                    new Institution("Sample 2", "Another sample", "There",
+                            Optional.of(new InternetAddress("that@theother.com")), Optional.empty(), Optional.empty(),
+                            new URL("http://acme2.edu")),
+                    new Institution("Sample 3", "A third sample", "Everywhere",
+                            Optional.of(new InternetAddress("no@where.com")), Optional.empty(), Optional.empty(),
+                            new URL("http://acme3.edu")));
+            final TupleMapper<Institution> tupleMapper = TupleMapper.mapper(Institution::toSqlTemplateParametersMap);
+            final String query = """
+                INSERT INTO public.institutions (name, description, location, email, phone, webContact, website)
+                VALUES (#{name}, #{description}, #{location}, #{email}, #{phone}, #{webContact}, #{website})
+                RETURNING id
+                """;
+
+            return aConnectionPool.withConnection(connection -> SqlTemplate.forQuery(connection, query)
+                    .mapFrom(tupleMapper).executeBatch(institutions));
+        } catch (final AddressException | MalformedURLException details) {
+            return Future.failedFuture(details);
+        }
+    }
+
+    /**
+     * @param aConnectionPool A database connection pool
+     * @param anInstitutionIDs A list of valid institution IDs to associate with jobs
+     * @return The result of adding the jobs
+     */
+    private static Future<RowSet<Row>> addInitialJobs(final Pool aConnectionPool,
+            final List<Integer> anInstitutionIDs) {
+        try {
+            final List<Job> jobs = new LinkedList<>();
+
+            for (final int institutionID : anInstitutionIDs) {
+                final Job job = new Job(institutionID, new URL(StringUtils.format("http://acme{}.edu/", institutionID)),
+                        null, new CronExpression(SAMPLE_CRON), null);
+
+                jobs.add(job);
+            }
+            final TupleMapper<Job> tupleMapper = TupleMapper.mapper(Job::toSqlTemplateParametersMap);
+            final String query = """
+                INSERT INTO public.harvestjobs (
+                    institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression
+                )
+                VALUES (
+                    #{institutionID}, #{repositoryBaseURL}, #{metadataPrefix}, #{sets}, #{lastSuccessfulRun},
+                    #{scheduleCronExpression}
+                )
+                RETURNING id
+                """;
+
+            return aConnectionPool.withConnection(
+                    connection -> SqlTemplate.forQuery(connection, query).mapFrom(tupleMapper).executeBatch(jobs));
+        } catch (final MalformedURLException | ParseException details) {
+            return Future.failedFuture(details);
+        }
+    }
+
+    /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @AfterAll
     public final void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
-        myScheduleStoreProxy.close().compose(result -> myHarvestScheduleStoreService.unregister())
-                .compose(result -> myDbConnectionPool.close()).onSuccess(success -> aContext.completeNow())
-                .onFailure(aContext::failNow);
+        myScheduleStoreProxy.close().compose(result -> {
+            return TestUtils.wipeDatabase(myDbConnectionPool).compose(nil -> myDbConnectionPool.close());
+        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -113,6 +223,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testAddInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         final Institution toAdd = TestUtils.getRandomInstitution();
+
         myScheduleStoreProxy.addInstitution(toAdd).onSuccess(result -> {
             aContext.verify(() -> {
                 assertTrue(result.intValue() >= 1);
@@ -129,7 +240,8 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testGetInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int instID = 1;
+        final int instID = myTestInstitutionIDs.get(0);
+
         myScheduleStoreProxy.getInstitution(instID).onSuccess(institution -> {
             aContext.verify(() -> {
                 assertTrue(institution != null);
@@ -148,6 +260,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testGetInstitutionBadID(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         final int badID = -1;
+
         myScheduleStoreProxy.getInstitution(badID).onFailure(details -> {
             final ServiceException error = (ServiceException) details;
 
@@ -191,6 +304,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testDeleteInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         final Institution toDelete = TestUtils.getRandomInstitution();
+
         myScheduleStoreProxy.addInstitution(toDelete).onSuccess(newID -> {
             myScheduleStoreProxy.removeInstitution(newID).onSuccess(result -> {
                 myScheduleStoreProxy.getInstitution(newID).onFailure(details -> {
@@ -216,11 +330,13 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testUpdateInstitution(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int instID = 1;
+        final int instID = myTestInstitutionIDs.get(0);
+
         myScheduleStoreProxy.getInstitution(instID).onSuccess(original -> {
             final Institution modified =
                     new Institution(original.getName(), "changing description", "changing location",
                             original.getEmail(), original.getPhone(), original.getWebContact(), original.getWebsite());
+
             myScheduleStoreProxy.updateInstitution(instID, modified).onSuccess(result -> {
                 myScheduleStoreProxy.getInstitution(instID).onSuccess(updated -> {
                     aContext.verify(() -> {
@@ -241,7 +357,8 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testGetJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int jobID = 1;
+        final int jobID = myTestJobIDs.get(0);
+
         myScheduleStoreProxy.getJob(jobID).onSuccess(job -> {
             aContext.verify(() -> {
                 assertTrue(job != null);
@@ -260,6 +377,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testGetJobBadID(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         final int badID = -1;
+
         myScheduleStoreProxy.getJob(badID).onFailure(details -> {
             final ServiceException error = (ServiceException) details;
 
@@ -284,6 +402,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
         final Job toAdd = TestUtils.getRandomJob();
+
         myScheduleStoreProxy.addJob(toAdd).onSuccess(result -> {
             aContext.verify(() -> {
                 assertTrue(result.intValue() >= 1);
@@ -320,6 +439,7 @@ public class HarvestScheduleStoreServiceIT {
     public final void testDeleteJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
         final Job toDelete = TestUtils.getRandomJob();
+
         myScheduleStoreProxy.addJob(toDelete).onSuccess(newID -> {
             myScheduleStoreProxy.removeJob(newID).onSuccess(result -> {
                 myScheduleStoreProxy.getJob(newID).onFailure(details -> {
@@ -345,11 +465,13 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testUpdateJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int jobID = 1;
+        final int jobID = myTestJobIDs.get(0);
+
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getSets().get(),
-                        original.getScheduleCronExpression(), OffsetDateTime.now());
+                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL),
+                        original.getSets().orElse(null), original.getScheduleCronExpression(), OffsetDateTime.now());
+
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
                         aContext.verify(() -> {
@@ -358,7 +480,7 @@ public class HarvestScheduleStoreServiceIT {
                         }).completeNow();
                     }).onFailure(aContext::failNow);
                 }).onFailure(aContext::failNow);
-            } catch (MalformedURLException details) {
+            } catch (final MalformedURLException details) {
                 aContext.failNow(details);
             }
         }).onFailure(aContext::failNow);
@@ -373,12 +495,14 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testUpdateJobBadID(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final int jobID = 1;
+        final int jobID = myTestJobIDs.get(0);
         final int badInstID = -1;
+
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().get(),
+                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets().orElse(null),
                         original.getScheduleCronExpression(), OffsetDateTime.now());
+
                 myScheduleStoreProxy.updateJob(jobID, modified).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;
 
@@ -391,10 +515,9 @@ public class HarvestScheduleStoreServiceIT {
                 }).onSuccess(result -> {
                     aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_016, badInstID));
                 });
-            } catch (MalformedURLException details) {
+            } catch (final MalformedURLException details) {
                 aContext.failNow(details);
             }
         }).onFailure(aContext::failNow);
     }
-
 }
