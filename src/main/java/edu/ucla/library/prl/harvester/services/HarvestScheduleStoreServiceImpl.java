@@ -56,7 +56,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
-        SELECT name, description, location, email, phone, webcontact AS "webContact", website
+        SELECT name, description, location, email, phone, webContact AS "webContact", website
         FROM public.institutions
         WHERE id = $1
         """;
@@ -65,7 +65,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The insert query for institutions.
      */
     private static final String ADD_INST = """
-        INSERT INTO public.institutions (name, description, location, email, phone, webcontact, website)
+        INSERT INTO public.institutions (name, description, location, email, phone, webContact, website)
         VALUES (#{name}, #{description}, #{location}, #{email}, #{phone}, #{webContact}, #{website})
         RETURNING id
         """;
@@ -74,7 +74,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = """
-        SELECT id, name, description, location, email, phone, webcontact AS "webContact", website
+        SELECT id, name, description, location, email, phone, webContact AS "webContact", website
         FROM public.institutions
         ORDER BY name
         """;
@@ -90,7 +90,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final String UPDATE_INST = """
         UPDATE public.institutions
         SET name = #{name}, description = #{description}, location = #{location}, email = #{email}, phone = #{phone},
-            webcontact = #{webContact}, website = #{website}
+            webContact = #{webContact}, website = #{website}
         WHERE id = #{id}
         """;
 
@@ -99,9 +99,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String GET_JOB = """
         SELECT
-            institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
-            metadataprefix AS "metadataPrefix", sets, lastsuccessfulrun AS "lastSuccessfulRun",
-            schedulecronexpression AS "scheduleCronExpression"
+            institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+            scheduleCronExpression AS "scheduleCronExpression"
         FROM public.harvestjobs
         WHERE id = $1
         """;
@@ -111,7 +111,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String ADD_JOB = """
         INSERT INTO public.harvestjobs (
-            institutionid, repositorybaseurl, metadataprefix, sets, lastsuccessfulrun, schedulecronexpression
+            institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression
         )
         VALUES (
             #{institutionID}, #{repositoryBaseURL}, #{metadataPrefix}, #{sets}, #{lastSuccessfulRun},
@@ -125,9 +125,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String LIST_JOBS = """
         SELECT
-            id, institutionid AS "institutionID", repositorybaseurl AS "repositoryBaseURL",
-            metadataprefix AS "metadataPrefix", sets, lastsuccessfulrun AS "lastSuccessfulRun",
-            schedulecronexpression AS "scheduleCronExpression"
+            id, institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+            scheduleCronExpression AS "scheduleCronExpression"
         FROM public.harvestjobs
         ORDER BY "institutionID"
         """;
@@ -143,9 +143,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final String UPDATE_JOB = """
         UPDATE public.harvestjobs
         SET
-            repositorybaseurl = #{repositoryBaseURL}, sets = #{sets}, lastsuccessfulrun = #{lastSuccessfulRun},
-            schedulecronexpression = #{scheduleCronExpression}
-        WHERE id = #{id} AND institutionid = #{institutionID}
+        repositoryBaseURL = #{repositoryBaseURL}, sets = #{sets}, lastSuccessfulRun = #{lastSuccessfulRun},
+            scheduleCronExpression = #{scheduleCronExpression}
+        WHERE id = #{id} AND institutionID = #{institutionID}
         """;
 
     /**
