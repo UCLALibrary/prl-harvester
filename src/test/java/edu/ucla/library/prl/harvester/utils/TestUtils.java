@@ -4,12 +4,18 @@ package edu.ucla.library.prl.harvester.utils;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 
+import io.vertx.core.Future;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.SqlResult;
+import io.vertx.sqlclient.templates.SqlTemplate;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -111,4 +117,18 @@ public final class TestUtils {
         cronExpression.append(QUESTION);
         return cronExpression.toString();
     }
+
+    /**
+     * Clears out the database.
+     *
+     * @param aConnectionPool A database connection pool
+     * @return A Future that succeeds if the database was wiped successfully, and fails otherwise
+     */
+    public static Future<SqlResult<Void>> wipeDatabase(final Pool aConnectionPool) {
+        return aConnectionPool.withConnection(connection -> {
+            return SqlTemplate.forUpdate(connection, "TRUNCATE public.harvestjobs, public.institutions")
+                    .execute(Map.of());
+        });
+    }
+
 }

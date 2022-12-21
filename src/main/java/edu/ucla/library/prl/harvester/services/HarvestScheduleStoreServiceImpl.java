@@ -16,9 +16,9 @@ import edu.ucla.library.prl.harvester.MessageCodes;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.jackson.DatabindCodec;
-import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -154,16 +154,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final int NOT_FOUND_ERROR = Error.NOT_FOUND.ordinal();
 
     /**
-     * The underlying PostgreSQL connection pool.
+     * The underlying database connection pool.
      */
-    private final PgPool myDbConnectionPool;
+    private final Pool myDbConnectionPool;
 
     // See: https://vertx.io/docs/vertx-sql-client-templates/java/#_mapping_with_jackson_databind
     static {
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
     }
 
-    HarvestScheduleStoreServiceImpl(final PgPool aDbConnectionPool) {
+    HarvestScheduleStoreServiceImpl(final Pool aDbConnectionPool) {
         myDbConnectionPool = aDbConnectionPool;
     }
 
@@ -214,6 +214,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return SqlTemplate.forQuery(connection, ADD_INST).mapFrom(INST_MAPPER).execute(anInstitution);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
+
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));

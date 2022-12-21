@@ -395,6 +395,9 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
+          <configuration>
+            <parallel>all</parallel>
+          </configuration>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
@@ -409,6 +412,9 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <argLine>${jacoco.agent.arg}</argLine>
+          <configuration>
+            <parallel>none</parallel><!-- This is intended to allow test classes to use shared database/HTTP connection pools without throwing IllegalStateException -->
+          </configuration>
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
