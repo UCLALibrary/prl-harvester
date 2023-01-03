@@ -6,7 +6,9 @@ import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -15,6 +17,7 @@ import org.quartz.CronExpression;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.templates.SqlTemplate;
 
 /**
  * Represents an OAI-PMH harvest job.
@@ -22,6 +25,11 @@ import io.vertx.core.json.JsonObject;
 @DataObject
 @SuppressWarnings("PMD.DataClass")
 public final class Job {
+
+    /**
+     * The JSON key for the ID.
+     */
+    public static final String ID = "id";
 
     /**
      * The JSON key for the institution ID.
@@ -52,6 +60,11 @@ public final class Job {
      * JSON key for the last successful run.
      */
     static final String LAST_SUCCESSFUL_RUN = "lastSuccessfulRun";
+
+    /**
+     * The identifier of the job.
+     */
+    private final Optional<Integer> myID;
 
     /**
      * The identifier of the institution that this job should be associated with.
@@ -89,6 +102,7 @@ public final class Job {
      */
     public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
             final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
+        myID = Optional.empty();
         myInstitutionID = anInstitutionID;
         myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
         mySets = Optional.ofNullable(aSets);
@@ -99,7 +113,9 @@ public final class Job {
     /**
      * Instantiates a job from its JSON representation.
      * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
+     * Note that the JSON representation may contain an ID, which must have been assigned by the database.
+     * <p>
+     * <b>This constructor is meant to be used only by the service code (generated or otherwise)!</b>
      * {@link #Job(int, URL, List, CronExpression, OffsetDateTime)} should be used everywhere else.
      *
      * @param aJsonObject A job represented as JSON
@@ -112,6 +128,8 @@ public final class Job {
         final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
         final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
         final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
+
+        myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (institutionID != null) {
             myInstitutionID = institutionID;
@@ -157,12 +175,40 @@ public final class Job {
      * @return The JSON representation of the job
      */
     public JsonObject toJson() {
-        return new JsonObject() //
-                .put(INSTITUTION_ID, getInstitutionID()) //
-                .put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString()).put(METADATA_PREFIX, getMetadataPrefix())//
-                .put(SETS, getSets().orElse(null)) //
-                .put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression()) //
-                .put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().map(OffsetDateTime::toString).orElse(null));
+        final JsonObject json = new JsonObject(toSqlTemplateParametersMap());
+
+        // Convert all the non-JSON types to JSON types
+        getSets().ifPresent(sets -> json.put(SETS, new JsonArray(sets)));
+        getLastSuccessfulRun().ifPresent(datetime -> json.put(LAST_SUCCESSFUL_RUN, datetime.toString()));
+
+        return json;
+    }
+
+    /**
+     * @return The job as a map that can be used with {@link SqlTemplate} queries
+     */
+    public Map<String, Object> toSqlTemplateParametersMap() {
+        final Map<String, Object> map = new HashMap<>();
+
+        map.put(INSTITUTION_ID, getInstitutionID());
+        map.put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString());
+        map.put(METADATA_PREFIX, getMetadataPrefix());
+        // SqlTemplate parameter mapping requires that an array is represented as a Java array (not a List or JsonArray)
+        map.put(SETS, getSets().map(sets -> sets.toArray(new String[0])).orElse(null));
+        map.put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression());
+        // Likewise, timestamps must be represented as OffsetDateTime (not a String)
+        map.put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().orElse(null));
+
+        getID().ifPresent(id -> map.put(ID, id));
+
+        return map;
+    }
+
+    /**
+     * @return The optional ID
+     */
+    public Optional<Integer> getID() {
+        return myID;
     }
 
     /**
@@ -205,5 +251,14 @@ public final class Job {
      */
     public Optional<OffsetDateTime> getLastSuccessfulRun() {
         return myLastSuccessfulRun;
+    }
+
+    /**
+     * @param aJob A job
+     * @param aJobID The ID to associate with the job
+     * @return A new Job with the optional {@link #ID} property
+     */
+    public static Job withID(final Job aJob, final Integer aJobID) {
+        return new Job(aJob.toJson().put(ID, aJobID));
     }
 }

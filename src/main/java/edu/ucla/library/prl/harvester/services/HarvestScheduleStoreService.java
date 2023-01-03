@@ -58,7 +58,8 @@ public interface HarvestScheduleStoreService {
     /**
      * Gets the list of all institutions.
      *
-     * @return A Future that succeeds with a list of all institutions (if any)
+     * @return A Future that succeeds with a list of all institutions (if any); these institutions must each have an
+     *         {@link Institution#ID} key
      */
     Future<List<Institution>> listInstitutions();
 
@@ -98,7 +99,8 @@ public interface HarvestScheduleStoreService {
     /**
      * Gets the list of all harvest jobs.
      *
-     * @return A Future that succeeds with a list of all harvest jobs (if any)
+     * @return A Future that succeeds with a list of all harvest jobs (if any); these jobs must each have an
+     *         {@link Job#ID} key
      */
     Future<List<Job>> listJobs();
 

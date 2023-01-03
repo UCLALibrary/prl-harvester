@@ -34,12 +34,12 @@ public final class Config {
     /**
      * The ENV property for the database host.
      */
-    public static final String DB_HOST = "DB_HOST";
+    public static final String DB_HOST = "PGHOSTADDR";
 
     /**
      * The ENV property for the database name.
      */
-    public static final String DB_NAME = "DB_NAME";
+    public static final String DB_NAME = "PGDATABASE";
 
     /**
      * The ENV property for the max size of the database connection pool.

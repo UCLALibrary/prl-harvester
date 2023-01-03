@@ -6,11 +6,8 @@ import info.freelibrary.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
-import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Error;
@@ -20,14 +17,17 @@ import edu.ucla.library.prl.harvester.MessageCodes;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
-import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Tuple;
+import io.vertx.sqlclient.templates.SqlTemplate;
+import io.vertx.sqlclient.templates.TupleMapper;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -42,38 +42,42 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             LoggerFactory.getLogger(HarvestScheduleStoreService.class, MessageCodes.BUNDLE);
 
     /**
-     * Parses and formats phone numbers.
+     * A template parameter mapper for {@link Institution}.
      */
-    private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
+    private static final TupleMapper<Institution> INST_MAPPER =
+            TupleMapper.mapper(Institution::toSqlTemplateParametersMap);
 
     /**
-     * Constant of ID primary key fields.
+     * A template parameter mapper for {@link Job}.
      */
-    private static final String ID = "id";
+    private static final TupleMapper<Job> JOB_MAPPER = TupleMapper.mapper(Job::toSqlTemplateParametersMap);
 
     /**
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
-        SELECT name, description, location, email, phone, webContact AS "webContact",
-               website FROM public.institutions WHERE id = $1
-               """;
+        SELECT name, description, location, email, phone, webContact AS "webContact", website
+        FROM public.institutions
+        WHERE id = $1
+        """;
 
     /**
      * The insert query for institutions.
      */
     private static final String ADD_INST = """
-               INSERT INTO public.institutions(name, description, location, email,
-               phone, webContact, website) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id
+        INSERT INTO public.institutions (name, description, location, email, phone, webContact, website)
+        VALUES (#{name}, #{description}, #{location}, #{email}, #{phone}, #{webContact}, #{website})
+        RETURNING id
         """;
 
     /**
      * The select query for all institutions.
      */
     private static final String LIST_INSTS = """
-        SELECT name, description, location, email, phone,
-               webContact AS "webContact", website FROM public.institutions ORDER BY name
-               """;
+        SELECT id, name, description, location, email, phone, webContact AS "webContact", website
+        FROM public.institutions
+        ORDER BY name
+        """;
 
     /**
      * The delete query for an institution.
@@ -84,35 +88,49 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The update query for an institution.
      */
     private static final String UPDATE_INST = """
-        UPDATE public.institutions SET name=$1, description=$2, location=$3,
-        email=$4, phone=$5, webContact=$6, website=$7 WHERE id = $8
+        UPDATE public.institutions
+        SET name = #{name}, description = #{description}, location = #{location}, email = #{email}, phone = #{phone},
+            webContact = #{webContact}, website = #{website}
+        WHERE id = #{id}
         """;
 
     /**
      * The select-one query for jobs.
      */
     private static final String GET_JOB = """
-        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
-        metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
-        scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs WHERE id = $1
+        SELECT
+            institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+            scheduleCronExpression AS "scheduleCronExpression"
+        FROM public.harvestjobs
+        WHERE id = $1
         """;
 
     /**
      * The insert query for jobs.
      */
     private static final String ADD_JOB = """
-        INSERT INTO public.harvestjobs(institutionId, repositoryBaseUrl, metadataPrefix, sets,
-        lastSuccessfulRun, scheduleCronExpression) VALUES($1, $2, $3, $4, $5, $6) RETURNING id
+        INSERT INTO public.harvestjobs (
+            institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression
+        )
+        VALUES (
+            #{institutionID}, #{repositoryBaseURL}, #{metadataPrefix}, #{sets}, #{lastSuccessfulRun},
+            #{scheduleCronExpression}
+        )
+        RETURNING id
         """;
 
     /**
      * The select query for all jobs.
      */
     private static final String LIST_JOBS = """
-        SELECT institutionId AS "institutionID", repositoryBaseUrl AS "repositoryBaseURL",
-               metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
-               scheduleCronExpression AS "scheduleCronExpression" FROM public.harvestjobs ORDER BY "institutionID"
-               """;
+        SELECT
+            id, institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+            scheduleCronExpression AS "scheduleCronExpression"
+        FROM public.harvestjobs
+        ORDER BY "institutionID"
+        """;
 
     /**
      * The delete query for a job.
@@ -123,19 +141,12 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The update query for a job.
      */
     private static final String UPDATE_JOB = """
-        UPDATE public.harvestjobs SET repositoryBaseURL=$1, sets=$2, lastSuccessfulRun=$3,
-        scheduleCronExpression=$4 WHERE id = $5 AND institutionID = $6
+        UPDATE public.harvestjobs
+        SET
+        repositoryBaseURL = #{repositoryBaseURL}, sets = #{sets}, lastSuccessfulRun = #{lastSuccessfulRun},
+            scheduleCronExpression = #{scheduleCronExpression}
+        WHERE id = #{id} AND institutionID = #{institutionID}
         """;
-
-    /**
-     * The postgres database (and default user) name.
-     */
-    private static final String POSTGRES = "postgres";
-
-    /**
-     * The database's default hostname.
-     */
-    private static final String DEFAULT_HOSTNAME = "localhost";
 
     /**
      * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
@@ -151,6 +162,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The underlying PostgreSQL connection pool.
      */
     private final PgPool myDbConnectionPool;
+
+    // See: https://vertx.io/docs/vertx-sql-client-templates/java/#_mapping_with_jackson_databind
+    static {
+        DatabindCodec.mapper().registerModule(new JavaTimeModule());
+    }
 
     HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
         myDbConnectionPool = PgPool.pool(aVertx, getConnectionOpts(aConfig), getPoolOpts(aConfig));
@@ -172,13 +188,13 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     /**
-     * Checks if the given RowSet consists of a single row or not.
+     * Checks if the given SqlResult represents a single affected row or not.
      *
-     * @param aRowSet A RowSet representing the response to a database query
-     * @return true if it has a single row, false otherwise
+     * @param aSqlResult A SqlResult representing the response to a database operation
+     * @return true if it represents a single affected row, false otherwise
      */
-    private static boolean hasSingleRow(final RowSet<Row> aRowSet) {
-        return aRowSet.rowCount() == 1;
+    private static boolean hasSingleRow(final SqlResult<?> aSqlResult) {
+        return aSqlResult.rowCount() == 1;
     }
 
     @Override
@@ -200,74 +216,29 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     @Override
     public Future<Integer> addInstitution(final Institution anInstitution) {
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery(ADD_INST)
-                    .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
-                            anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalPhoneAsString(anInstitution.getPhone()),
-                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString()));
+            return SqlTemplate.forQuery(connection, ADD_INST).mapFrom(INST_MAPPER).execute(anInstitution);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
+            return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
         });
-    }
-
-    /**
-     * Converts Optional values to String for use in prepared queries.
-     *
-     * @param aParam An Optional used as a query param
-     * @return The String representation of the Optional value, or an empty string if Optional is empty
-     */
-    private String getOptionalAsString(final Optional aParam) {
-        if (aParam.isPresent()) {
-            return aParam.get().toString();
-        } else {
-            return String.valueOf("");
-        }
-    }
-
-    /**
-     * Converts Optional phone number values to String for use in prepared queries.
-     *
-     * @param aPhoneParam An Optional used as a query param
-     * @return The String representation of the Optional value, or an empty string if Optional is empty
-     */
-    private String getOptionalPhoneAsString(final Optional<PhoneNumber> aPhoneParam) {
-        if (aPhoneParam.isPresent()) {
-            return PHONE_NUMBER_UTIL.format(aPhoneParam.get(), PhoneNumberFormat.INTERNATIONAL);
-        } else {
-            return String.valueOf("");
-        }
-    }
-
-    /**
-     * Converts Optional list values to String array for use in prepared queries.
-     *
-     * @param aListParam An Optional list used as a query param
-     * @return The String[] representation of the Optional value, or an empty string[] if Optional is empty
-     */
-    private String[] getOptionalListAsArray(final Optional<List<String>> aListParam) {
-        if (aListParam.isPresent()) {
-            return aListParam.get().toArray(new String[aListParam.get().size()]);
-        } else {
-            return new String[0];
-        }
     }
 
     @Override
     public Future<Void> updateInstitution(final int anInstitutionId, final Institution anInstitution) {
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery(UPDATE_INST)
-                    .execute(Tuple.of(anInstitution.getName(), anInstitution.getDescription(),
-                            anInstitution.getLocation(), getOptionalAsString(anInstitution.getEmail()),
-                            getOptionalPhoneAsString(anInstitution.getPhone()),
-                            getOptionalAsString(anInstitution.getWebContact()), anInstitution.getWebsite().toString(),
-                            anInstitutionId));
+            final Institution institutionWithID = Institution.withID(anInstitution, anInstitutionId);
+
+            return SqlTemplate.forUpdate(connection, UPDATE_INST).mapFrom(INST_MAPPER).execute(institutionWithID);
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(update -> {
-            return Future.succeededFuture();
+            if (hasSingleRow(update)) {
+                return Future.succeededFuture();
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
         });
     }
 
@@ -316,25 +287,21 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     @Override
     public Future<Integer> addJob(final Job aJob) {
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery(ADD_JOB)
-                    .execute(Tuple.of(aJob.getInstitutionID(), aJob.getRepositoryBaseURL().toString(),
-                            aJob.getMetadataPrefix(), getOptionalListAsArray(aJob.getSets()),
-                            aJob.getLastSuccessfulRun().orElse(null), aJob.getScheduleCronExpression().toString()));
+            return SqlTemplate.forQuery(connection, ADD_JOB).mapFrom(JOB_MAPPER).execute(aJob);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(ID));
+            return Future.succeededFuture(insert.iterator().next().getInteger(Job.ID));
         });
     }
 
     @Override
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
         return myDbConnectionPool.withConnection(connection -> {
-            return connection.preparedQuery(UPDATE_JOB)
-                    .execute(Tuple.of(aJob.getRepositoryBaseURL().toString(), getOptionalListAsArray(aJob.getSets()),
-                            aJob.getLastSuccessfulRun().orElse(null), aJob.getScheduleCronExpression().toString(),
-                            aJobId, aJob.getInstitutionID()));
+            final Job jobWithID = Job.withID(aJob, aJobId);
+
+            return SqlTemplate.forUpdate(connection, UPDATE_JOB).mapFrom(JOB_MAPPER).execute(jobWithID);
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(update -> {
@@ -369,16 +336,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * @return The database's connection options
      */
     private PgConnectOptions getConnectionOpts(final JsonObject aConfig) {
-        final String dbHost = aConfig.getString(Config.DB_HOST, DEFAULT_HOSTNAME);
-        final int dbPort = aConfig.getInteger(Config.DB_PORT, 5432);
-        final String dbName = aConfig.getString(Config.DB_NAME, POSTGRES);
-        final String dbUser = aConfig.getString(Config.DB_USERNAME, POSTGRES);
-        final String dbPassword = aConfig.getString(Config.DB_PASSWORD);
         final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
         final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
 
-        return new PgConnectOptions().setPort(dbPort).setHost(dbHost).setDatabase(dbName).setUser(dbUser)
-                .setPassword(dbPassword).setReconnectAttempts(dbReconnectAttempts)
+        return PgConnectOptions.fromEnv() //
+                .setReconnectAttempts(dbReconnectAttempts) //
                 .setReconnectInterval(dbReconnectInterval);
     }
 

@@ -3,6 +3,8 @@ package edu.ucla.library.prl.harvester;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ import info.freelibrary.util.IllegalArgumentI18nException;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.templates.SqlTemplate;
 
 /**
  * Represents a provider institution.
@@ -25,6 +28,11 @@ import io.vertx.core.json.JsonObject;
 @DataObject
 @SuppressWarnings("PMD.DataClass")
 public final class Institution {
+
+    /**
+     * The JSON key for the ID.
+     */
+    public static final String ID = "id";
 
     /**
      * The JSON key for the name.
@@ -65,6 +73,11 @@ public final class Institution {
      * Parses and formats phone numbers.
      */
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
+
+    /**
+     * The institution's optional identifier.
+     */
+    private final Optional<Integer> myID;
 
     /**
      * The institution's name.
@@ -116,6 +129,7 @@ public final class Institution {
     public Institution(final String aName, final String aDescription, final String aLocation,
             final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
             final Optional<URL> aWebContact, final URL aWebsite) {
+        myID = Optional.empty();
         myName = Objects.requireNonNull(aName);
         myDescription = Objects.requireNonNull(aDescription);
         myLocation = Objects.requireNonNull(aLocation);
@@ -134,7 +148,9 @@ public final class Institution {
     /**
      * Instantiates an institution from its JSON representation.
      * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
+     * Note that the JSON representation may contain an ID, which must have been assigned by the database.
+     * <p>
+     * <b>This constructor is meant to be used only by the service code (generated or otherwise)!</b>
      * {@link #Institution(String, String, String, Optional, Optional, Optional, URL)} should be used everywhere else.
      *
      * @param aJsonObject An institution represented as JSON
@@ -151,6 +167,8 @@ public final class Institution {
         final Optional<PhoneNumber> phone;
         final Optional<URL> webContact;
         final String website = aJsonObject.getString(WEBSITE);
+
+        myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (name != null) {
             myName = name;
@@ -216,16 +234,34 @@ public final class Institution {
      * @return The JSON representation of the institution
      */
     public JsonObject toJson() {
-        return new JsonObject() //
-                .put(NAME, getName()) //
-                .put(DESCRIPTION, getDescription()) //
-                .put(LOCATION, getLocation()) //
-                .put(EMAIL, getEmail().map(InternetAddress::toString).orElse(null)) //
-                .put(PHONE, getPhone() //
-                        .map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)) //
-                        .orElse(null)) //
-                .put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null)) //
-                .put(WEBSITE, myWebsite.toString());
+        return new JsonObject(toSqlTemplateParametersMap());
+    }
+
+    /**
+     * @return The institution as a map that can be used with {@link SqlTemplate} queries
+     */
+    public Map<String, Object> toSqlTemplateParametersMap() {
+        final Map<String, Object> map = new HashMap<>();
+
+        map.put(NAME, getName());
+        map.put(DESCRIPTION, getDescription());
+        map.put(LOCATION, getLocation());
+        map.put(EMAIL, getEmail().map(InternetAddress::toString).orElse(null));
+        map.put(PHONE,
+                getPhone().map(phone -> PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)).orElse(null));
+        map.put(WEB_CONTACT, getWebContact().map(URL::toString).orElse(null));
+        map.put(WEBSITE, getWebsite().toString());
+
+        getID().ifPresent(id -> map.put(ID, id));
+
+        return map;
+    }
+
+    /**
+     * @return The optional ID
+     */
+    public Optional<Integer> getID() {
+        return myID;
     }
 
     /**
@@ -275,5 +311,14 @@ public final class Institution {
      */
     public URL getWebsite() {
         return myWebsite;
+    }
+
+    /**
+     * @param anInstitution An institution
+     * @param anInstitutionID The ID to associate with the institution
+     * @return A new Institution with the optional {@link #ID} property
+     */
+    public static Institution withID(final Institution anInstitution, final Integer anInstitutionID) {
+        return new Institution(anInstitution.toJson().put(ID, anInstitutionID));
     }
 }

@@ -2,6 +2,7 @@
 package edu.ucla.library.prl.harvester;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.MalformedURLException;
@@ -121,6 +122,42 @@ public class InstitutionTest {
                         Optional.empty(), exampleWebsite),
                 Arguments.of(exampleName, exampleDescription, exampleLocation, Optional.empty(), Optional.empty(),
                         exampleWebContact, exampleWebsite));
+    }
+
+    /**
+     * Tests that {@link Institution#withID} adds an ID to the otherwise-unchanged {@link Institution}.
+     *
+     * @param aName The institution's name
+     * @param aDescription The institution's description
+     * @param aLocation The institution's human-readable location
+     * @param anEmail The institution's optional email contact
+     * @param aPhone The institution's optional phone contact
+     * @param aWebContact The institution's optional web contact
+     * @param aWebsite The institiution's website
+     */
+    @ParameterizedTest
+    @MethodSource
+    void testInstitutionWithID(final String aName, final String aDescription, final String aLocation,
+            final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
+            final Optional<URL> aWebContact, final URL aWebsite) {
+        final Institution institution =
+                new Institution(aName, aDescription, aLocation, anEmail, aPhone, aWebContact, aWebsite);
+        final int institutionID = 1;
+        final Institution institutionWithID = Institution.withID(institution, institutionID);
+
+        assertNotEquals(institution.toJson(), institutionWithID.toJson());
+        assertEquals(institution.toJson().put("id", institutionID), institutionWithID.toJson());
+    }
+
+    /**
+     * @return The arguments for the corresponding {@link ParameterizedTest}
+     * @throws AddressException
+     * @throws MalformedURLException
+     * @throws NumberParseException
+     */
+    static Stream<Arguments> testInstitutionWithID()
+            throws AddressException, MalformedURLException, NumberParseException {
+        return testInstitutionSerDe();
     }
 
     /**

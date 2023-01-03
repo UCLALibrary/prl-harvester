@@ -37,6 +37,7 @@
     <solrs.version>2.6.0</solrs.version>
     <xoai.version>4.2.0</xoai.version>
     <guava.version>31.1-jre</guava.version>
+    <jackson.version>2.14.1</jackson.version>
 
     <!-- Security update overrides -->
     <snakeyaml.version>1.32</snakeyaml.version>
@@ -163,6 +164,10 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
+      <artifactId>vertx-sql-client-templates</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
       <artifactId>vertx-service-proxy</artifactId>
     </dependency>
     <dependency>
@@ -222,6 +227,16 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
 
     <!-- Security update overrides -->
@@ -397,6 +412,7 @@
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+            <PGHOSTADDR>localhost</PGHOSTADDR>
             <PGDATABASE>postgres</PGDATABASE>
             <PGUSER>${test.db.user}</PGUSER>
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
@@ -934,6 +950,7 @@
                 </configurationParameters>
               </properties>
               <environmentVariables>
+                <PGHOSTADDR>localhost</PGHOSTADDR>
                 <PGDATABASE>postgres</PGDATABASE>
                 <PGUSER>${test.db.user}</PGUSER>
                 <PGPASSWORD>${test.db.password}</PGPASSWORD>
