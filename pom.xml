@@ -29,6 +29,7 @@
 
   <properties>
     <vertx.version>4.3.3</vertx.version>
+    <vertx-cron.version>3.5.3</vertx-cron.version>
     <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
     <quartz.version>2.3.2</quartz.version>
@@ -178,6 +179,11 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-jdbc-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.diabolicallabs</groupId>
+      <artifactId>vertx-cron</artifactId>
+      <version>${vertx-cron.version}</version>
     </dependency>
     <dependency>
       <groupId>org.quartz-scheduler</groupId>

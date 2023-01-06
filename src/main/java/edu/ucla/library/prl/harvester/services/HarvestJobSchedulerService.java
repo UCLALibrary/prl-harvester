@@ -1,6 +1,8 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import java.util.NoSuchElementException;
+
 import edu.ucla.library.prl.harvester.Job;
 
 import io.vertx.codegen.annotations.ProxyClose;
@@ -49,10 +51,11 @@ public interface HarvestJobSchedulerService {
     /**
      * Adds a harvest job.
      *
-     * @param aJob The harvest job to add
-     * @return A Future that succeeds, with a unique local ID for the harvest job, if it was added
+     * @param aJob The harvest job to add; this job must have a {@link Job.ID} key
+     * @return A Future that succeeds if the harvest job was added
+     * @throws {@link NoSuchElementException} If {@code aJob.getID().isEmpty() == true}
      */
-    Future<Integer> addJob(Job aJob);
+    Future<Void> addJob(Job aJob);
 
     /**
      * Updates a harvest job.
