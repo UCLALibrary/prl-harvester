@@ -135,6 +135,31 @@ public class HarvestServiceIT {
     }
 
     /**
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @AfterAll
+    public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
+        final Future<Void> closeEventBusServices = myHarvestServiceProxy.close(); //
+        // .compose(nil -> myHarvestService.unregister()) //
+        // .compose(nil -> myHarvestScheduleStoreServiceProxy.close()) //
+        // .compose(nil -> myHarvestScheduleStoreService.unregister());
+
+        closeEventBusServices.compose(nil -> {
+            final Future<Void> closeDatabaseResources = TestUtils.wipeDatabase(myDbConnectionPool).compose(result -> {
+                return myDbConnectionPool.close();
+            });
+            final Future<Void> closeSolrResources = wipeSolr().compose(result -> {
+                mySolrClient.shutdown();
+
+                return Future.succeededFuture();
+            });
+
+            return CompositeFuture.all(closeDatabaseResources, closeSolrResources);
+        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+    }
+
+    /**
      * Clears out the Solr index.
      *
      * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
@@ -259,31 +284,6 @@ public class HarvestServiceIT {
         }).onSuccess(result -> {
             aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_000, result.toJson()));
         });
-    }
-
-    /**
-     * @param aVertx A Vert.x instance
-     * @param aContext A test context
-     */
-    @AfterAll
-    public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
-        final Future<Void> closeEventBusServices = myHarvestServiceProxy.close(); //
-        // .compose(nil -> myHarvestService.unregister()) //
-        // .compose(nil -> myHarvestScheduleStoreServiceProxy.close()) //
-        // .compose(nil -> myHarvestScheduleStoreService.unregister());
-
-        closeEventBusServices.compose(nil -> {
-            final Future<Void> closeDatabaseResources = TestUtils.wipeDatabase(myDbConnectionPool).compose(result -> {
-                return myDbConnectionPool.close();
-            });
-            final Future<Void> closeSolrResources = wipeSolr().compose(result -> {
-                mySolrClient.shutdown();
-
-                return Future.succeededFuture();
-            });
-
-            return CompositeFuture.all(closeDatabaseResources, closeSolrResources);
-        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
