@@ -152,8 +152,9 @@ public class HarvestServiceIT {
     public void testRun(final List<String> aSets, final CronExpression aScheduleCronExpression,
             final OffsetDateTime aLastSuccessfulRun, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
-        final Job job =
-                new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+        final Job job = Job.withID(
+                new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun),
+                1);
 
         myHarvestServiceProxy.run(job).onSuccess(jobResult -> {
             TestUtils.getAllDocuments(mySolrClient).onSuccess(queryResults -> {
@@ -226,7 +227,7 @@ public class HarvestServiceIT {
         final CronExpression schedule = new CronExpression("0 * * * * ?");
 
         return Stream.of( //
-                Arguments.of(new Job(1, baseURL, List.of(huxley), schedule, null)));
+                Arguments.of(Job.withID(new Job(1, baseURL, List.of(huxley), schedule, null), 1)));
     }
 
     /**
@@ -239,8 +240,8 @@ public class HarvestServiceIT {
      */
     public void testRunInvalidbaseURL(final Vertx aVertx, final VertxTestContext aContext)
             throws MalformedURLException, ParseException {
-        final Job job = new Job(myTestInstitutionID, new URL("http://example.com"), null,
-                new CronExpression("0 0 * * * ?"), null);
+        final Job job = Job.withID(new Job(myTestInstitutionID, new URL("http://example.com"), null,
+                new CronExpression("0 0 * * * ?"), null), 1);
 
         myHarvestServiceProxy.run(job).onFailure(details -> {
             LOGGER.debug(details.toString());

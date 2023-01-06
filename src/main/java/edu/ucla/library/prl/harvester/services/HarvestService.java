@@ -54,7 +54,7 @@ public interface HarvestService {
     /**
      * Runs a harvest job.
      *
-     * @param aJob The harvest job to run
+     * @param aJob The harvest job to run; this job must have a {@link Job.ID} key
      * @return A Future that succeeds if the harvest job succeeded
      */
     Future<JobResult> run(Job aJob);

@@ -29,6 +29,7 @@ import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
+import info.freelibrary.util.IllegalArgumentI18nException;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
@@ -93,6 +94,11 @@ public class HarvestServiceImpl implements HarvestService {
         final Future<ImmutableList<Set>> listSets = listSetsAsync(baseURL);
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
+        if (aJob.getID().isEmpty()) {
+            return Future
+                    .failedFuture(new IllegalArgumentI18nException(MessageCodes.BUNDLE, MessageCodes.PRL_002, Job.ID));
+        }
+
         return CompositeFuture.all(listSets, getInstitution).compose(results -> {
             final List<Set> sets = results.resultAt(0);
             final Institution institution = results.resultAt(1);
@@ -128,7 +134,7 @@ public class HarvestServiceImpl implements HarvestService {
                     solrResult = Future.succeededFuture();
                 }
 
-                return solrResult.map(nil -> new JobResult(startTime, records.size()));
+                return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, records.size()));
             });
         }).recover(details -> {
             // TODO: consider retrying on failure

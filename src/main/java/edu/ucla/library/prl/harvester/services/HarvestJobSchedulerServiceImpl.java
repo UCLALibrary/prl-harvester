@@ -1,20 +1,101 @@
 
 package edu.ucla.library.prl.harvester.services;
 
-import edu.ucla.library.prl.harvester.Job;
+import java.util.Set;
 
+import org.quartz.CronScheduleBuilder;
+import org.quartz.CronTrigger;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerContext;
+import org.quartz.SchedulerException;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
+
+import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.MessageCodes;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 
 /**
- * The implementation of {@link HarvestScheduleStoreService}.
+ * The implementation of {@link HarvestJobSchedulerService}.
  */
-@SuppressWarnings("PMD.UnusedFormalParameter") // FIXME: temp until constructor defined
-public class HarvestJobSchedulerServiceImpl implements HarvestJobSchedulerService {
+public final class HarvestJobSchedulerServiceImpl implements HarvestJobSchedulerService {
 
-    HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
-        // TODO: code constructor
+    /**
+     * The scheduler service's logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(HarvestJobSchedulerService.class, MessageCodes.BUNDLE);
+
+    /**
+     * The {@link JobDataMap} key for the JSON-encoded harvest job.
+     */
+    private static final String ENCODED_JOB_JSON = "encodedJobJSON";
+
+    /**
+     * The {@link SchedulerContext} key for the Vert.x context.
+     */
+    private static final String VERTX_CONTEXT = "vertxContext";
+
+    /**
+     * The {@link SchedulerContext} key for the harvest service proxy.
+     */
+    private static final String HARVEST_SERVICE = "harvestService";
+
+    /**
+     * The {@link SchedulerContext} key for the harvest schedule store service proxy.
+     */
+    private static final String HARVEST_SCHEDULE_STORE_SERVICE = "harvestScheduleStoreService";
+
+    /**
+     * A proxy to the harvest service, for running jobs.
+     */
+    @SuppressWarnings("PMD.SingularField")
+    private final HarvestService myHarvestService;
+
+    /**
+     * A proxy to the harvest schedule store service.
+     */
+    private final HarvestScheduleStoreService myHarvestScheduleStoreService;
+
+    /**
+     * A job scheduler.
+     */
+    private final Scheduler myScheduler;
+
+    /**
+     * Instantiates the service. Call {@link HarvestJobSchedulerService#create} instead of this constructor.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
+     * @param aPromise A Promise that is completed with the service instance if instantiation succeeded
+     * @throws SchedulerException If there is a problem with the underlying scheduler
+     */
+    protected HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig,
+            final Promise<HarvestJobSchedulerService> aPromise) throws SchedulerException {
+        myHarvestService = HarvestService.createProxy(aVertx, aConfig);
+        myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
+
+        myScheduler = new StdSchedulerFactory().getScheduler();
+        myScheduler.getContext().put(VERTX_CONTEXT, aVertx.getOrCreateContext());
+        myScheduler.getContext().put(HARVEST_SERVICE, myHarvestService);
+        myScheduler.getContext().put(HARVEST_SCHEDULE_STORE_SERVICE, myHarvestScheduleStoreService);
+        myScheduler.start();
+
+        initializeScheduler().map(this).onSuccess(aPromise::complete).onFailure(aPromise::fail);
     }
 
     @Override
@@ -37,7 +118,90 @@ public class HarvestJobSchedulerServiceImpl implements HarvestJobSchedulerServic
 
     @Override
     public Future<Void> close() {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        try {
+            myScheduler.shutdown();
+
+            return Future.succeededFuture();
+        } catch (final SchedulerException details) {
+            return Future.failedFuture(details);
+        }
+    }
+
+    /**
+     * Initializes the scheduler with all of the {@link Job}s stored in the database.
+     *
+     * @return A Future that succeeds if the saved jobs were restored
+     */
+    @SuppressWarnings("rawtypes")
+    private Future<Void> initializeScheduler() {
+        return myHarvestScheduleStoreService.listJobs().compose(jobs -> {
+            return CompositeFuture.all(jobs.stream().map(job -> (Future) scheduleJob(job, false)).toList());
+        }).mapEmpty();
+    }
+
+    /**
+     * @param aJob A job
+     * @param aReplaceIfExists Whether or not to overwrite the job if it already exists
+     * @return A Future that succeeds if the job was added to, or updated in, the scheduler
+     */
+    private Future<Void> scheduleJob(final Job aJob, final boolean aReplaceIfExists) {
+        final JobKey key = new JobKey(Integer.toString(aJob.getID().get()));
+        final JobDetail jobDetail = JobBuilder.newJob(RunHarvest.class).withIdentity(key)
+                .usingJobData(ENCODED_JOB_JSON, aJob.toJson().encode()).build();
+        final CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(aJob.getScheduleCronExpression());
+        final CronTrigger trigger =
+                TriggerBuilder.newTrigger().withSchedule(scheduleBuilder).startNow().endAt(null).build();
+
+        try {
+            myScheduler.scheduleJob(jobDetail, Set.of(trigger), aReplaceIfExists);
+
+            return Future.succeededFuture();
+        } catch (final SchedulerException details) {
+            return Future.failedFuture(details);
+        }
+    }
+
+    /**
+     * Runs a harvest job, then publishes its result (or resulting error) to the event bus addresses
+     * {@link JOB_RESULT_ADDRESS} and {@link ERROR_ADDRESS}, respectively.
+     */
+    public static final class RunHarvest implements org.quartz.Job {
+
+        /**
+         * Per the docs for {@link org.quartz.Job}, a public no-argument constructor is required.
+         */
+        @SuppressWarnings({ "PMD.UncommentedEmptyConstructor", "PMD.UnnecessaryConstructor" })
+        public RunHarvest() {
+        }
+
+        @Override
+        public void execute(final JobExecutionContext aContext) throws JobExecutionException {
+            try {
+                final JobDetail jobDetail = aContext.getJobDetail();
+                final String encodedJobJSON = jobDetail.getJobDataMap().getString(ENCODED_JOB_JSON);
+                final Job job = new Job(new JsonObject(encodedJobJSON));
+
+                final SchedulerContext schedulerContext = aContext.getScheduler().getContext();
+                final HarvestService harvestService = (HarvestService) schedulerContext.get(HARVEST_SERVICE);
+                final Context vertxContext = (Context) schedulerContext.get(VERTX_CONTEXT);
+                final EventBus eb = vertxContext.owner().eventBus();
+
+                harvestService.run(job).compose(jobResult -> {
+                    final int jobID = Integer.parseInt(jobDetail.getKey().getName());
+                    final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
+                            job.getSets().orElse(null), job.getScheduleCronExpression(), jobResult.getStartTime());
+                    final HarvestScheduleStoreService scheduleStoreService =
+                            (HarvestScheduleStoreService) schedulerContext.get(HARVEST_SCHEDULE_STORE_SERVICE);
+
+                    return scheduleStoreService.updateJob(jobID, updatedJob).onSuccess(result -> {
+                        eb.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
+                    });
+                }).onFailure(details -> {
+                    eb.publish(ERROR_ADDRESS, details.getMessage());
+                });
+            } catch (final SchedulerException details) {
+                LOGGER.error(details.getMessage());
+            }
+        }
     }
 }

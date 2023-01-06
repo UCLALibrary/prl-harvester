@@ -37,11 +37,13 @@ public class JobResultTest {
      */
     @Test
     void testJobResultSerDe() {
+        final int exampleJobID = 1;
         final OffsetDateTime exampleStartTime = OffsetDateTime.parse("2000-01-01T00:00Z");
         final int exampleRecordCount = 10;
 
-        final JobResult jobResult = new JobResult(exampleStartTime, exampleRecordCount);
+        final JobResult jobResult = new JobResult(exampleJobID, exampleStartTime, exampleRecordCount);
         final JsonObject json = new JsonObject() //
+                .put(JobResult.JOB_ID, exampleJobID) //
                 .put(JobResult.START_TIME, exampleStartTime.toString()) //
                 .put(JobResult.RECORD_COUNT, exampleRecordCount);
         final JobResult jobResultFromJson = new JobResult(json);
@@ -58,15 +60,17 @@ public class JobResultTest {
     /**
      * Tests that a {@link JobResult} cannot be instantiated from an invalid JSON representation.
      *
+     * @param aJobID The ID of the associated job
      * @param aStartTime The time when the job was started
      * @param aRecordCount The number of records harvested for the job
      * @param anErrorClass The class of error that we expect instantiation with the above arguments to throw
      */
     @ParameterizedTest
     @MethodSource
-    void testJobResultInvalidJsonRepresentation(final String aStartTime, final Integer aRecordCount,
-            final Class<Exception> anErrorClass) {
+    void testJobResultInvalidJsonRepresentation(final Integer aJobID, final String aStartTime,
+            final Integer aRecordCount, final Class<Exception> anErrorClass) {
         final JsonObject json = new JsonObject() //
+                .put(JobResult.JOB_ID, aJobID) //
                 .put(JobResult.START_TIME, aStartTime) //
                 .put(JobResult.RECORD_COUNT, aRecordCount);
         final Exception error = assertThrows(InvalidJobResultJsonException.class, () -> new JobResult(json));
@@ -87,10 +91,11 @@ public class JobResultTest {
         final String invalidTimestamp = LocalDate.of(2020, 1, 1).toString(); // Missing time component
 
         return Stream.of( //
-                Arguments.of(null, 10, null), //
-                Arguments.of(invalidTimestamp, 50, DateTimeParseException.class), //
-                Arguments.of(validTimestamp, null, null), //
-                Arguments.of(validTimestamp, -1, null));
+                Arguments.of(0, validTimestamp, 5, null), //
+                Arguments.of(1, null, 10, null), //
+                Arguments.of(2, invalidTimestamp, 50, DateTimeParseException.class), //
+                Arguments.of(3, validTimestamp, null, null), //
+                Arguments.of(4, validTimestamp, -1, null));
     }
 
     /**
@@ -98,7 +103,7 @@ public class JobResultTest {
      */
     @Test
     void testJobResultNullArguments() {
-        assertThrows(NullPointerException.class, () -> new JobResult(null, 10));
+        assertThrows(NullPointerException.class, () -> new JobResult(1, null, 10));
     }
 
     /**
