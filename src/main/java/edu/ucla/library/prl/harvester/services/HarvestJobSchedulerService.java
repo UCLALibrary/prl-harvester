@@ -5,12 +5,13 @@ import java.util.NoSuchElementException;
 
 import edu.ucla.library.prl.harvester.Job;
 
+import info.freelibrary.util.StringUtils;
+
 import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
 
 /**
@@ -26,17 +27,24 @@ public interface HarvestJobSchedulerService {
     String ADDRESS = HarvestJobSchedulerService.class.getName();
 
     /**
-     * Creates an instance of the service.
-     *
-     * @param aVertx A Vert.x instance
-     * @param aConfig A configuration
-     * @return The service instance
+     * The event bus address that the service will publish job results to.
      */
-    static HarvestJobSchedulerService create(final Vertx aVertx, final JsonObject aConfig) {
-        // FIXME: this is incorrect, instantiate an implementing class instead
-        // TODO: depending on implementation, consider returning Future<HarvestJobSchedulerService> instead
-        return createProxy(aVertx);
-    }
+    String JOB_RESULT_ADDRESS = StringUtils.format("{}.job_results", ADDRESS);
+
+    /**
+     * The event bus address that the service will publish errors to.
+     */
+    String ERROR_ADDRESS = StringUtils.format("{}.errors", ADDRESS);
+
+    /**
+     * The {@link JobDataMap} key for the JSON-encoded harvest job.
+     */
+    String ENCODED_JOB_JSON = "encodedJobJSON";
+
+    /**
+     * The {@link JobDataMap} key for the Vert.x context.
+     */
+    String VERTX_CONTEXT = "vertxContext";
 
     /**
      * Creates an instance of the service proxy.
