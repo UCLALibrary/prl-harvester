@@ -119,6 +119,7 @@ public class HarvestJobSchedulerServiceIT {
      */
     @AfterAll
     public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
+        aContext.completeNow();
     }
 
     /**
