@@ -4,6 +4,8 @@ package edu.ucla.library.prl.harvester.utils;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 
+import io.ino.solrs.JavaAsyncSolrClient;
+
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlResult;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.CompletionStage;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -25,6 +28,12 @@ import javax.mail.internet.InternetAddress;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.NamedList;
 
 import org.jeasy.random.randomizers.EmailRandomizer;
 import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
@@ -59,6 +68,8 @@ public final class TestUtils {
     private static final SentenceRandomizer RAND_STRING = new SentenceRandomizer();
 
     private static final OffsetDateTimeRandomizer RAND_DATE = new OffsetDateTimeRandomizer();
+
+    private static final String SOLR_SELECT_ALL = "*:*";
 
     private TestUtils() {
     }
@@ -131,4 +142,28 @@ public final class TestUtils {
         });
     }
 
+    /**
+     * Clears out the Solr index.
+     *
+     * @param aSolrClient A Solr client
+     * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
+     */
+    public static Future<UpdateResponse> wipeSolr(final JavaAsyncSolrClient aSolrClient) {
+        final CompletionStage<UpdateResponse> wipeSolr =
+                aSolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> aSolrClient.commit());
+
+        return Future.fromCompletionStage(wipeSolr);
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @return A Future that resolves to the list of all documents
+     */
+    public static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
+        final SolrParams solrParams = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
+        final CompletionStage<SolrDocumentList> results =
+                aSolrClient.query(solrParams).thenApply(QueryResponse::getResults);
+
+        return Future.fromCompletionStage(results);
+    }
 }

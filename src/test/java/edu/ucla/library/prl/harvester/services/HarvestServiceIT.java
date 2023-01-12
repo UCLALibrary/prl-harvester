@@ -8,18 +8,10 @@ import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
-
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.NamedList;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -66,8 +58,6 @@ import io.vertx.sqlclient.Pool;
 public class HarvestServiceIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HarvestServiceIT.class, MessageCodes.BUNDLE);
-
-    private static final String SOLR_SELECT_ALL = "*:*";
 
     private MessageConsumer<JsonObject> myHarvestScheduleStoreService;
 
@@ -130,7 +120,7 @@ public class HarvestServiceIT {
      */
     @AfterEach
     public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
-        wipeSolr().onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+        TestUtils.wipeSolr(mySolrClient).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -144,18 +134,6 @@ public class HarvestServiceIT {
 
             return TestUtils.wipeDatabase(myDbConnectionPool).compose(nil -> myDbConnectionPool.close());
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
-    }
-
-    /**
-     * Clears out the Solr index.
-     *
-     * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
-     */
-    private Future<UpdateResponse> wipeSolr() {
-        final CompletionStage<UpdateResponse> wipeSolr =
-                mySolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> mySolrClient.commit());
-
-        return Future.fromCompletionStage(wipeSolr);
     }
 
     /**
@@ -178,7 +156,7 @@ public class HarvestServiceIT {
                 new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
 
         myHarvestServiceProxy.run(job).onSuccess(jobResult -> {
-            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+            TestUtils.getAllDocuments(mySolrClient).onSuccess(queryResults -> {
                 LOGGER.debug(queryResults.toString());
 
                 aContext.verify(() -> {
@@ -225,7 +203,7 @@ public class HarvestServiceIT {
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
         myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
-            getAllDocuments(mySolrClient).onSuccess(queryResults -> {
+            TestUtils.getAllDocuments(mySolrClient).onSuccess(queryResults -> {
                 LOGGER.debug(queryResults.toString());
 
                 aContext.verify(() -> {
@@ -271,17 +249,5 @@ public class HarvestServiceIT {
         }).onSuccess(result -> {
             aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_000, result.toJson()));
         });
-    }
-
-    /**
-     * @param aSolrClient A Solr client
-     * @return A Future that resolves to the list of all documents
-     */
-    private static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
-        final SolrParams solrParams = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
-        final CompletionStage<SolrDocumentList> results =
-                aSolrClient.query(solrParams).thenApply(QueryResponse::getResults);
-
-        return Future.fromCompletionStage(results);
     }
 }
