@@ -11,7 +11,6 @@ import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
@@ -46,15 +45,15 @@ public interface HarvestJobSchedulerService {
      * @return A Future that resolves to the service if it could be instantiated
      */
     static Future<HarvestJobSchedulerService> create(final Vertx aVertx, final JsonObject aConfig) {
-        final Promise<HarvestJobSchedulerService> promise = Promise.promise();
+        final HarvestJobSchedulerServiceImpl service;
 
         try {
-            new HarvestJobSchedulerServiceImpl(aVertx, aConfig, promise);
+            service = new HarvestJobSchedulerServiceImpl(aVertx, aConfig);
         } catch (SchedulerException details) {
-            promise.fail(details);
+            return Future.failedFuture(details);
         }
 
-        return promise.future();
+        return service.initializeScheduler().map(service);
     }
 
     /**

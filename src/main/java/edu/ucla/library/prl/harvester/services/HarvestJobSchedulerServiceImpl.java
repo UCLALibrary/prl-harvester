@@ -25,7 +25,6 @@ import info.freelibrary.util.LoggerFactory;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
@@ -81,11 +80,9 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
      *
      * @param aVertx A Vert.x instance
      * @param aConfig A configuration
-     * @param aPromise A Promise that is completed with the service instance if instantiation succeeded
      * @throws SchedulerException If there is a problem with the underlying scheduler
      */
-    protected HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig,
-            final Promise<HarvestJobSchedulerService> aPromise) throws SchedulerException {
+    protected HarvestJobSchedulerServiceImpl(final Vertx aVertx, final JsonObject aConfig) throws SchedulerException {
         myHarvestService = HarvestService.createProxy(aVertx, aConfig);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
 
@@ -94,8 +91,6 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
         myScheduler.getContext().put(HARVEST_SERVICE, myHarvestService);
         myScheduler.getContext().put(HARVEST_SCHEDULE_STORE_SERVICE, myHarvestScheduleStoreService);
         myScheduler.start();
-
-        initializeScheduler().map(this).onSuccess(aPromise::complete).onFailure(aPromise::fail);
     }
 
     @Override
@@ -129,13 +124,15 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
     /**
      * Initializes the scheduler with all of the {@link Job}s stored in the database.
+     * <p>
+     * If this method has already been called on the instance, calling it again will result in a no-op.
      *
      * @return A Future that succeeds if the saved jobs were restored
      */
     @SuppressWarnings("rawtypes")
-    private Future<Void> initializeScheduler() {
+    protected Future<Void> initializeScheduler() {
         return myHarvestScheduleStoreService.listJobs().compose(jobs -> {
-            return CompositeFuture.all(jobs.stream().map(job -> (Future) scheduleJob(job, false)).toList());
+            return CompositeFuture.all(jobs.stream().map(job -> (Future) scheduleJob(job, true)).toList());
         }).mapEmpty();
     }
 
