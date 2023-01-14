@@ -23,7 +23,6 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.core.CompositeFuture;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -47,7 +46,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     /**
      * The {@link SchedulerContext} key for the Vert.x context.
      */
-    private static final String VERTX_CONTEXT = "vertxContext";
+    private static final String VERTX_EVENT_BUS = "vertxEventBus";
 
     /**
      * The {@link SchedulerContext} key for the harvest service proxy.
@@ -87,7 +86,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
 
         myScheduler = new StdSchedulerFactory().getScheduler();
-        myScheduler.getContext().put(VERTX_CONTEXT, aVertx.getOrCreateContext());
+        myScheduler.getContext().put(VERTX_EVENT_BUS, aVertx.eventBus());
         myScheduler.getContext().put(HARVEST_SERVICE, myHarvestService);
         myScheduler.getContext().put(HARVEST_SCHEDULE_STORE_SERVICE, myHarvestScheduleStoreService);
         myScheduler.start();
@@ -130,7 +129,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
      * @return A Future that succeeds if the saved jobs were restored
      */
     @SuppressWarnings("rawtypes")
-    protected Future<Void> initializeScheduler() {
+    Future<Void> initializeScheduler() {
         return myHarvestScheduleStoreService.listJobs().compose(jobs -> {
             return CompositeFuture.all(jobs.stream().map(job -> (Future) scheduleJob(job, true)).toList());
         }).mapEmpty();
@@ -180,8 +179,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
                 final SchedulerContext schedulerContext = aContext.getScheduler().getContext();
                 final HarvestService harvestService = (HarvestService) schedulerContext.get(HARVEST_SERVICE);
-                final Context vertxContext = (Context) schedulerContext.get(VERTX_CONTEXT);
-                final EventBus eb = vertxContext.owner().eventBus();
+                final EventBus eventBus = (EventBus) schedulerContext.get(VERTX_EVENT_BUS);
 
                 harvestService.run(job).compose(jobResult -> {
                     final int jobID = Integer.parseInt(jobDetail.getKey().getName());
@@ -191,10 +189,10 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
                             (HarvestScheduleStoreService) schedulerContext.get(HARVEST_SCHEDULE_STORE_SERVICE);
 
                     return scheduleStoreService.updateJob(jobID, updatedJob).onSuccess(result -> {
-                        eb.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
+                        eventBus.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
                     });
                 }).onFailure(details -> {
-                    eb.publish(ERROR_ADDRESS, details.getMessage());
+                    eventBus.publish(ERROR_ADDRESS, details.getMessage());
                 });
             } catch (final SchedulerException details) {
                 LOGGER.error(details.getMessage());

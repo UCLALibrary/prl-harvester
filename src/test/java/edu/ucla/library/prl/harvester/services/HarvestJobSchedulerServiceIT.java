@@ -46,7 +46,6 @@ import io.vertx.config.ConfigRetriever;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Checkpoint;
@@ -164,11 +163,10 @@ public class HarvestJobSchedulerServiceIT {
         // Add jobs before instantiation of the service
         initDB().compose(numberOfJobsCreated -> {
             final Checkpoint jobResultReceived = aContext.checkpoint(numberOfJobsCreated);
-            final EventBus eb = aVertx.eventBus();
 
             LOGGER.debug("Database initialized");
 
-            eb.<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+            aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
                 final JobResult jobResult = new JobResult(message.body());
                 final CompositeFuture queryBackingServices =
                         CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
@@ -189,7 +187,7 @@ public class HarvestJobSchedulerServiceIT {
                 });
             });
 
-            eb.<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
+            aVertx.eventBus().<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
                 aContext.failNow(message.body());
             });
 
