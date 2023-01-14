@@ -59,9 +59,6 @@ public class JobResult {
 
     /**
      * Instantiates a job result from its JSON representation.
-     * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
-     * {@link #JobResult(int, OffsetDateTime, int)} should be used everywhere else.
      *
      * @param aJsonObject A job result represented as JSON
      * @throws InvalidJobResultJsonException If the JSON representation is invalid

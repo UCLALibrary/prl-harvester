@@ -114,9 +114,6 @@ public final class Job {
      * Instantiates a job from its JSON representation.
      * <p>
      * Note that the JSON representation may contain an ID, which must have been assigned by the database.
-     * <p>
-     * <b>This constructor is meant to be used only by the service code (generated or otherwise)!</b>
-     * {@link #Job(int, URL, List, CronExpression, OffsetDateTime)} should be used everywhere else.
      *
      * @param aJsonObject A job represented as JSON
      * @throws InvalidJobJsonException If the JSON representation is invalid
