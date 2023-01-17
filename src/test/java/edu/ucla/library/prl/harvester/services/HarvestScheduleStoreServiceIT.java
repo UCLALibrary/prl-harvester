@@ -224,9 +224,9 @@ public class HarvestScheduleStoreServiceIT {
             throws AddressException, MalformedURLException, NumberParseException {
         final Institution toAdd = TestUtils.getRandomInstitution();
 
-        myScheduleStoreProxy.addInstitution(toAdd).onSuccess(result -> {
+        myScheduleStoreProxy.addInstitution(toAdd).onSuccess(institutionID -> {
             aContext.verify(() -> {
-                assertTrue(result.intValue() >= 1);
+                assertTrue(institutionID.intValue() > myTestInstitutionIDs.get(myTestInstitutionIDs.size() - 1));
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -401,7 +401,7 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
-        final Job toAdd = TestUtils.getRandomJob();
+        final Job toAdd = TestUtils.getRandomJob(myTestInstitutionIDs.get(0));
 
         myScheduleStoreProxy.addJob(toAdd).onSuccess(result -> {
             aContext.verify(() -> {
@@ -438,7 +438,7 @@ public class HarvestScheduleStoreServiceIT {
     @Test
     public final void testDeleteJob(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
-        final Job toDelete = TestUtils.getRandomJob();
+        final Job toDelete = TestUtils.getRandomJob(myTestInstitutionIDs.get(0));
 
         myScheduleStoreProxy.addJob(toDelete).onSuccess(newID -> {
             myScheduleStoreProxy.removeJob(newID).onSuccess(result -> {

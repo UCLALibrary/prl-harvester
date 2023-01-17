@@ -98,12 +98,12 @@ public final class TestUtils {
     /**
      * Gets a random {@link Job} for testing.
      *
+     * @param anInstitutionID The ID of the institution to associate the job with
      * @return A random Job object
      */
-    public static Job getRandomJob() throws MalformedURLException, ParseException {
+    public static Job getRandomJob(final Integer anInstitutionID) throws MalformedURLException, ParseException {
 
         final int randListSize = RANDOMIZER.nextInt(5) + 1;
-        final int randID = RANDOMIZER.nextInt(3) + 1;
         final URL randURL = new URL(URL_PREFIX.concat(RAND_URL.getRandomValue()));
         final List<String> randSets = new ArrayList<>(randListSize);
         final OffsetDateTime randDate = RAND_DATE.getRandomValue();
@@ -113,7 +113,7 @@ public final class TestUtils {
             randSets.add(RAND_STRING.getRandomValue().replaceAll("\\s", ""));
         }
 
-        return new Job(randID, randURL, randSets, randCron, randDate);
+        return new Job(anInstitutionID, randURL, randSets, randCron, randDate);
     }
 
     private static String buildCron(final OffsetDateTime aSourceDate) {
