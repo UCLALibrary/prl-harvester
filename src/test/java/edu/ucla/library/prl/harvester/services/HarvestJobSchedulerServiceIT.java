@@ -63,6 +63,12 @@ public class HarvestJobSchedulerServiceIT {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestJobSchedulerServiceIT.class, MessageCodes.BUNDLE);
 
+    private static final String DATABASE_INITIALIZED = "Database initialized";
+
+    private static final String SERVICE_INSTANTIATED = "Service instantiated";
+
+    private static final String TEST_DURATION_INFO = "This test may take over a minute to complete, please wait...";
+
     private static final String SET1 = "set1";
 
     private static final String SET2 = "set2";
@@ -168,9 +174,9 @@ public class HarvestJobSchedulerServiceIT {
 
         // Add jobs before instantiation of the service
         addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(initialJob -> {
-            final Checkpoint jobResultReceived = aContext.checkpoint(1);
+            final Checkpoint jobResultReceived = aContext.checkpoint();
 
-            LOGGER.debug("Database initialized");
+            LOGGER.debug(DATABASE_INITIALIZED);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
                 final JobResult jobResult = new JobResult(message.body());
@@ -200,14 +206,74 @@ public class HarvestJobSchedulerServiceIT {
 
             // Instantiate the service after jobs have been added to the database
             return HarvestJobSchedulerService.create(aVertx, myConfig).onSuccess(service -> {
-                LOGGER.debug("Service instantiated");
+                LOGGER.debug(SERVICE_INSTANTIATED);
 
                 myService = service;
 
                 serviceSaved.flag();
 
-                LOGGER.info("This test may take over a minute to complete, please wait...");
+                LOGGER.info(TEST_DURATION_INFO);
             });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that a service instance triggers the near-future job(s) that were added after instantiation.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    public void testAddJobAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint serviceSavedAndDbInitialized = aContext.checkpoint();
+
+        HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
+            final Checkpoint jobResultReceived = aContext.checkpoint();
+
+            LOGGER.debug(SERVICE_INSTANTIATED);
+
+            aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+                final JobResult jobResult = new JobResult(message.body());
+                final CompositeFuture queryBackingServices =
+                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                TestUtils.getAllDocuments(mySolrClient));
+
+                queryBackingServices.onSuccess(results -> {
+                    final Job job = results.resultAt(0);
+                    final SolrDocumentList solrDocs = results.resultAt(1);
+
+                    aContext.verify(() -> {
+                        assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
+                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                        assertTrue(job.getLastSuccessfulRun().isPresent());
+                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+
+                        jobResultReceived.flag();
+                    });
+                });
+            });
+
+            aVertx.eventBus().<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
+                aContext.failNow(message.body());
+            });
+
+            myService = service;
+
+            return addInstitution().compose(institutionID -> {
+                try {
+                    return service.addJob(new Job(institutionID, myTestProviderBaseURL, List.of(SET1),
+                            getFutureCronExpression(1), null));
+                } catch (final ParseException details) {
+                    return Future.failedFuture(details);
+                }
+            });
+        }).onSuccess(initialJob -> {
+            LOGGER.debug(DATABASE_INITIALIZED);
+            LOGGER.info(TEST_DURATION_INFO);
+
+            serviceSavedAndDbInitialized.flag();
         }).onFailure(aContext::failNow);
     }
 
