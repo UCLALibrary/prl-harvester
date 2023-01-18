@@ -9,21 +9,16 @@ import java.util.List;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.jackson.DatabindCodec;
-import io.vertx.core.json.JsonObject;
-import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.sqlclient.PoolOptions;
-import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -159,17 +154,17 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     private static final int NOT_FOUND_ERROR = Error.NOT_FOUND.ordinal();
 
     /**
-     * The underlying PostgreSQL connection pool.
+     * The underlying database connection pool.
      */
-    private final PgPool myDbConnectionPool;
+    private final Pool myDbConnectionPool;
 
     // See: https://vertx.io/docs/vertx-sql-client-templates/java/#_mapping_with_jackson_databind
     static {
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
     }
 
-    HarvestScheduleStoreServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
-        myDbConnectionPool = PgPool.pool(aVertx, getConnectionOpts(aConfig), getPoolOpts(aConfig));
+    HarvestScheduleStoreServiceImpl(final Pool aDbConnectionPool) {
+        myDbConnectionPool = aDbConnectionPool;
     }
 
     @Override
@@ -219,6 +214,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return SqlTemplate.forQuery(connection, ADD_INST).mapFrom(INST_MAPPER).execute(anInstitution);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
+
             return Future.failedFuture(new ServiceException(500, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
@@ -326,34 +322,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Void> close() {
-        return myDbConnectionPool.close();
+        return Future.succeededFuture();
     }
-
-    /**
-     * Gets the database's connection options.
-     *
-     * @param aConfig A configuration
-     * @return The database's connection options
-     */
-    private PgConnectOptions getConnectionOpts(final JsonObject aConfig) {
-        final int dbReconnectAttempts = aConfig.getInteger(Config.DB_RECONNECT_ATTEMPTS, 2);
-        final long dbReconnectInterval = aConfig.getInteger(Config.DB_RECONNECT_INTERVAL, 1000);
-
-        return PgConnectOptions.fromEnv() //
-                .setReconnectAttempts(dbReconnectAttempts) //
-                .setReconnectInterval(dbReconnectInterval);
-    }
-
-    /**
-     * Gets the options for the database connection pool.
-     *
-     * @param aConfig A configuration
-     * @return The options for the database connection pool
-     */
-    private PoolOptions getPoolOpts(final JsonObject aConfig) {
-        final int maxSize = aConfig.getInteger(Config.DB_CONNECTION_POOL_MAX_SIZE, 5);
-
-        return new PoolOptions().setMaxSize(maxSize);
-    }
-
 }

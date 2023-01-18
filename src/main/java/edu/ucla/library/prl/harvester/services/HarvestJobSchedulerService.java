@@ -1,7 +1,11 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import org.quartz.SchedulerException;
+
 import edu.ucla.library.prl.harvester.Job;
+
+import info.freelibrary.util.StringUtils;
 
 import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
@@ -24,16 +28,32 @@ public interface HarvestJobSchedulerService {
     String ADDRESS = HarvestJobSchedulerService.class.getName();
 
     /**
-     * Creates an instance of the service.
+     * The event bus address that the service will publish job results to.
+     */
+    String JOB_RESULT_ADDRESS = StringUtils.format("{}.job_results", ADDRESS);
+
+    /**
+     * The event bus address that the service will publish errors to.
+     */
+    String ERROR_ADDRESS = StringUtils.format("{}.errors", ADDRESS);
+
+    /**
+     * Asynchronously instantiates the service.
      *
      * @param aVertx A Vert.x instance
      * @param aConfig A configuration
-     * @return The service instance
+     * @return A Future that resolves to the service if it could be instantiated
      */
-    static HarvestJobSchedulerService create(final Vertx aVertx, final JsonObject aConfig) {
-        // FIXME: this is incorrect, instantiate an implementing class instead
-        // TODO: depending on implementation, consider returning Future<HarvestJobSchedulerService> instead
-        return createProxy(aVertx);
+    static Future<HarvestJobSchedulerService> create(final Vertx aVertx, final JsonObject aConfig) {
+        final HarvestJobSchedulerServiceImpl service;
+
+        try {
+            service = new HarvestJobSchedulerServiceImpl(aVertx, aConfig);
+        } catch (SchedulerException details) {
+            return Future.failedFuture(details);
+        }
+
+        return service.initializeScheduler().map(service);
     }
 
     /**

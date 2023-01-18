@@ -15,6 +15,11 @@ import io.vertx.core.json.JsonObject;
 public class JobResult {
 
     /**
+     * The JSON key for the job ID.
+     */
+    static final String JOB_ID = "jobID";
+
+    /**
      * The JSON key for the start time.
      */
     static final String START_TIME = "startTime";
@@ -23,6 +28,11 @@ public class JobResult {
      * The JSON key for the record count.
      */
     static final String RECORD_COUNT = "recordCount";
+
+    /**
+     * The ID of the associated job.
+     */
+    private final int myJobID;
 
     /**
      * The time when the job was started.
@@ -37,28 +47,39 @@ public class JobResult {
     /**
      * Instantiates a job result.
      *
+     * @param aJobID The ID of the associated job
      * @param aStartTime The time when the job was started
      * @param aRecordCount The number of records harvested
      */
-    public JobResult(final OffsetDateTime aStartTime, final int aRecordCount) {
+    public JobResult(final int aJobID, final OffsetDateTime aStartTime, final int aRecordCount) {
+        myJobID = aJobID;
         myStartTime = Objects.requireNonNull(aStartTime);
         myRecordCount = aRecordCount;
     }
 
     /**
      * Instantiates a job result from its JSON representation.
-     * <p>
-     * <b>This constructor is meant to be used only by generated service proxy code!</b>
-     * {@link #JobResult(OffsetDateTime, int)} should be used everywhere else.
      *
      * @param aJsonObject A job result represented as JSON
      * @throws InvalidJobResultJsonException If the JSON representation is invalid
      */
+    @SuppressWarnings({ "PMD.AvoidLiteralsInIfCondition", "PMD.CyclomaticComplexity" })
     public JobResult(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
 
+        final Integer jobID = aJsonObject.getInteger(JOB_ID);
         final String startTime = aJsonObject.getString(START_TIME);
         final Integer recordCount = aJsonObject.getInteger(RECORD_COUNT);
+
+        if (jobID != null) {
+            if (jobID >= 1) {
+                myJobID = jobID.intValue();
+            } else {
+                throw new InvalidJobResultJsonException(MessageCodes.PRL_004, JOB_ID, jobID);
+            }
+        } else {
+            throw new InvalidJobResultJsonException(MessageCodes.PRL_002, JOB_ID);
+        }
 
         if (startTime != null) {
             try {
@@ -86,7 +107,17 @@ public class JobResult {
      * @return The JSON representation of the job result
      */
     public JsonObject toJson() {
-        return new JsonObject().put(START_TIME, getStartTime().toString()).put(RECORD_COUNT, getRecordCount());
+        return new JsonObject() //
+                .put(JOB_ID, getJobID()) //
+                .put(START_TIME, getStartTime().toString()) //
+                .put(RECORD_COUNT, getRecordCount());
+    }
+
+    /**
+     * @return The job ID
+     */
+    public int getJobID() {
+        return myJobID;
     }
 
     /**

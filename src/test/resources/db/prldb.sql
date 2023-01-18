@@ -186,18 +186,3 @@ GRANT ALL ON TABLE public.harvestjobs TO prl;
 --
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO prl;
-
---
--- sample entires for unit/integration test
---
-
-INSERT INTO public.institutions (name, description, location, email, phone, webContact, website) VALUES ('Sample 1', 'A sample institution', 'Here', 'this@that.com', null, 'http://acme.edu/1/contact', 'http://acme.edu/1');
-INSERT INTO public.institutions (name, description, location, email, phone, webContact, website) VALUES ('Sample 2', 'Another sample', 'There', 'that@theother.com', '+1 888 890 1234', 'http://acme.edu/1/contact', 'http://acme.edu/1');
-INSERT INTO public.institutions (name, description, location, email, phone, webContact, website) VALUES ('Sample 3', 'A third sample', 'Everywhere', 'no@where.com', '+1 888 567 8901', 'http://acme.edu/1/contact', 'http://acme.edu/1');
-
-
-INSERT INTO public.harvestjobs (institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES (1, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
-INSERT INTO public.harvestjobs (institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES (2, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
-INSERT INTO public.harvestjobs (institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression) VALUES (3, 'http://acme.edu/', 'oai_dc', '{this, that, the_other}', '2020-01-08 04:05:06 -8:00', '0 0/30 8-9 5,20 * ?');
-
-
