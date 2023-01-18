@@ -8,10 +8,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import javax.mail.internet.AddressException;
 
@@ -64,6 +62,14 @@ public class HarvestJobSchedulerServiceIT {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestJobSchedulerServiceIT.class, MessageCodes.BUNDLE);
+
+    private static final String SET1 = "set1";
+
+    private static final String SET2 = "set2";
+
+    private static final int SET1_RECORD_COUNT = 2;
+
+    private static final int SET2_RECORD_COUNT = 3;
 
     private JsonObject myConfig;
 
@@ -161,8 +167,8 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        initDB().compose(numberOfJobsCreated -> {
-            final Checkpoint jobResultReceived = aContext.checkpoint(numberOfJobsCreated);
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(initialJob -> {
+            final Checkpoint jobResultReceived = aContext.checkpoint(1);
 
             LOGGER.debug("Database initialized");
 
@@ -177,6 +183,7 @@ public class HarvestJobSchedulerServiceIT {
                     final SolrDocumentList solrDocs = results.resultAt(1);
 
                     aContext.verify(() -> {
+                        assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
                         assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                         assertTrue(job.getLastSuccessfulRun().isPresent());
                         assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
@@ -224,29 +231,8 @@ public class HarvestJobSchedulerServiceIT {
     }
 
     /**
-     * @return A Future that resolves to the number of jobs added to the database
+     * @return A Future that succeeds if a random institution was added to the database
      */
-    private Future<Integer> initDB() {
-        return addInstitution().compose(institutionID -> {
-            @SuppressWarnings("rawtypes")
-            final Function<Job, Future> addJob = aJob -> (Future) myHarvestScheduleStoreServiceProxy.addJob(aJob);
-            final List<Job> jobs = new LinkedList<>();
-            final Job job;
-
-            LOGGER.debug("Institution ID: {}", institutionID);
-
-            try {
-                job = new Job(institutionID, myTestProviderBaseURL, null, getFutureCronExpression(1), null);
-            } catch (final ParseException details) {
-                return Future.failedFuture(details);
-            }
-
-            jobs.add(job);
-
-            return CompositeFuture.all(jobs.stream().map(addJob).toList()).map(jobs.size());
-        });
-    }
-
     private Future<Integer> addInstitution() {
         final Institution institution;
 
@@ -257,5 +243,22 @@ public class HarvestJobSchedulerServiceIT {
         }
 
         return myHarvestScheduleStoreServiceProxy.addInstitution(institution);
+    }
+
+    /**
+     * @param anInstitutionID The institution ID to associate with a new job
+     * @param aSets The OAI-PMH sets to harvest
+     * @return A Future that succeeds if a job with these parameters was added to the database
+     */
+    private Future<Integer> addJob(final int anInstitutionID, final List<String> aSets) {
+        final Job job;
+
+        try {
+            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, getFutureCronExpression(1), null);
+        } catch (final ParseException details) {
+            return Future.failedFuture(details);
+        }
+
+        return myHarvestScheduleStoreServiceProxy.addJob(job);
     }
 }
