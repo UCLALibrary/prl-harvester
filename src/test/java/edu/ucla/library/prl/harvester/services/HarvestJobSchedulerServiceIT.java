@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -268,6 +269,60 @@ public class HarvestJobSchedulerServiceIT {
             LOGGER.info(MessageCodes.PRL_032);
 
             serviceSavedAndDbInitialized.flag();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that a removed job does not execute.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    @Timeout(value = 120, timeUnit = TimeUnit.SECONDS)
+    public void testRemoveJob(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint serviceSaved = aContext.checkpoint();
+        final Checkpoint removedJobDidNotExecute = aContext.checkpoint();
+
+        // Add jobs before instantiation of the service
+        addInstitution().compose(institutionID -> addJob(institutionID, null)).compose(jobID -> {
+            final OffsetDateTime now = OffsetDateTime.now().withNano(0);
+            // After this time, we can be reasonably certain that the job, previously scheduled for the next minute tick
+            // but since cancelled, won't run
+            final OffsetDateTime whenWeWillKnow = now.withSecond(0).plusSeconds(90);
+            final Duration reasonablySufficientWait = Duration.between(now, whenWeWillKnow);
+
+            LOGGER.debug(MessageCodes.PRL_034, whenWeWillKnow);
+
+            assertTrue(reasonablySufficientWait.toSeconds() <= 90);
+            assertTrue(reasonablySufficientWait.toSeconds() > 30);
+
+            LOGGER.debug(MessageCodes.PRL_030);
+
+            aVertx.setTimer(reasonablySufficientWait.toMillis(), timerID -> {
+                removedJobDidNotExecute.flag();
+            });
+
+            aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+                aContext.failNow(MessageCodes.PRL_035);
+            });
+
+            aVertx.eventBus().<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
+                aContext.failNow(message.body());
+            });
+
+            // Instantiate the service after jobs have been added to the database
+            return HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
+                LOGGER.debug(MessageCodes.PRL_031);
+
+                myService = service;
+
+                serviceSaved.flag();
+
+                return service.removeJob(jobID);
+            }).onSuccess(nil -> {
+                LOGGER.info(MessageCodes.PRL_032);
+            });
         }).onFailure(aContext::failNow);
     }
 

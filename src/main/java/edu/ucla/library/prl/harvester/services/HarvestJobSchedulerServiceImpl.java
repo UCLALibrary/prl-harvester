@@ -106,8 +106,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
     @Override
     public Future<Void> removeJob(final int aJobId) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myHarvestScheduleStoreService.removeJob(aJobId).compose(nil -> unscheduleJob(aJobId));
     }
 
     @Override
@@ -153,7 +152,25 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
             return Future.succeededFuture();
         } catch (final SchedulerException details) {
-            return Future.failedFuture(details);
+            return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_020, key.getName(), details.getMessage()));
+        }
+    }
+
+    /**
+     * @param aJobID A {@link Job} ID
+     * @return A Future that succeeds if the job was removed from the scheduler
+     */
+    private Future<Void> unscheduleJob(final Integer aJobID) {
+        final JobKey key = new JobKey(Integer.toString(aJobID));
+
+        try {
+            if (myScheduler.deleteJob(key)) {
+                return Future.succeededFuture();
+            } else {
+                return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), "not found"));
+            }
+        } catch (final SchedulerException details) {
+            return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), details.getMessage()));
         }
     }
 
