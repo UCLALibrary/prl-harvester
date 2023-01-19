@@ -63,12 +63,6 @@ public class HarvestJobSchedulerServiceIT {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestJobSchedulerServiceIT.class, MessageCodes.BUNDLE);
 
-    private static final String DATABASE_INITIALIZED = "Database initialized";
-
-    private static final String SERVICE_INSTANTIATED = "Service instantiated";
-
-    private static final String TEST_DURATION_INFO = "This test may take over a minute to complete, please wait...";
-
     private static final String SET1 = "set1";
 
     private static final String SET2 = "set2";
@@ -176,7 +170,7 @@ public class HarvestJobSchedulerServiceIT {
         addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(initialJob -> {
             final Checkpoint jobResultReceived = aContext.checkpoint();
 
-            LOGGER.debug(DATABASE_INITIALIZED);
+            LOGGER.debug(MessageCodes.PRL_030);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
                 final JobResult jobResult = new JobResult(message.body());
@@ -206,13 +200,13 @@ public class HarvestJobSchedulerServiceIT {
 
             // Instantiate the service after jobs have been added to the database
             return HarvestJobSchedulerService.create(aVertx, myConfig).onSuccess(service -> {
-                LOGGER.debug(SERVICE_INSTANTIATED);
+                LOGGER.debug(MessageCodes.PRL_031);
 
                 myService = service;
 
                 serviceSaved.flag();
 
-                LOGGER.info(TEST_DURATION_INFO);
+                LOGGER.info(MessageCodes.PRL_032);
             });
         }).onFailure(aContext::failNow);
     }
@@ -231,7 +225,7 @@ public class HarvestJobSchedulerServiceIT {
         HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
             final Checkpoint jobResultReceived = aContext.checkpoint();
 
-            LOGGER.debug(SERVICE_INSTANTIATED);
+            LOGGER.debug(MessageCodes.PRL_031);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
                 final JobResult jobResult = new JobResult(message.body());
@@ -270,8 +264,8 @@ public class HarvestJobSchedulerServiceIT {
                 }
             });
         }).onSuccess(initialJob -> {
-            LOGGER.debug(DATABASE_INITIALIZED);
-            LOGGER.info(TEST_DURATION_INFO);
+            LOGGER.debug(MessageCodes.PRL_030);
+            LOGGER.info(MessageCodes.PRL_032);
 
             serviceSavedAndDbInitialized.flag();
         }).onFailure(aContext::failNow);
@@ -290,8 +284,7 @@ public class HarvestJobSchedulerServiceIT {
                 CronScheduleBuilder.dailyAtHourAndMinute(futureTime.getHour(), futureTime.getMinute());
         final CronTrigger trigger = TriggerBuilder.newTrigger().withSchedule(scheduleBuilder).build();
 
-        LOGGER.debug("Cron expression that will trigger an event in {} minute(s) or less: {}", aMinutesLater,
-                trigger.getCronExpression());
+        LOGGER.debug(MessageCodes.PRL_033, aMinutesLater, trigger.getCronExpression());
 
         return new CronExpression(trigger.getCronExpression());
     }
