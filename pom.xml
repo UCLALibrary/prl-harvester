@@ -557,12 +557,10 @@
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
-                <dependsOn>
-                  <container>s3</container>
-                  <container>solr</container>
-                  <container>pgsql</container>
-                  <container>provider</container>
-                </dependsOn>
+                <links>
+                  <link>pgsql:pgsql</link>
+                  <link>solr:solr</link>
+                </links>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
