@@ -417,6 +417,7 @@
           </configuration>
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
+            <HTTP_HOST>localhost</HTTP_HOST>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
             <PGHOSTADDR>localhost</PGHOSTADDR>
             <PGDATABASE>postgres</PGDATABASE>
