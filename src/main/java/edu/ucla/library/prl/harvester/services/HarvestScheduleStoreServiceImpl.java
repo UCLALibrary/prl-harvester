@@ -50,7 +50,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      * The select-one query for institutions.
      */
     private static final String GET_INST = """
-        SELECT name, description, location, email, phone, webContact AS "webContact", website
+        SELECT id, name, description, location, email, phone, webContact AS "webContact", website
         FROM public.institutions
         WHERE id = $1
         """;
@@ -93,7 +93,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private static final String GET_JOB = """
         SELECT
-            institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            id, institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
             metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
             scheduleCronExpression AS "scheduleCronExpression"
         FROM public.harvestjobs
