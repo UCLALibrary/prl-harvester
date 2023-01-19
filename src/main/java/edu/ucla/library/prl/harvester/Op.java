@@ -10,5 +10,10 @@ public enum Op {
     /**
      * A constant for the "get status" operation.
      */
-    getStatus;
+    getStatus,
+
+    /**
+     * Institution operations.
+     */
+    addInstitution, getInstitution, listInstitutions, removeInstitution, updateInstitution
 }

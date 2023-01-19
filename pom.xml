@@ -549,6 +549,11 @@
                   <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
+                  <PGHOSTADDR>172.17.0.1</PGHOSTADDR>
+                  <PGDATABASE>postgres</PGDATABASE>
+                  <PGUSER>${test.db.user}</PGUSER>
+                  <PGPASSWORD>${test.db.password}</PGPASSWORD>
+                  <PGPORT>${test.db.port}</PGPORT>
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>

@@ -4,20 +4,34 @@ package edu.ucla.library.prl.harvester.verticles;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.util.List;
+import java.util.Set;
+
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
+import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
+import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
+import edu.ucla.library.prl.harvester.handlers.ListInstitutionsHandler;
+import edu.ucla.library.prl.harvester.handlers.RemoveInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.StatusHandler;
+import edu.ucla.library.prl.harvester.handlers.UpdateInstitutionHandler;
+import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService;
+import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
 
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.openapi.RouterBuilder;
+import io.vertx.serviceproxy.ServiceBinder;
+import io.vertx.sqlclient.Pool;
 
 /**
  * Main verticle that starts the application.
@@ -34,10 +48,37 @@ public class MainVerticle extends AbstractVerticle {
      */
     private HttpServer myServer;
 
+    /**
+     * A database client.
+     */
+    private Pool myDbConnectionPool;
+
+    /**
+     * The collection of deployed event bus services.
+     */
+    private Set<MessageConsumer<?>> myEventBusServices;
+
     @Override
     public void start(final Promise<Void> aPromise) {
         ConfigRetriever.create(vertx).getConfig().compose(config -> {
-            return createRouter(config).compose(router -> createHttpServer(config, router));
+            final ServiceBinder serviceBinder = new ServiceBinder(vertx);
+            final MessageConsumer<?> scheduleStoreService;
+
+            myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(vertx, config);
+
+            scheduleStoreService = serviceBinder.setAddress(HarvestScheduleStoreService.ADDRESS).register(
+                    HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(myDbConnectionPool));
+
+            return HarvestJobSchedulerService.create(vertx, config).compose(service -> {
+                final MessageConsumer<?> schedulerService;
+
+                schedulerService = serviceBinder.setAddress(HarvestJobSchedulerService.ADDRESS)
+                        .register(HarvestJobSchedulerService.class, service);
+
+                myEventBusServices = Set.of(schedulerService, scheduleStoreService);
+
+                return createRouter(config).compose(router -> createHttpServer(config, router));
+            });
         }).onSuccess(server -> {
             // Save a reference to the HTTP server so we can close it later
             myServer = server;
@@ -48,8 +89,14 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public void stop(final Promise<Void> aPromise) {
-        myServer.close().onFailure(aPromise::fail).onSuccess(result -> aPromise.complete());
+        myServer.close().compose(nil -> {
+            final List<Future> closeEventBusServices =
+                    myEventBusServices.stream().map(service -> (Future) service.unregister()).toList();
+
+            return CompositeFuture.all(closeEventBusServices).compose(result -> myDbConnectionPool.close());
+        }).onFailure(aPromise::fail).onSuccess(result -> aPromise.complete());
     }
 
     /**
@@ -63,6 +110,13 @@ public class MainVerticle extends AbstractVerticle {
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
             // Associate handlers with operation IDs from the OpenAPI spec
             routeBuilder.operation(Op.getStatus.name()).handler(new StatusHandler());
+
+            // Institution operations
+            routeBuilder.operation(Op.addInstitution.name()).handler(new AddInstitutionHandler(vertx));
+            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
+            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
+            routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx));
+            routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx));
 
             return routeBuilder.createRouter();
         });
