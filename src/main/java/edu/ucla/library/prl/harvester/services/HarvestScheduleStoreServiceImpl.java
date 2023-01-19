@@ -214,7 +214,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
 
-            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
         });
@@ -227,7 +227,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
             return SqlTemplate.forUpdate(connection, UPDATE_INST).mapFrom(INST_MAPPER).execute(institutionWithID);
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
                 return Future.succeededFuture();
@@ -285,7 +285,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return SqlTemplate.forQuery(connection, ADD_JOB).mapFrom(JOB_MAPPER).execute(aJob);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
-            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Job.ID));
         });
@@ -298,7 +298,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
             return SqlTemplate.forUpdate(connection, UPDATE_JOB).mapFrom(JOB_MAPPER).execute(jobWithID);
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(500, error.getMessage()));
+            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
                 return Future.succeededFuture();
