@@ -244,7 +244,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(delete -> {
-            return Future.succeededFuture();
+            if (hasSingleRow(delete)) {
+                return Future.succeededFuture();
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
         });
     }
 
@@ -315,7 +319,11 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).recover(error -> {
             return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
         }).compose(delete -> {
-            return Future.succeededFuture();
+            if (hasSingleRow(delete)) {
+                return Future.succeededFuture();
+            }
+            return Future.failedFuture(
+                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_015, aJobId)));
         });
     }
 
