@@ -9,7 +9,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;

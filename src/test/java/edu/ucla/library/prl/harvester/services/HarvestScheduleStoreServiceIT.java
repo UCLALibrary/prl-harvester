@@ -4,10 +4,10 @@ package edu.ucla.library.prl.harvester.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import edu.ucla.library.prl.harvester.Error;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.Error;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
