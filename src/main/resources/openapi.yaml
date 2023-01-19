@@ -12,7 +12,6 @@ components:
       allOf:
       - type: object
         required:
-        - id
         - name
         - description
         - location
@@ -53,7 +52,6 @@ components:
     Job:
       type: object
       required:
-      - id
       - institutionId
       - repositoryBaseUrl
       - metadataPrefix
