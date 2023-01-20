@@ -168,9 +168,9 @@ public class HarvestJobSchedulerServiceIT {
 
         // Add jobs before instantiation of the service
         addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(initialJob -> {
-            final Checkpoint jobResultReceived = aContext.checkpoint(1);
+            final Checkpoint jobResultReceived = aContext.checkpoint();
 
-            LOGGER.debug("Database initialized");
+            LOGGER.debug(MessageCodes.PRL_030);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
                 final JobResult jobResult = new JobResult(message.body());
@@ -200,14 +200,74 @@ public class HarvestJobSchedulerServiceIT {
 
             // Instantiate the service after jobs have been added to the database
             return HarvestJobSchedulerService.create(aVertx, myConfig).onSuccess(service -> {
-                LOGGER.debug("Service instantiated");
+                LOGGER.debug(MessageCodes.PRL_031);
 
                 myService = service;
 
                 serviceSaved.flag();
 
-                LOGGER.info("This test may take over a minute to complete, please wait...");
+                LOGGER.info(MessageCodes.PRL_032);
             });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that a service instance triggers the near-future job(s) that were added after instantiation.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    public void testAddJobAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint serviceSavedAndDbInitialized = aContext.checkpoint();
+
+        HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
+            final Checkpoint jobResultReceived = aContext.checkpoint();
+
+            LOGGER.debug(MessageCodes.PRL_031);
+
+            aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+                final JobResult jobResult = new JobResult(message.body());
+                final CompositeFuture queryBackingServices =
+                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                TestUtils.getAllDocuments(mySolrClient));
+
+                queryBackingServices.onSuccess(results -> {
+                    final Job job = results.resultAt(0);
+                    final SolrDocumentList solrDocs = results.resultAt(1);
+
+                    aContext.verify(() -> {
+                        assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
+                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                        assertTrue(job.getLastSuccessfulRun().isPresent());
+                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+
+                        jobResultReceived.flag();
+                    });
+                });
+            });
+
+            aVertx.eventBus().<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
+                aContext.failNow(message.body());
+            });
+
+            myService = service;
+
+            return addInstitution().compose(institutionID -> {
+                try {
+                    return service.addJob(new Job(institutionID, myTestProviderBaseURL, List.of(SET1),
+                            getFutureCronExpression(1), null));
+                } catch (final ParseException details) {
+                    return Future.failedFuture(details);
+                }
+            });
+        }).onSuccess(initialJob -> {
+            LOGGER.debug(MessageCodes.PRL_030);
+            LOGGER.info(MessageCodes.PRL_032);
+
+            serviceSavedAndDbInitialized.flag();
         }).onFailure(aContext::failNow);
     }
 
@@ -224,8 +284,7 @@ public class HarvestJobSchedulerServiceIT {
                 CronScheduleBuilder.dailyAtHourAndMinute(futureTime.getHour(), futureTime.getMinute());
         final CronTrigger trigger = TriggerBuilder.newTrigger().withSchedule(scheduleBuilder).build();
 
-        LOGGER.debug("Cron expression that will trigger an event in {} minute(s) or less: {}", aMinutesLater,
-                trigger.getCronExpression());
+        LOGGER.debug(MessageCodes.PRL_033, aMinutesLater, trigger.getCronExpression());
 
         return new CronExpression(trigger.getCronExpression());
     }
