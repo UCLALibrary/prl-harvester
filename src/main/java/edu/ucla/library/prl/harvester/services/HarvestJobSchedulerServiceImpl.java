@@ -100,8 +100,8 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
     @Override
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
-        // TODO implement method
-        return Future.succeededFuture(null);
+        return myHarvestScheduleStoreService.updateJob(aJobId, aJob)
+                .compose(nil -> scheduleJob(Job.withID(aJob, aJobId), true));
     }
 
     @Override

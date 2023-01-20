@@ -273,6 +273,65 @@ public class HarvestJobSchedulerServiceIT {
     }
 
     /**
+     * Tests that a job can be updated.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    public void testUpdateJob(final Vertx aVertx, final VertxTestContext aContext) {
+        // Make sure the job updates later, and uses a different record count
+        final Checkpoint serviceSaved = aContext.checkpoint();
+
+        // Add jobs before instantiation of the service
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET2))).compose(jobID -> {
+            final Checkpoint jobResultReceived = aContext.checkpoint(1);
+
+            LOGGER.debug(MessageCodes.PRL_030);
+
+            aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+                final JobResult jobResult = new JobResult(message.body());
+                final CompositeFuture queryBackingServices =
+                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                TestUtils.getAllDocuments(mySolrClient));
+
+                queryBackingServices.onSuccess(results -> {
+                    final Job job = results.resultAt(0);
+                    final SolrDocumentList solrDocs = results.resultAt(1);
+
+                    aContext.verify(() -> {
+                        assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
+                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                        assertTrue(job.getLastSuccessfulRun().isPresent());
+                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+
+                        jobResultReceived.flag();
+                    });
+                });
+            });
+
+            aVertx.eventBus().<String>consumer(HarvestJobSchedulerService.ERROR_ADDRESS, message -> {
+                aContext.failNow(message.body());
+            });
+
+            // Instantiate the service after jobs have been added to the database
+            return HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
+                LOGGER.debug(MessageCodes.PRL_031);
+
+                myService = service;
+
+                serviceSaved.flag();
+
+                return updateJob(jobID, List.of(SET2));
+            }).onSuccess(result -> {
+                LOGGER.info(MessageCodes.PRL_032);
+            });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
      * Tests that a removed job does not execute.
      *
      * @param aVertx A Vert.x instance
@@ -374,5 +433,19 @@ public class HarvestJobSchedulerServiceIT {
         }
 
         return myHarvestScheduleStoreServiceProxy.addJob(job);
+    }
+
+    /**
+     * @param aJobID The ID of the job to update
+     * @param aSets The new sets to use
+     * @return A Future that succeeds if the job was updated in the database
+     */
+    private Future<Void> updateJob(final int aJobID, final List<String> aSets) {
+        return myHarvestScheduleStoreServiceProxy.getJob(aJobID).compose(job -> {
+            final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), aSets,
+                    job.getScheduleCronExpression(), null);
+
+            return myHarvestScheduleStoreServiceProxy.updateJob(aJobID, updatedJob);
+        });
     }
 }
