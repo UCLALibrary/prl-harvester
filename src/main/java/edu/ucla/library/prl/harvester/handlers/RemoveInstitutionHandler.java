@@ -11,7 +11,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op#removeInstition} operations.
+ * A handler for {@link Op#removeInstitution} operations.
  */
 public final class RemoveInstitutionHandler extends AbstractInstitutionRequestHandler {
 
