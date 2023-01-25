@@ -13,7 +13,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op.getInstitution} operations.
+ * A handler for {@link Op#getInstitution} operations.
  */
 public final class GetInstitutionHandler extends AbstractInstitutionRequestHandler {
 

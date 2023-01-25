@@ -14,7 +14,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op.listInstitions} operations.
+ * A handler for {@link Op#listInstitions} operations.
  */
 public final class ListInstitutionsHandler extends AbstractInstitutionRequestHandler {
 
