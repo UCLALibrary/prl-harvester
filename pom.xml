@@ -354,6 +354,11 @@
       <!-- Checks code for best practices, performance, etc. -->
       <plugin>
         <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <rulesets>
+            <ruleset>src/main/tools/pmd/ruleset-prl-harvester.xml</ruleset>
+          </rulesets>
+        </configuration>
       </plugin>
 
       <!-- Formats code according to our project's rules -->

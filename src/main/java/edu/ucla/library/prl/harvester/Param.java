@@ -4,7 +4,6 @@ package edu.ucla.library.prl.harvester;
 /**
  * OpenAPI operation parameters.
  */
-@SuppressWarnings("PMD.FieldNamingConventions")
 public enum Param {
 
     /**
