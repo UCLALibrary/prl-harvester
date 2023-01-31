@@ -48,9 +48,9 @@ import io.vertx.uritemplate.Variables;
  */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
-public class InstitutionRequestsIT {
+public class InstitutionRequestsFT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InstitutionRequestsIT.class, MessageCodes.BUNDLE);
+    private static final Logger LOGGER = LoggerFactory.getLogger(InstitutionRequestsFT.class, MessageCodes.BUNDLE);
 
     private static final UriTemplate INSTITUTION = UriTemplate.of("/institutions/{id}");
 
