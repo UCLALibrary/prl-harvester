@@ -354,6 +354,11 @@
       <!-- Checks code for best practices, performance, etc. -->
       <plugin>
         <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <rulesets>
+            <ruleset>src/main/tools/pmd/ruleset-prl-harvester.xml</ruleset>
+          </rulesets>
+        </configuration>
       </plugin>
 
       <!-- Formats code according to our project's rules -->
@@ -417,6 +422,7 @@
           </configuration>
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
+            <HTTP_HOST>localhost</HTTP_HOST>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
             <PGHOSTADDR>localhost</PGHOSTADDR>
             <PGDATABASE>postgres</PGDATABASE>
@@ -548,15 +554,18 @@
                   <port>${test.harvester.port}:${test.harvester.port}</port>
                 </ports>
                 <env>
+                  <PGHOSTADDR>172.17.0.1</PGHOSTADDR>
+                  <PGDATABASE>postgres</PGDATABASE>
+                  <PGUSER>${test.db.user}</PGUSER>
+                  <PGPASSWORD>${test.db.password}</PGPASSWORD>
+                  <PGPORT>${test.db.port}</PGPORT>
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                 </env>
-                <dependsOn>
-                  <container>s3</container>
-                  <container>solr</container>
-                  <container>pgsql</container>
-                  <container>provider</container>
-                </dependsOn>
+                <links>
+                  <link>pgsql:pgsql</link>
+                  <link>solr:solr</link>
+                </links>
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>

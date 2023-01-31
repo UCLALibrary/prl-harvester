@@ -3,13 +3,16 @@ package edu.ucla.library.prl.harvester.utils;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.Param;
 
 import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
+import io.vertx.uritemplate.Variables;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -165,5 +168,13 @@ public final class TestUtils {
                 aSolrClient.query(solrParams).thenApply(QueryResponse::getResults);
 
         return Future.fromCompletionStage(results);
+    }
+
+    /**
+     * @param anID An ID
+     * @return An ID used to expand a {@link UriTemplate}
+     */
+    public static Variables getUriTemplateVars(final int anID) {
+        return Variables.variables(new JsonObject().put(Param.id.name(), anID));
     }
 }

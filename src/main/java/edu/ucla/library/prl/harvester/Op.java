@@ -4,17 +4,15 @@ package edu.ucla.library.prl.harvester;
 /**
  * OpenAPI operation IDs.
  */
-public final class Op {
+public enum Op {
 
     /**
      * A constant for the "get status" operation.
      */
-    public static final String GET_STATUS = "getStatus";
+    getStatus,
 
     /**
-     * Constants class' constructors should be private.
+     * Institution operations.
      */
-    private Op() {
-    }
-
+    addInstitution, getInstitution, listInstitutions, removeInstitution, updateInstitution
 }

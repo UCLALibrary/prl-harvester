@@ -7,6 +7,7 @@ import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
@@ -157,5 +158,22 @@ public interface HarvestScheduleStoreService {
         final PoolOptions poolOptions = new PoolOptions().setMaxSize(dbConnectionPoolMaxSize);
 
         return PgPool.pool(aVertx, connectOptions, poolOptions);
+    }
+
+    /**
+     * The collection of possible errors that this service may return.
+     */
+    @GenIgnore
+    enum Error {
+
+        /**
+         * Indicates that the requested item was not found in the store.
+         */
+        NOT_FOUND,
+
+        /**
+         * Indicates that some unrecoverable error occurred.
+         */
+        INTERNAL_ERROR
     }
 }
