@@ -3,7 +3,6 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import org.apache.http.HttpStatus;
 
-import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.Param;
 
 import io.vertx.core.Vertx;
@@ -11,7 +10,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op#removeInstitution} operations.
+ * A handler for removing institutions.
  */
 public final class RemoveInstitutionHandler extends AbstractInstitutionRequestHandler {
 

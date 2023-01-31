@@ -4,7 +4,6 @@ package edu.ucla.library.prl.harvester.handlers;
 import org.apache.http.HttpStatus;
 
 import edu.ucla.library.prl.harvester.MediaType;
-import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.Param;
 
 import io.vertx.core.Vertx;
@@ -13,7 +12,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op#getInstitution} operations.
+ * A handler for getting institutions.
  */
 public final class GetInstitutionHandler extends AbstractInstitutionRequestHandler {
 

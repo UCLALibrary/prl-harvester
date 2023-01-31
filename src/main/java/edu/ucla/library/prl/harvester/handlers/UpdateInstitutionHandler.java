@@ -6,7 +6,6 @@ import org.apache.http.HttpStatus;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.InvalidInstitutionJsonException;
 import edu.ucla.library.prl.harvester.MediaType;
-import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.Param;
 
 import io.vertx.core.Vertx;
@@ -16,7 +15,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op#updateInstitution} operations.
+ * A handler for updating institutions.
  */
 public final class UpdateInstitutionHandler extends AbstractInstitutionRequestHandler {
 

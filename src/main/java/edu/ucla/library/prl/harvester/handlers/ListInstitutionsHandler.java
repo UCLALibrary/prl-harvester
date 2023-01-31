@@ -5,7 +5,6 @@ import org.apache.http.HttpStatus;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.MediaType;
-import edu.ucla.library.prl.harvester.Op;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -14,7 +13,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * A handler for {@link Op#listInstitutions} operations.
+ * A handler for listing institutions.
  */
 public final class ListInstitutionsHandler extends AbstractInstitutionRequestHandler {
 
