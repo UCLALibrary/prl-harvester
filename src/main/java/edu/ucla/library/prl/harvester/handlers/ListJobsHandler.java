@@ -42,6 +42,8 @@ public final class ListJobsHandler implements Handler<RoutingContext> {
                     .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
                     .end(responseBody.encode());
         }).onFailure(details -> {
+            details.printStackTrace();
+
             response.setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).end(details.getMessage());
         });
     }
