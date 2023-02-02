@@ -152,7 +152,8 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
 
             return Future.succeededFuture();
         } catch (final SchedulerException details) {
-            return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_020, key.getName(), details.getMessage()));
+            return Future.failedFuture(new HarvestJobSchedulerServiceException(Error.INTERNAL_ERROR,
+                    LOGGER.getMessage(MessageCodes.PRL_020, key.getName(), details.getMessage())));
         }
     }
 
@@ -167,10 +168,12 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
             if (myScheduler.deleteJob(key)) {
                 return Future.succeededFuture();
             } else {
-                return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), "not found"));
+                return Future.failedFuture(new HarvestJobSchedulerServiceException(Error.NOT_FOUND,
+                        LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), "not found")));
             }
         } catch (final SchedulerException details) {
-            return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), details.getMessage()));
+            return Future.failedFuture(new HarvestJobSchedulerServiceException(Error.INTERNAL_ERROR,
+                    LOGGER.getMessage(MessageCodes.PRL_021, key.getName(), details.getMessage())));
         }
     }
 
