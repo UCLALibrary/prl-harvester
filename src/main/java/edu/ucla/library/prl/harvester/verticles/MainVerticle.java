@@ -11,6 +11,7 @@ import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
+import edu.ucla.library.prl.harvester.handlers.AddJobHandler;
 import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.ListInstitutionsHandler;
 import edu.ucla.library.prl.harvester.handlers.ListJobsHandler;
@@ -37,6 +38,7 @@ import io.vertx.sqlclient.Pool;
 /**
  * Main verticle that starts the application.
  */
+@SuppressWarnings("PMD.ExcessiveImports")
 public class MainVerticle extends AbstractVerticle {
 
     /**
@@ -120,6 +122,7 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx));
 
             // Job operations
+            routeBuilder.operation(Op.addJob.name()).handler(new AddJobHandler(vertx));
             routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
 
             return routeBuilder.createRouter();
