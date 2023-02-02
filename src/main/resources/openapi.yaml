@@ -52,20 +52,19 @@ components:
     Job:
       type: object
       required:
-      - institutionId
-      - repositoryBaseUrl
+      - institutionID
+      - repositoryBaseURL
       - metadataPrefix
       - sets
       - scheduleCronExpression
-      - lastSuccessfulRun
       properties:
         id:
           type: integer
           description: The job's unique identifier
           readOnly: true
-        institutionId:
+        institutionID:
           type: integer
-        repositoryBaseUrl:
+        repositoryBaseURL:
           type: string
         metadataPrefix:
           type: string
