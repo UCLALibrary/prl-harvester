@@ -22,7 +22,6 @@ import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
-import io.vertx.serviceproxy.ServiceException;
 
 /**
  * The implementation of {@link HarvestScheduleStoreService}.
@@ -143,16 +142,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         """;
 
     /**
-     * The failure code to use for a ServiceException that represents {@link Error#INTERNAL_ERROR}.
-     */
-    private static final int INTERNAL_ERROR = Error.INTERNAL_ERROR.ordinal();
-
-    /**
-     * The failure code to use for a ServiceException that represents {@link Error#NOT_FOUND}.
-     */
-    private static final int NOT_FOUND_ERROR = Error.NOT_FOUND.ordinal();
-
-    /**
      * The underlying database connection pool.
      */
     private final Pool myDbConnectionPool;
@@ -171,13 +160,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(GET_INST).execute(Tuple.of(anInstitutionId));
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(select -> {
             if (hasSingleRow(select)) {
                 return Future.succeededFuture(new Institution(select.iterator().next().toJson()));
             }
-            return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_007, anInstitutionId)));
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                    LOGGER.getMessage(MessageCodes.PRL_007, anInstitutionId)));
         });
     }
 
@@ -196,7 +186,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(LIST_INSTS).execute();
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(select -> {
             final List<Institution> allInstitutions = new ArrayList<>();
             final RowIterator<Row> iterator = select.iterator();
@@ -214,7 +205,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
 
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
         });
@@ -227,13 +219,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
             return SqlTemplate.forUpdate(connection, UPDATE_INST).mapFrom(INST_MAPPER).execute(institutionWithID);
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
                 return Future.succeededFuture();
             }
-            return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                    LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
         });
     }
 
@@ -242,13 +235,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(DEL_INST).execute(Tuple.of(anInstitutionId));
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(delete -> {
             if (hasSingleRow(delete)) {
                 return Future.succeededFuture();
             }
-            return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                    LOGGER.getMessage(MessageCodes.PRL_019, anInstitutionId)));
         });
     }
 
@@ -257,13 +251,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(GET_JOB).execute(Tuple.of(aJobId));
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(select -> {
             if (hasSingleRow(select)) {
                 return Future.succeededFuture(new Job(select.iterator().next().toJson()));
             }
-            return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_010, aJobId)));
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                    LOGGER.getMessage(MessageCodes.PRL_010, aJobId)));
         });
     }
 
@@ -272,7 +267,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(LIST_JOBS).execute();
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(select -> {
             final List<Job> allJobs = new ArrayList<>();
             final RowIterator<Row> iterator = select.iterator();
@@ -289,7 +285,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             return SqlTemplate.forQuery(connection, ADD_JOB).mapFrom(JOB_MAPPER).execute(aJob);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(insert -> {
             return Future.succeededFuture(insert.iterator().next().getInteger(Job.ID));
         });
@@ -302,12 +299,13 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
             return SqlTemplate.forUpdate(connection, UPDATE_JOB).mapFrom(JOB_MAPPER).execute(jobWithID);
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
                 return Future.succeededFuture();
             }
-            return Future.failedFuture(new ServiceException(NOT_FOUND_ERROR,
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
                     LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
         });
     }
@@ -317,13 +315,14 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             return connection.preparedQuery(DEL_JOB).execute(Tuple.of(aJobId));
         }).recover(error -> {
-            return Future.failedFuture(new ServiceException(INTERNAL_ERROR, error.getMessage()));
+            return Future
+                    .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(delete -> {
             if (hasSingleRow(delete)) {
                 return Future.succeededFuture();
             }
-            return Future.failedFuture(
-                    new ServiceException(NOT_FOUND_ERROR, LOGGER.getMessage(MessageCodes.PRL_015, aJobId)));
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                    LOGGER.getMessage(MessageCodes.PRL_015, aJobId)));
         });
     }
 

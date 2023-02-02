@@ -16,6 +16,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
+import io.vertx.serviceproxy.ServiceException;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
@@ -175,5 +176,25 @@ public interface HarvestScheduleStoreService {
          * Indicates that some unrecoverable error occurred.
          */
         INTERNAL_ERROR
+    }
+
+    /**
+     * A subclass of {@link ServiceException} so that we can determine the particular service that caused the error.
+     */
+    @GenIgnore
+    class HarvestScheduleStoreServiceException extends ServiceException {
+
+        /**
+         * The <code>serialVersionUID</code> for this class.
+         */
+        private static final long serialVersionUID = 8073004248215374577L;
+
+        /**
+         * @param anError The type of error that caused the exception
+         * @param aMessage The error message
+         */
+        public HarvestScheduleStoreServiceException(final Error anError, final String aMessage) {
+            super(anError.ordinal(), aMessage);
+        }
     }
 }

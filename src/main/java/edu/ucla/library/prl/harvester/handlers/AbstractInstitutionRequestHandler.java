@@ -5,12 +5,12 @@ import org.apache.http.HttpStatus;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
+import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.HarvestScheduleStoreServiceException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.serviceproxy.ServiceException;
 
 /**
  * An abstract base class for request handlers that deal with {@link Institution}s.
@@ -39,7 +39,8 @@ public abstract class AbstractInstitutionRequestHandler implements Handler<Routi
         final HttpServerResponse response = aContext.response();
 
         try {
-            final ServiceException serviceException = (ServiceException) anError;
+            final HarvestScheduleStoreServiceException serviceException =
+                    (HarvestScheduleStoreServiceException) anError;
             final int statusCode = switch (HarvestScheduleStoreService.Error.values()[serviceException.failureCode()]) {
                 case NOT_FOUND -> {
                     yield HttpStatus.SC_NOT_FOUND;
