@@ -118,16 +118,19 @@ public class InstitutionRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws AddressException
-     * @throws MalformedURLException
-     * @throws NumberParseException
      */
     @Test
-    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
+    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Institution institution = TestUtils.getRandomInstitution();
+        final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
@@ -167,16 +170,19 @@ public class InstitutionRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws AddressException
-     * @throws MalformedURLException
-     * @throws NumberParseException
      */
     @Test
-    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
+    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Institution institution = TestUtils.getRandomInstitution();
+        final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
@@ -214,16 +220,26 @@ public class InstitutionRequestsFT {
     }
 
     /**
+     * Tests that {@link Op#getInstitution} after {@link Op#updateInstitution} retrieves different data than was sent in
+     * the initial {@link Op#addInstitution}.
+     *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    void testGetAfterUpdateAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
+    void testGetAfterUpdateAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
-        final Institution institution = TestUtils.getRandomInstitution();
-        final Institution updatedInstitution = TestUtils.getRandomInstitution();
+        final Institution institution;
+        final Institution updatedInstitution;
         final Future<HttpResponse<Buffer>> addInstitution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+            updatedInstitution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
@@ -277,15 +293,24 @@ public class InstitutionRequestsFT {
     }
 
     /**
+     * Tests that {@link Op#getInstitution} after {@link Op#removeInstitution} after {@link Op#addInstitution} results
+     * in HTTP 404.
+     *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    void testGetAfterRemoveAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
+    void testGetAfterRemoveAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
-        final Institution institution = TestUtils.getRandomInstitution();
+        final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
@@ -353,11 +378,19 @@ public class InstitutionRequestsFT {
      * @param aContext A test context
      */
     @Test
-    void testUpdateBeforeAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
-        final Institution institution = TestUtils.getRandomInstitution();
-        final Future<HttpResponse<Buffer>> updateInstitution = myWebClient
-                .put(INSTITUTION.expandToString(TestUtils.getUriTemplateVars(1))).sendJson(institution.toJson());
+    void testUpdateBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        final Institution institution;
+        final Future<HttpResponse<Buffer>> updateInstitution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        updateInstitution = myWebClient.put(INSTITUTION.expandToString(TestUtils.getUriTemplateVars(1)))
+                .sendJson(institution.toJson());
 
         updateInstitution.onSuccess(response -> {
             aContext.verify(() -> {
@@ -386,15 +419,20 @@ public class InstitutionRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws NumberParseException
-     * @throws MalformedURLException
-     * @throws AddressException
      */
     @Test
-    void testAddInvalidInstitution(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
-        final Institution validInstitution = TestUtils.getRandomInstitution();
-        final JsonObject invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
+    void testAddInvalidInstitution(final Vertx aVertx, final VertxTestContext aContext) {
+        final Institution validInstitution;
+        final JsonObject invalidInstitutionJson;
+
+        try {
+            validInstitution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
 
         myWebClient.post(INSTITUTIONS).sendJson(invalidInstitutionJson).onSuccess(response -> {
             aContext.verify(() -> {
@@ -409,16 +447,19 @@ public class InstitutionRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws NumberParseException
-     * @throws MalformedURLException
-     * @throws AddressException
      */
     @Test
-    void testUpdateInvalidInstitutionAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
+    void testUpdateInvalidInstitutionAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Institution validInstitution = TestUtils.getRandomInstitution();
+        final Institution validInstitution;
         final Future<HttpResponse<Buffer>> addInstitution;
+
+        try {
+            validInstitution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addInstitution =

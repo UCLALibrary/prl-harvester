@@ -85,14 +85,19 @@ public class JobRequestsFT {
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws AddressException
-     * @throws MalformedURLException
-     * @throws NumberParseException
      */
     @BeforeEach
-    public void beforeEach(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
-        myWebClient.post(INSTITUTIONS).sendJson(TestUtils.getRandomInstitution().toJson()).onSuccess(response -> {
+    public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
+        final Institution institution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        myWebClient.post(INSTITUTIONS).sendJson(institution.toJson()).onSuccess(response -> {
             myInstitutionID = new Institution(response.bodyAsJsonObject()).getID().get();
 
             aContext.completeNow();
@@ -140,15 +145,19 @@ public class JobRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws MalformedURLException
-     * @throws ParseException
      */
     @Test
-    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws MalformedURLException, ParseException {
+    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Job job = TestUtils.getRandomJob(myInstitutionID);
+        final Job job;
         final Future<HttpResponse<Buffer>> addJob;
+
+        try {
+            job = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addJob = myWebClient.post(JOBS).sendJson(job.toJson());
@@ -187,15 +196,19 @@ public class JobRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws MalformedURLException
-     * @throws ParseException
      */
     @Test
-    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws MalformedURLException, ParseException {
+    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Job job = TestUtils.getRandomJob(myInstitutionID);
+        final Job job;
         final Future<HttpResponse<Buffer>> addJob;
+
+        try {
+            job = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addJob = myWebClient.post(JOBS).sendJson(job.toJson());
@@ -251,14 +264,20 @@ public class JobRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws MalformedURLException
-     * @throws ParseException
      */
     @Test
-    void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext)
-            throws MalformedURLException, ParseException {
-        final Job validJob = TestUtils.getRandomJob(myInstitutionID);
-        final JsonObject invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
+    void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext) {
+        final Job validJob;
+        final JsonObject invalidJobJson;
+
+        try {
+            validJob = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
 
         myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
             aContext.verify(() -> {
