@@ -116,7 +116,7 @@ public final class TestUtils {
             randSets.add(RAND_STRING.getRandomValue().replaceAll("\\s", ""));
         }
 
-        return new Job(anInstitutionID, randURL, randSets, randCron, randDate);
+        return new Job(anInstitutionID, randURL, randSets, randCron, null);
     }
 
     private static String buildCron(final OffsetDateTime aSourceDate) {

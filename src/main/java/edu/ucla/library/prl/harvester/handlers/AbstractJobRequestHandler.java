@@ -3,7 +3,8 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import org.apache.http.HttpStatus;
 
-import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.HarvestScheduleStoreServiceException;
 
@@ -13,9 +14,9 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * An abstract base class for request handlers that deal with {@link Institution}s.
+ * An abstract base class for request handlers that deal with {@link Job}s.
  */
-public abstract class AbstractInstitutionRequestHandler implements Handler<RoutingContext> {
+public abstract class AbstractJobRequestHandler implements Handler<RoutingContext> {
 
     /**
      * A proxy to the harvest schedule store service.
@@ -23,9 +24,15 @@ public abstract class AbstractInstitutionRequestHandler implements Handler<Routi
     protected final HarvestScheduleStoreService myHarvestScheduleStoreService;
 
     /**
+     * A proxy to the job scheduler service.
+     */
+    protected final HarvestJobSchedulerService myHarvestJobSchedulerService;
+
+    /**
      * @param aVertx A Vert.x instance
      */
-    protected AbstractInstitutionRequestHandler(final Vertx aVertx) {
+    protected AbstractJobRequestHandler(final Vertx aVertx) {
+        myHarvestJobSchedulerService = HarvestJobSchedulerService.createProxy(aVertx);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
     }
 
@@ -35,13 +42,16 @@ public abstract class AbstractInstitutionRequestHandler implements Handler<Routi
      * @param aContext The context on which the error happened
      * @param anError The error that triggered this handler
      */
+    @SuppressWarnings("PMD.AvoidPrintStackTrace")
     protected void handleError(final RoutingContext aContext, final Throwable anError) {
         final HttpServerResponse response = aContext.response();
+        final int statusCode;
 
-        try {
+        if (anError instanceof HarvestScheduleStoreServiceException) {
             final HarvestScheduleStoreServiceException serviceException =
                     (HarvestScheduleStoreServiceException) anError;
-            final int statusCode = switch (HarvestScheduleStoreService.Error.values()[serviceException.failureCode()]) {
+
+            statusCode = switch (HarvestScheduleStoreService.Error.values()[serviceException.failureCode()]) {
                 case NOT_FOUND -> {
                     yield HttpStatus.SC_NOT_FOUND;
                 }
@@ -49,10 +59,12 @@ public abstract class AbstractInstitutionRequestHandler implements Handler<Routi
                     yield HttpStatus.SC_INTERNAL_SERVER_ERROR;
                 }
             };
-
-            response.setStatusCode(statusCode).end(serviceException.getMessage());
-        } catch (final ClassCastException details) {
-            response.setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR).end(details.getMessage());
+        } else {
+            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         }
+
+        response.setStatusCode(statusCode).end(anError.getMessage());
+
+        anError.printStackTrace();
     }
 }

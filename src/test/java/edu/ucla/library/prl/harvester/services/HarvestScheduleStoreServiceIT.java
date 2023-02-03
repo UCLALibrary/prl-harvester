@@ -8,6 +8,7 @@ import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.Error;
+import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.HarvestScheduleStoreServiceException;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import info.freelibrary.util.Logger;
@@ -51,7 +52,7 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 
 /**
- * Tests {@linkHarvestScheduleStoreService}.
+ * Tests {@link HarvestScheduleStoreService}.
  */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
@@ -267,6 +268,7 @@ public class HarvestScheduleStoreServiceIT {
             aContext.verify(() -> {
                 assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                 assertTrue(error.getMessage().contains(String.valueOf(badID)));
+                assertTrue(details instanceof HarvestScheduleStoreServiceException);
 
                 aContext.completeNow();
             });
@@ -313,6 +315,7 @@ public class HarvestScheduleStoreServiceIT {
                     aContext.verify(() -> {
                         assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                         assertTrue(error.getMessage().contains(String.valueOf(newID)));
+                        assertTrue(details instanceof HarvestScheduleStoreServiceException);
                     }).completeNow();
                 }).onSuccess(select -> {
                     aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_013, newID));
@@ -384,6 +387,7 @@ public class HarvestScheduleStoreServiceIT {
             aContext.verify(() -> {
                 assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                 assertTrue(error.getMessage().contains(String.valueOf(badID)));
+                assertTrue(details instanceof HarvestScheduleStoreServiceException);
 
                 aContext.completeNow();
             });
@@ -448,6 +452,7 @@ public class HarvestScheduleStoreServiceIT {
                     aContext.verify(() -> {
                         assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                         assertTrue(error.getMessage().contains(String.valueOf(newID)));
+                        assertTrue(details instanceof HarvestScheduleStoreServiceException);
                     }).completeNow();
                 }).onSuccess(select -> {
                     aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_014, newID));
@@ -509,6 +514,7 @@ public class HarvestScheduleStoreServiceIT {
                     aContext.verify(() -> {
                         assertEquals(Error.NOT_FOUND.ordinal(), error.failureCode());
                         assertTrue(error.getMessage().contains(String.valueOf(badInstID)));
+                        assertTrue(details instanceof HarvestScheduleStoreServiceException);
 
                         aContext.completeNow();
                     });

@@ -7,12 +7,14 @@ import edu.ucla.library.prl.harvester.Job;
 
 import info.freelibrary.util.StringUtils;
 
+import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.ProxyClose;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.serviceproxy.ServiceException;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
 
 /**
@@ -98,4 +100,41 @@ public interface HarvestJobSchedulerService {
      */
     @ProxyClose
     Future<Void> close();
+
+    /**
+     * The collection of possible errors that this service may return.
+     */
+    @GenIgnore
+    enum Error {
+
+        /**
+         * Indicates that the requested job was not found in the scheduler.
+         */
+        NOT_FOUND,
+
+        /**
+         * Indicates that some unrecoverable error occurred.
+         */
+        INTERNAL_ERROR
+    }
+
+    /**
+     * A subclass of {@link ServiceException} so that we can determine the particular service that caused the error.
+     */
+    @GenIgnore
+    class HarvestJobSchedulerServiceException extends ServiceException {
+
+        /**
+         * The <code>serialVersionUID</code> for this class.
+         */
+        private static final long serialVersionUID = -4721553985705349375L;
+
+        /**
+         * @param anError The type of error that caused the exception
+         * @param aMessage The error message
+         */
+        public HarvestJobSchedulerServiceException(final Error anError, final String aMessage) {
+            super(anError.ordinal(), aMessage);
+        }
+    }
 }
