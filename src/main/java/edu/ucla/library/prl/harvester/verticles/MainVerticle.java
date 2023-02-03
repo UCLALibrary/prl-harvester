@@ -13,6 +13,7 @@ import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.AddJobHandler;
 import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
+import edu.ucla.library.prl.harvester.handlers.GetJobHandler;
 import edu.ucla.library.prl.harvester.handlers.ListInstitutionsHandler;
 import edu.ucla.library.prl.harvester.handlers.ListJobsHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveInstitutionHandler;
@@ -123,6 +124,7 @@ public class MainVerticle extends AbstractVerticle {
 
             // Job operations
             routeBuilder.operation(Op.addJob.name()).handler(new AddJobHandler(vertx));
+            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
             routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
 
             return routeBuilder.createRouter();

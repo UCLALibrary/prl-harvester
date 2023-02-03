@@ -42,6 +42,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.sqlclient.Pool;
 import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 
 /**
  * Tests the application's behavior in response to requests involving {@link Job}s.
@@ -178,6 +179,70 @@ public class JobRequestsFT {
 
                 return Future.succeededFuture();
             });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#getJob} after {@link Op#addJob} retrieves the same data that was sent.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     * @throws MalformedURLException
+     * @throws ParseException
+     */
+    @Test
+    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
+            throws MalformedURLException, ParseException {
+        final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Job job = TestUtils.getRandomJob(myInstitutionID);
+        final Future<HttpResponse<Buffer>> addJob;
+
+        // First request
+        addJob = myWebClient.post(JOBS).sendJson(job.toJson());
+
+        addJob.compose(addJobResponse -> {
+            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+            final Variables jobID;
+            final Future<HttpResponse<Buffer>> getJob;
+
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
+                assertTrue(responseJob.getID().isPresent());
+
+                responseVerified.flag();
+            });
+
+            // Second request
+            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
+
+            return getJob.compose(getJobResponse -> {
+                final Job responseJob2 = new Job(getJobResponse.bodyAsJsonObject());
+
+                aContext.verify(() -> {
+                    assertEquals(HttpStatus.SC_OK, getJobResponse.statusCode());
+                    assertEquals(responseJob.toJson(), responseJob2.toJson());
+
+                    responseVerified.flag();
+                });
+
+                return Future.succeededFuture();
+            });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#getJob} before {@link Op#addJob} results in HTTP 404.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testGetBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        myWebClient.get(JOB.expandToString(TestUtils.getUriTemplateVars(1))).send().onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
+            }).completeNow();
         }).onFailure(aContext::failNow);
     }
 
