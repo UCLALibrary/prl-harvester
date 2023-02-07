@@ -42,6 +42,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.sqlclient.Pool;
 import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 
 /**
  * Tests the application's behavior in response to requests involving {@link Job}s.
@@ -84,14 +85,19 @@ public class JobRequestsFT {
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws AddressException
-     * @throws MalformedURLException
-     * @throws NumberParseException
      */
     @BeforeEach
-    public void beforeEach(final Vertx aVertx, final VertxTestContext aContext)
-            throws AddressException, MalformedURLException, NumberParseException {
-        myWebClient.post(INSTITUTIONS).sendJson(TestUtils.getRandomInstitution().toJson()).onSuccess(response -> {
+    public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
+        final Institution institution;
+
+        try {
+            institution = TestUtils.getRandomInstitution();
+        } catch (final AddressException | MalformedURLException | NumberParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        myWebClient.post(INSTITUTIONS).sendJson(institution.toJson()).onSuccess(response -> {
             myInstitutionID = new Institution(response.bodyAsJsonObject()).getID().get();
 
             aContext.completeNow();
@@ -139,15 +145,19 @@ public class JobRequestsFT {
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws MalformedURLException
-     * @throws ParseException
      */
     @Test
-    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext)
-            throws MalformedURLException, ParseException {
+    void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
-        final Job job = TestUtils.getRandomJob(myInstitutionID);
+        final Job job;
         final Future<HttpResponse<Buffer>> addJob;
+
+        try {
+            job = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
 
         // First request
         addJob = myWebClient.post(JOBS).sendJson(job.toJson());
@@ -182,18 +192,92 @@ public class JobRequestsFT {
     }
 
     /**
+     * Tests that {@link Op#getJob} after {@link Op#addJob} retrieves the same data that was sent.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Job job;
+        final Future<HttpResponse<Buffer>> addJob;
+
+        try {
+            job = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        // First request
+        addJob = myWebClient.post(JOBS).sendJson(job.toJson());
+
+        addJob.compose(addJobResponse -> {
+            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+            final Variables jobID;
+            final Future<HttpResponse<Buffer>> getJob;
+
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
+                assertTrue(responseJob.getID().isPresent());
+
+                responseVerified.flag();
+            });
+
+            // Second request
+            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
+
+            return getJob.compose(getJobResponse -> {
+                final Job responseJob2 = new Job(getJobResponse.bodyAsJsonObject());
+
+                aContext.verify(() -> {
+                    assertEquals(HttpStatus.SC_OK, getJobResponse.statusCode());
+                    assertEquals(responseJob.toJson(), responseJob2.toJson());
+
+                    responseVerified.flag();
+                });
+
+                return Future.succeededFuture();
+            });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#getJob} before {@link Op#addJob} results in HTTP 404.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testGetBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        myWebClient.get(JOB.expandToString(TestUtils.getUriTemplateVars(1))).send().onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
      * Tests that {@link Op#addJob} with invalid JSON results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
-     * @throws MalformedURLException
-     * @throws ParseException
      */
     @Test
-    void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext)
-            throws MalformedURLException, ParseException {
-        final Job validJob = TestUtils.getRandomJob(myInstitutionID);
-        final JsonObject invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
+    void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext) {
+        final Job validJob;
+        final JsonObject invalidJobJson;
+
+        try {
+            validJob = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
 
         myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
             aContext.verify(() -> {
