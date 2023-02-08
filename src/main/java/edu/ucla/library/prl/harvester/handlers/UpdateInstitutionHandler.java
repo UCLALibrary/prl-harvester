@@ -17,7 +17,7 @@ import io.vertx.ext.web.RoutingContext;
 /**
  * A handler for updating institutions.
  */
-public final class UpdateInstitutionHandler extends AbstractInstitutionRequestHandler {
+public final class UpdateInstitutionHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance

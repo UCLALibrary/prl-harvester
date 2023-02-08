@@ -17,6 +17,7 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
 import info.freelibrary.util.Logger;
@@ -44,7 +45,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     private static final String ENCODED_JOB_JSON = "encodedJobJSON";
 
     /**
-     * The {@link SchedulerContext} key for the Vert.x context.
+     * The {@link SchedulerContext} key for the Vert.x event bus.
      */
     private static final String VERTX_EVENT_BUS = "vertxEventBus";
 
@@ -178,8 +179,8 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     }
 
     /**
-     * Runs a harvest job, then publishes its result (or resulting error) to the event bus addresses
-     * {@link JOB_RESULT_ADDRESS} and {@link ERROR_ADDRESS}, respectively.
+     * Runs a harvest job, updates application state with the result, then publishes its result (or resulting error) to
+     * the event bus addresses {@link JOB_RESULT_ADDRESS} and {@link ERROR_ADDRESS}, respectively.
      */
     public static final class RunHarvest implements org.quartz.Job {
 
@@ -193,24 +194,30 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
         @Override
         public void execute(final JobExecutionContext aContext) throws JobExecutionException {
             try {
+                // Decode the Job
                 final JobDetail jobDetail = aContext.getJobDetail();
                 final String encodedJobJSON = jobDetail.getJobDataMap().getString(ENCODED_JOB_JSON);
                 final Job job = new Job(new JsonObject(encodedJobJSON));
 
+                // Get references to Vert.x resources
                 final SchedulerContext schedulerContext = aContext.getScheduler().getContext();
                 final HarvestService harvestService = (HarvestService) schedulerContext.get(HARVEST_SERVICE);
                 final EventBus eventBus = (EventBus) schedulerContext.get(VERTX_EVENT_BUS);
 
-                harvestService.run(job).compose(jobResult -> {
+                // Do the work
+                final Future<JobResult> execution = harvestService.run(job).compose(jobResult -> {
                     final int jobID = Integer.parseInt(jobDetail.getKey().getName());
                     final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
                             job.getSets().orElse(null), job.getScheduleCronExpression(), jobResult.getStartTime());
                     final HarvestScheduleStoreService scheduleStoreService =
                             (HarvestScheduleStoreService) schedulerContext.get(HARVEST_SCHEDULE_STORE_SERVICE);
 
-                    return scheduleStoreService.updateJob(jobID, updatedJob).onSuccess(result -> {
-                        eventBus.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
-                    });
+                    return scheduleStoreService.updateJob(jobID, updatedJob).map(jobResult);
+                });
+
+                // Publish the result
+                execution.onSuccess(jobResult -> {
+                    eventBus.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
                 }).onFailure(details -> {
                     eventBus.publish(ERROR_ADDRESS, details.getMessage());
                 });

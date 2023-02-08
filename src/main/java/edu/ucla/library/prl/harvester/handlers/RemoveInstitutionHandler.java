@@ -12,7 +12,7 @@ import io.vertx.ext.web.RoutingContext;
 /**
  * A handler for removing institutions.
  */
-public final class RemoveInstitutionHandler extends AbstractInstitutionRequestHandler {
+public final class RemoveInstitutionHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
