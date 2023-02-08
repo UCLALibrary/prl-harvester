@@ -3,20 +3,18 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import org.apache.http.HttpStatus;
 
-import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.HarvestScheduleStoreServiceException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 /**
- * An abstract base class for request handlers that deal with {@link Job}s.
+ * An abstract base class for request handlers.
  */
-public abstract class AbstractJobRequestHandler implements Handler<RoutingContext> {
+public abstract class AbstractRequestHandler implements Handler<RoutingContext> {
 
     /**
      * A proxy to the harvest schedule store service.
@@ -31,7 +29,7 @@ public abstract class AbstractJobRequestHandler implements Handler<RoutingContex
     /**
      * @param aVertx A Vert.x instance
      */
-    protected AbstractJobRequestHandler(final Vertx aVertx) {
+    protected AbstractRequestHandler(final Vertx aVertx) {
         myHarvestJobSchedulerService = HarvestJobSchedulerService.createProxy(aVertx);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
     }
@@ -44,7 +42,6 @@ public abstract class AbstractJobRequestHandler implements Handler<RoutingContex
      */
     @SuppressWarnings("PMD.AvoidPrintStackTrace")
     protected void handleError(final RoutingContext aContext, final Throwable anError) {
-        final HttpServerResponse response = aContext.response();
         final int statusCode;
 
         if (anError instanceof HarvestScheduleStoreServiceException) {
@@ -63,7 +60,7 @@ public abstract class AbstractJobRequestHandler implements Handler<RoutingContex
             statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
         }
 
-        response.setStatusCode(statusCode).end(anError.getMessage());
+        aContext.response().setStatusCode(statusCode).end(anError.getMessage());
 
         anError.printStackTrace();
     }

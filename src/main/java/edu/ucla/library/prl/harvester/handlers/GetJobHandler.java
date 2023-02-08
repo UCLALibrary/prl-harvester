@@ -14,7 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 /**
  * A handler for getting jobs.
  */
-public final class GetJobHandler extends AbstractJobRequestHandler {
+public final class GetJobHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
