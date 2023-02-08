@@ -19,5 +19,5 @@ public enum Op {
     /**
      * Job operations.
      */
-    addJob, getJob, listJobs, updateJob
+    addJob, getJob, listJobs, removeJob, updateJob
 }
