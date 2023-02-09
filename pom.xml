@@ -62,6 +62,7 @@
     <postgres.version>12.12-alpine</postgres.version>
     <solr.version>9</solr.version>
     <docker.localstack.version>1.1.0</docker.localstack.version>
+    <glauth.version>v2.1.0</glauth.version>
     <joai.version>v3.3</joai.version>
 
     <!-- Name of the main Vert.x verticle -->
@@ -290,6 +291,7 @@
           <include>db/prldb.sql</include>
           <include>images/</include>
           <include>provider/**</include>
+          <include>ldap/**</include>
         </includes>
       </testResource>
     </testResources>
@@ -397,6 +399,9 @@
             <portName>test.solr.port</portName>
             <portName>test.s3.port</portName>
             <portName>test.provider.port</portName>
+            <portName>test.auth.ldap</portName>
+            <portName>test.auth.ldaps</portName>
+            <portName>test.auth.api</portName>
           </portNames>
         </configuration>
       </plugin>
@@ -769,6 +774,9 @@
                 </wait>
               </run>
             </provider-initializer>
+            <auth-ldap>
+              
+            </auth-ldap>
           </imagesMap>
         </configuration>
         <executions>
