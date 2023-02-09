@@ -318,6 +318,69 @@ public class JobRequestsFT {
     }
 
     /**
+     * Tests that {@link Op#getJob} after {@link Op#removeJob} after {@link Op#addJob} results in HTTP 404.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testGetAfterRemoveAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint(3);
+        final Job job;
+        final Future<HttpResponse<Buffer>> addJob;
+
+        try {
+            job = TestUtils.getRandomJob(myInstitutionID);
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        // First request
+        addJob = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(job.toJson());
+
+        addJob.compose(addJobResponse -> {
+            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+            final Variables jobID;
+            final Future<HttpResponse<Buffer>> removeJob;
+
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
+                assertTrue(responseJob.getID().isPresent());
+
+                responseVerified.flag();
+            });
+
+            // Second request
+            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            removeJob = myWebClient.delete(JOB.expandToString(jobID)).send();
+
+            return removeJob.compose(removeJobResponse -> {
+                final Future<HttpResponse<Buffer>> getJob;
+
+                aContext.verify(() -> {
+                    assertEquals(HttpStatus.SC_NO_CONTENT, removeJobResponse.statusCode());
+
+                    responseVerified.flag();
+                });
+
+                // Third request
+                getJob = myWebClient.get(JOB.expandToString(jobID)).send();
+
+                return getJob;
+            }).compose(getJobResponse -> {
+                aContext.verify(() -> {
+                    assertEquals(HttpStatus.SC_NOT_FOUND, getJobResponse.statusCode());
+
+                    responseVerified.flag();
+                });
+
+                return Future.succeededFuture();
+            });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
      * Tests that {@link Op#getJob} before {@link Op#addJob} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
@@ -353,6 +416,21 @@ public class JobRequestsFT {
         updateJob = myWebClient.put(JOB.expandToString(TestUtils.getUriTemplateVars(1))).sendJson(job.toJson());
 
         updateJob.onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#removeJob} before {@link Op#addJob} results in HTTP 404.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testRemoveBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        myWebClient.delete(JOB.expandToString(TestUtils.getUriTemplateVars(1))).send().onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
             }).completeNow();
