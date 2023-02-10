@@ -27,7 +27,10 @@ import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import io.ino.solrs.JavaAsyncSolrClient;
+
 import io.vertx.config.ConfigRetriever;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -58,6 +61,8 @@ public class InstitutionRequestsFT {
 
     private Pool myDbConnectionPool;
 
+    private JavaAsyncSolrClient mySolrClient;
+
     private WebClient myWebClient;
 
     /**
@@ -71,6 +76,7 @@ public class InstitutionRequestsFT {
             final int port = config.getInteger(Config.HTTP_PORT);
 
             myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
+            mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
             myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
 
             return Future.succeededFuture();
@@ -83,8 +89,8 @@ public class InstitutionRequestsFT {
      */
     @AfterEach
     public void afterEach(final Vertx aVertx, final VertxTestContext aContext) {
-        TestUtils.wipeDatabase(myDbConnectionPool).onSuccess(nil -> aContext.completeNow())
-                .onFailure(aContext::failNow);
+        CompositeFuture.all(TestUtils.wipeDatabase(myDbConnectionPool), TestUtils.wipeSolr(mySolrClient))
+                .onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -94,6 +100,7 @@ public class InstitutionRequestsFT {
     @AfterAll
     public final void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
         myWebClient.close();
+        mySolrClient.shutdown();
         myDbConnectionPool.close().onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
