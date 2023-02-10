@@ -22,12 +22,7 @@ import org.apache.solr.common.SolrInputDocument;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.xoai.Element;
-import org.dspace.xoai.serviceprovider.ServiceProvider;
-import org.dspace.xoai.serviceprovider.client.HttpOAIClient;
-import org.dspace.xoai.serviceprovider.model.Context;
-import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
 
-import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
 import info.freelibrary.util.Logger;
@@ -332,23 +327,5 @@ final class HarvestServiceUtils {
             // It's okay if there is no thumbnail
             return Future.succeededFuture(Optional.<URL>empty());
         });
-    }
-
-    /**
-     * Gets a new OAI-PMH client.
-     * <p>
-     * Reusing a {@link ServiceProvider} instance causes IllegalStateException due to mishandling of the underlying
-     * input stream, so we must instantiate a new one for every OAI-PMH request.
-     * <p>
-     * Related: <a href="https://github.com/DSpace/xoai/issues/55">DSpace/xoai/issues/55</a>
-     *
-     * @param aBaseURL An OAI-PMH base URL
-     * @return A new OAI-PMH client instance
-     */
-    static ServiceProvider getNewOaipmhClient(final URL aBaseURL) {
-        final Context context = new Context().withOAIClient(new HttpOAIClient(aBaseURL.toString()))
-                .withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
-
-        return new ServiceProvider(context);
     }
 }
