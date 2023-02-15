@@ -30,7 +30,7 @@ public final class RemoveJobHandler extends AbstractRequestHandler {
 
             myHarvestJobSchedulerService.removeJob(id).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
-            }).onFailure(details -> handleError(aContext, details));
+            }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }

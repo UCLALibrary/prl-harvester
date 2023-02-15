@@ -40,7 +40,7 @@ public final class UpdateJobHandler extends AbstractRequestHandler {
                 response.setStatusCode(HttpStatus.SC_OK)
                         .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
                         .end(responseBody.encode());
-            }).onFailure(details -> handleError(aContext, details));
+            }).onFailure(aContext::fail);
         } catch (final InvalidJobJsonException | NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }
