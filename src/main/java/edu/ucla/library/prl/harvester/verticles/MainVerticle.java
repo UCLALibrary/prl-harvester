@@ -18,6 +18,7 @@ import edu.ucla.library.prl.harvester.handlers.ListInstitutionsHandler;
 import edu.ucla.library.prl.harvester.handlers.ListJobsHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveJobHandler;
+import edu.ucla.library.prl.harvester.handlers.ServiceExceptionHandler;
 import edu.ucla.library.prl.harvester.handlers.StatusHandler;
 import edu.ucla.library.prl.harvester.handlers.UpdateInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.UpdateJobHandler;
@@ -114,6 +115,9 @@ public class MainVerticle extends AbstractVerticle {
     public Future<Router> createRouter(final JsonObject aConfig) {
         // Load the OpenAPI specification
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
+            final ServiceExceptionHandler serviceExceptionHandler = new ServiceExceptionHandler();
+            final Router router;
+
             // Associate handlers with operation IDs from the OpenAPI spec
             routeBuilder.operation(Op.getStatus.name()).handler(new StatusHandler());
 
@@ -131,7 +135,10 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx));
             routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx));
 
-            return routeBuilder.createRouter();
+            router = routeBuilder.createRouter();
+            router.route().failureHandler(serviceExceptionHandler);
+
+            return router;
         });
     }
 

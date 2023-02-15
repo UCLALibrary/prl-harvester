@@ -34,7 +34,7 @@ public final class GetInstitutionHandler extends AbstractRequestHandler {
                 response.setStatusCode(HttpStatus.SC_OK)
                         .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
                         .end(institution.toJson().encode());
-            }).onFailure(details -> handleError(aContext, details));
+            }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }

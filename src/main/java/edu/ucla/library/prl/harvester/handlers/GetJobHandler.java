@@ -34,7 +34,7 @@ public final class GetJobHandler extends AbstractRequestHandler {
                 response.setStatusCode(HttpStatus.SC_OK)
                         .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
                         .end(job.toJson().encode());
-            }).onFailure(details -> handleError(aContext, details));
+            }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }

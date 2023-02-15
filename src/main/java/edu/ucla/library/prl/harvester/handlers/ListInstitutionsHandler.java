@@ -31,6 +31,6 @@ public final class ListInstitutionsHandler extends AbstractRequestHandler {
             aContext.response().setStatusCode(HttpStatus.SC_OK)
                     .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
                     .end(responseBody.encode());
-        }).onFailure(details -> handleError(aContext, details));
+        }).onFailure(aContext::fail);
     }
 }
