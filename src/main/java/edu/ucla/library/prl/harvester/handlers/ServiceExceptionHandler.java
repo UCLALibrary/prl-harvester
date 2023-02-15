@@ -3,9 +3,13 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import org.apache.http.HttpStatus;
 
+import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService.HarvestJobSchedulerServiceException;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.Error;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService.HarvestScheduleStoreServiceException;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.ErrorHandler;
@@ -16,8 +20,12 @@ import io.vertx.serviceproxy.ServiceException;
  */
 public final class ServiceExceptionHandler implements ErrorHandler {
 
+    /**
+     * A logger for the handler.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceExceptionHandler.class, MessageCodes.BUNDLE);
+
     @Override
-    @SuppressWarnings("PMD.AvoidPrintStackTrace")
     public void handle(final RoutingContext aContext) {
         final Throwable error = aContext.failure();
         final int statusCode;
@@ -43,6 +51,6 @@ public final class ServiceExceptionHandler implements ErrorHandler {
 
         aContext.response().setStatusCode(statusCode).end(error.getMessage());
 
-        error.printStackTrace();
+        LOGGER.error(error, error.getMessage());
     }
 }
