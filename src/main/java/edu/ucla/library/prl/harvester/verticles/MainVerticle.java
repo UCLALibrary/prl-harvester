@@ -115,33 +115,30 @@ public class MainVerticle extends AbstractVerticle {
     public Future<Router> createRouter(final JsonObject aConfig) {
         // Load the OpenAPI specification
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
-            final ServiceExceptionHandler errorHandler = new ServiceExceptionHandler();
+            final ServiceExceptionHandler serviceExceptionHandler = new ServiceExceptionHandler();
+            final Router router;
 
             // Associate handlers with operation IDs from the OpenAPI spec
             routeBuilder.operation(Op.getStatus.name()).handler(new StatusHandler());
 
             // Institution operations
-            routeBuilder.operation(Op.addInstitution.name()).handler(new AddInstitutionHandler(vertx))
-                    .failureHandler(errorHandler);
-            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx))
-                    .failureHandler(errorHandler);
-            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx))
-                    .failureHandler(errorHandler);
-            routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx))
-                    .failureHandler(errorHandler);
-            routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx))
-                    .failureHandler(errorHandler);
+            routeBuilder.operation(Op.addInstitution.name()).handler(new AddInstitutionHandler(vertx));
+            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
+            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
+            routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx));
+            routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx));
 
             // Job operations
-            routeBuilder.operation(Op.addJob.name()).handler(new AddJobHandler(vertx)).failureHandler(errorHandler);
-            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx)).failureHandler(errorHandler);
-            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx)).failureHandler(errorHandler);
-            routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx))
-                    .failureHandler(errorHandler);
-            routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx))
-                    .failureHandler(errorHandler);
+            routeBuilder.operation(Op.addJob.name()).handler(new AddJobHandler(vertx));
+            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
+            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
+            routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx));
+            routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx));
 
-            return routeBuilder.createRouter();
+            router = routeBuilder.createRouter();
+            router.route().failureHandler(serviceExceptionHandler);
+
+            return router;
         });
     }
 
