@@ -50,10 +50,12 @@
     <jar.plugin.version>3.2.2</jar.plugin.version>
     <scm.plugin.version>1.13.0</scm.plugin.version>
     <patch.plugin.version>1.2</patch.plugin.version>
+    <exec.plugin.version>3.1.0</exec.plugin.version>
 
     <!-- Test dependency versions -->
     <junit.version>5.9.0</junit.version>
     <jeasy.version>5.0.0</jeasy.version>
+    <jsoup.version>1.15.4</jsoup.version>
 
     <!-- Docker component versions -->
     <docker.alpine.version>3.16.2</docker.alpine.version>
@@ -269,6 +271,12 @@
       <version>${jeasy.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>${jsoup.version}</version>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 
@@ -308,6 +316,61 @@
           <!-- Incremental compilation causes problems with vertx-codegen: https://bitly.com/3LpCY0A+ -->
           <useIncrementalCompilation>false</useIncrementalCompilation>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>${exec.plugin.version}</version>
+        <configuration>
+          <executable>npm</executable>
+          <workingDirectory>${project.basedir}/src/main/frontend</workingDirectory>
+        </configuration>
+        <executions>
+          <!-- Installs front-end application dependencies -->
+          <execution>
+            <id>front-end-dependencies</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>
+                <argument>install</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <!-- Runs front-end application build -->
+          <execution>
+            <id>front-end-build</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <executable>node_modules/.bin/vite</executable>
+              <arguments>
+                <argument>build</argument>
+                <argument>--outDir</argument>
+                <argument>${project.basedir}/target/classes/webroot</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <!-- Runs front-end application tests -->
+          <execution>
+            <id>front-end-test</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>test</phase>
+            <configuration>
+              <arguments>
+                <argument>run</argument>
+                <argument>test:unit</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>

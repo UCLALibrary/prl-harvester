@@ -35,6 +35,8 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.FaviconHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.openapi.RouterBuilder;
 import io.vertx.serviceproxy.ServiceBinder;
 import io.vertx.sqlclient.Pool;
@@ -135,8 +137,13 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx));
             routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx));
 
+            // Admin interface
+            routeBuilder.operation(Op.getAdmin.name()).handler(StaticHandler.create());
+
             router = routeBuilder.createRouter();
-            router.route().failureHandler(serviceExceptionHandler);
+            router.route("/assets/*").handler(StaticHandler.create("webroot/assets"));
+            router.route().handler(FaviconHandler.create(vertx, "webroot/favicon.ico"))
+                    .failureHandler(serviceExceptionHandler);
 
             return router;
         });
