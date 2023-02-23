@@ -6,6 +6,8 @@ OAI-PMH harvester for the Pacific Rim Library.
 
     mvn vertx:initialize vertx:run
 
+Building the front-end application requires Node.js version 16.0 or higher.
+
 ## The `debug` Maven Profile
 
 The POM includes a `debug` profile for making it easier to debug test classes annotated with `@ExtendWith(VertxExtension.class)`.

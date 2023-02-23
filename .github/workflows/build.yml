@@ -19,6 +19,10 @@ jobs:
           cache: maven
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
+      - name: Install NodeJS
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c #v3.6.0
+        with:
+          node-version: 16
       - name: Build with Maven
         uses: samuelmeuli/action-maven-publish@201a45a3f311b2ee888f252ba9f4194257545709 # v1.4.0
         with:
