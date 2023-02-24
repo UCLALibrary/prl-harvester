@@ -370,17 +370,17 @@
               </arguments>
             </configuration>
           </execution>
-          <!-- Formats the front-end application source code -->
+          <!-- Runs the front-end application source code format checker -->
           <execution>
-            <id>front-end-format</id>
+            <id>front-end-format-check</id>
             <goals>
               <goal>exec</goal>
             </goals>
-            <phase>prepare-package</phase>
+            <phase>verify</phase>
             <configuration>
               <arguments>
                 <argument>run</argument>
-                <argument>lint</argument>
+                <argument>lint:check</argument>
               </arguments>
             </configuration>
           </execution>
