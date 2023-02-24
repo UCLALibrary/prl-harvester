@@ -370,6 +370,20 @@
               </arguments>
             </configuration>
           </execution>
+          <!-- Formats the front-end application source code -->
+          <execution>
+            <id>front-end-format</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <arguments>
+                <argument>run</argument>
+                <argument>lint</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
