@@ -10,7 +10,7 @@ const props = defineProps({
     email: { type: String },
     phone: { type: String },
     webContact: { type: String },
-    website: { type: String },
+    website: { type: String, required: true },
     jobs: { type: Array, required: true },
 })
 const sortedJobs = computed(() => {
