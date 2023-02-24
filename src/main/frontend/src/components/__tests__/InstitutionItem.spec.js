@@ -8,7 +8,7 @@ const testInstitutionNoJobs = {
     id: 1,
     name: "Test Institution",
     description: "A description of the institution.",
-    location: "The institution's location.",
+    location: "The location of the institution.",
     email: "test@example.edu",
     phone: "+1 800 200 0000",
     webContact: "http://example.edu/contact",
