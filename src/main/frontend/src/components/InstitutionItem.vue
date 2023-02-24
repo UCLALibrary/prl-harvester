@@ -123,7 +123,6 @@ thead th {
 
 tbody tr:nth-child(odd) {
     background-color: #8bb8e8;
-    /* color: white; */
 }
 
 tbody tr:nth-child(even) {
