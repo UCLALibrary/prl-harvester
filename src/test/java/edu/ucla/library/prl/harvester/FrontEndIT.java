@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
 import org.jsoup.Jsoup;
-
+import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -67,37 +67,38 @@ public class FrontEndIT {
     @Test
     @SuppressWarnings("rawtypes")
     public void testAdminInterfaceRetrieval(final Vertx aVertx, final VertxTestContext aContext) {
-        final Checkpoint allAssetsResolve = aContext.checkpoint();
+        final Checkpoint indexHtmlResolves = aContext.checkpoint();
+        final Checkpoint linkedAssetsResolve = aContext.checkpoint();
 
         myWebClient.get("/admin").send().onSuccess(response -> {
-            aContext.verify(() -> {
-                final String responseBody = response.bodyAsString();
-                final Stream<Future<Void>> checkLinkElements;
-                final Stream<Future<Void>> checkScriptElements;
-                final Stream<Future<Void>> checkAllElements;
+            final Document html = Jsoup.parse(response.bodyAsString());
 
+            final Stream<Future<Void>> checkLinkElements = html.getElementsByTag("link").stream().map(elt -> {
+                final String href = elt.attr("href");
+
+                return myWebClient.get(href).send().compose(resp -> checkAssetResponse(href, resp));
+            });
+            final Stream<Future<Void>> checkScriptElements = html.getElementsByTag("script").stream().map(elt -> {
+                final String src = elt.attr("src");
+
+                return myWebClient.get(src).send().compose(resp -> checkAssetResponse(src, resp));
+            });
+            final Stream<Future<Void>> checkAllElements = Stream.concat(checkLinkElements, checkScriptElements);
+
+            // Verify index.html
+            aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_OK, response.statusCode());
                 assertTrue(response.getHeader(HttpHeaders.CONTENT_TYPE.toString())
                         .contains(MediaType.TEXT_HTML.toString()));
+                assertTrue(html.getElementsByTag("title").first().text().equals("PRL Harvester Admin"));
 
-                // Once the index.html response is verified, make sure all the assets linked within resolve
-
-                checkLinkElements = Jsoup.parse(responseBody).getElementsByTag("link").stream().map(element -> {
-                    final String href = element.attr("href");
-
-                    return myWebClient.get(href).send().compose(resp -> checkAssetResponse(href, resp));
-                });
-                checkScriptElements = Jsoup.parse(responseBody).getElementsByTag("script").stream().map(element -> {
-                    final String src = element.attr("src");
-
-                    return myWebClient.get(src).send().compose(resp -> checkAssetResponse(src, resp));
-                });
-                checkAllElements = Stream.concat(checkLinkElements, checkScriptElements);
-
-                CompositeFuture.all(checkAllElements.map(fut -> (Future) fut).toList()).onSuccess(result -> {
-                    allAssetsResolve.flag();
-                }).onFailure(aContext::failNow);
+                indexHtmlResolves.flag();
             });
+
+            // Verify linked asset resolution
+            CompositeFuture.all(checkAllElements.map(fut -> (Future) fut).toList()).onSuccess(result -> {
+                linkedAssetsResolve.flag();
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
