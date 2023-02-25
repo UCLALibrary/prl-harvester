@@ -16,7 +16,7 @@ fetch("/jobs")
     .then((response) => response.json())
     .then((jobs) => {
         jobs.forEach((job) => {
-            if (state.jobs[job.institutionID] == undefined) {
+            if (state.jobs[job.institutionID] === undefined) {
                 state.jobs[job.institutionID] = []
             }
 
