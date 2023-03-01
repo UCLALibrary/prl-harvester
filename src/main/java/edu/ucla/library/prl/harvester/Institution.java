@@ -5,11 +5,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+
+import org.apache.solr.common.SolrInputDocument;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
@@ -17,6 +20,8 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 import info.freelibrary.util.IllegalArgumentI18nException;
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -68,6 +73,11 @@ public final class Institution {
      * The JSON key for the website.
      */
     static final String WEBSITE = "website";
+
+    /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(Institution.class, MessageCodes.BUNDLE);
 
     /**
      * Parses and formats phone numbers.
@@ -252,6 +262,30 @@ public final class Institution {
         getID().ifPresent(id -> map.put(ID, id));
 
         return map;
+    }
+
+    /**
+     * @return The institution as a Solr document
+     * @throws NoSuchElementException If the institution hasn't yet been assigned an ID by the database
+     */
+    public SolrInputDocument toSolrDoc() {
+        final SolrInputDocument doc = new SolrInputDocument();
+
+        // Required fields
+        doc.setField(ID, String.format("prl-harvester-institution-%d", getID()
+                .orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022))).intValue()));
+        doc.setField("prrla_member_title", getName());
+        doc.setField("prrla_member_description", getDescription());
+        doc.setField("prrla_member_location", getLocation());
+        doc.setField("prrla_member_website", getWebsite().toString());
+
+        // Optional fields
+        getEmail().ifPresent(email -> doc.setField("prrla_member_email", email.getAddress()));
+        getPhone().ifPresent(phone -> doc.setField("prrla_member_phone",
+                PHONE_NUMBER_UTIL.format(phone, PhoneNumberFormat.INTERNATIONAL)));
+        getWebContact().ifPresent(webContact -> doc.setField("prrla_member_web_contact", webContact.toString()));
+
+        return doc;
     }
 
     /**

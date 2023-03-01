@@ -122,6 +122,7 @@ final class HarvestServiceUtils {
         }
 
         doc.addField("collectionName", setNames);
+        doc.addField("set_spec", setSpecs);
 
         for (final Element element : allElements) {
             final String name = element.getName();
