@@ -108,9 +108,9 @@ public class MainVerticle extends AbstractVerticle {
         final ServiceBinder serviceBinder = new ServiceBinder(vertx);
         final MessageConsumer<JsonObject> harvestService = serviceBinder.setAddress(HarvestService.ADDRESS)
                 .register(HarvestService.class, HarvestService.create(vertx, aConfig));
-        final MessageConsumer<JsonObject> scheduleStoreService =
-                serviceBinder.setAddress(HarvestScheduleStoreService.ADDRESS).register(
-                        HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(myDbConnectionPool));
+        final MessageConsumer<JsonObject> scheduleStoreService = serviceBinder
+                .setAddress(HarvestScheduleStoreService.ADDRESS).register(HarvestScheduleStoreService.class,
+                        HarvestScheduleStoreService.create(vertx, myDbConnectionPool));
 
         return HarvestJobSchedulerService.create(vertx, aConfig).map(service -> {
             final MessageConsumer<JsonObject> schedulerService = serviceBinder

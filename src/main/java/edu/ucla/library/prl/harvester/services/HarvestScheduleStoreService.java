@@ -36,11 +36,12 @@ public interface HarvestScheduleStoreService {
     /**
      * Creates an instance of the service.
      *
+     * @param aVertx A Vert.x instance
      * @param aDbConnectionPool A database connection pool
      * @return The service instance
      */
-    static HarvestScheduleStoreService create(final Pool aDbConnectionPool) {
-        return new HarvestScheduleStoreServiceImpl(aDbConnectionPool);
+    static HarvestScheduleStoreService create(final Vertx aVertx, final Pool aDbConnectionPool) {
+        return new HarvestScheduleStoreServiceImpl(aVertx, aDbConnectionPool);
     }
 
     /**

@@ -32,7 +32,9 @@ public final class AddJobHandler extends AbstractRequestHandler {
         try {
             final Job job = new Job(aContext.body().asJsonObject());
 
-            myHarvestJobSchedulerService.addJob(job).onSuccess(jobID -> {
+            myHarvestScheduleStoreService.addJob(job).compose(jobID -> {
+                return myHarvestJobSchedulerService.addJob(jobID, job).map(jobID);
+            }).onSuccess(jobID -> {
                 final JsonObject responseBody = Job.withID(job, jobID).toJson();
 
                 response.setStatusCode(HttpStatus.SC_CREATED)

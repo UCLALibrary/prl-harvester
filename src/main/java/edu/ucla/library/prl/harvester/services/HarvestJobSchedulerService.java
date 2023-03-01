@@ -71,10 +71,11 @@ public interface HarvestJobSchedulerService {
     /**
      * Adds a harvest job.
      *
+     * @param aJobId The unique local ID for the harvest job
      * @param aJob The harvest job to add
-     * @return A Future that succeeds, with a unique local ID for the harvest job, if it was added
+     * @return A Future that succeeds if the harvest job was added
      */
-    Future<Integer> addJob(Job aJob);
+    Future<Void> addJob(int aJobId, Job aJob);
 
     /**
      * Updates a harvest job.
