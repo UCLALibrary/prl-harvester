@@ -370,6 +370,20 @@
               </arguments>
             </configuration>
           </execution>
+          <!-- Runs the front-end application source code format checker -->
+          <execution>
+            <id>front-end-format-check</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <arguments>
+                <argument>run</argument>
+                <argument>lint:check</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
