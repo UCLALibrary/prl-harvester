@@ -98,6 +98,10 @@
 
     <!-- Parameterized user since we'll use for other harvesting applications too -->
     <test.db.user>prl</test.db.user>
+    
+    <!-- Specific types of skips -->
+    <skipUTs>false</skipUTs>
+    <skipITs>false</skipITs>
   </properties>
 
   <dependencyManagement>
@@ -181,6 +185,10 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-jdbc-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-auth-ldap</artifactId>
     </dependency>
     <dependency>
       <groupId>org.quartz-scheduler</groupId>
@@ -401,7 +409,6 @@
             <portName>test.provider.port</portName>
             <portName>test.auth.ldap</portName>
             <portName>test.auth.ldaps</portName>
-            <portName>test.auth.api</portName>
           </portNames>
         </configuration>
       </plugin>
@@ -481,10 +488,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <skip>${skipUTs}</skip>
           <argLine>${jacoco.agent.arg}</argLine>
-          <configuration>
-            <parallel>all</parallel>
-          </configuration>
+          <parallel>all</parallel>
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
@@ -498,10 +504,10 @@
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <skip>${skipITs}</skip>
           <argLine>${jacoco.agent.arg}</argLine>
-          <configuration>
-            <parallel>none</parallel><!-- This is intended to allow test classes to use shared database/HTTP connection pools without throwing IllegalStateException -->
-          </configuration>
+          <!-- Allows tests to use shared database/HTTP connection pools w/o throwing IllegalStateException(s) -->
+          <parallel>none</parallel>
           <environmentVariables>
             <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
             <HTTP_HOST>localhost</HTTP_HOST>
@@ -513,6 +519,7 @@
             <PGPORT>${test.db.port}</PGPORT>
             <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
             <TEST_PROVIDER_BASE_URL>http://localhost:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
+            <LDAP_URL>ldap://0.0.0.0:${test.auth.ldap}</LDAP_URL>
           </environmentVariables>
           <excludedGroups>real-provider</excludedGroups>
           <systemPropertyVariables>
@@ -775,7 +782,19 @@
               </run>
             </provider-initializer>
             <auth-ldap>
-              
+              <name>glauth/glauth:${glauth.version}</name>
+              <run>
+                <containerNamePattern>glauth</containerNamePattern>
+                <ports>
+                  <port>${test.auth.ldap}:3893</port>
+                  <port>${test.auth.ldaps}:3894</port>
+                </ports>
+                <volumes>
+                  <bind>
+                    <volume>${project.basedir}/target/test-classes/ldap/config.cfg:/app/config/config.cfg</volume>
+                  </bind>
+                </volumes>
+              </run>
             </auth-ldap>
           </imagesMap>
         </configuration>
