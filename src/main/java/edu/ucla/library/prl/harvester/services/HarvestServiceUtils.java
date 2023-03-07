@@ -114,15 +114,15 @@ final class HarvestServiceUtils {
         // Get an iterator over the elements inside the top-level "dc" element
         final List<Element> allElements = aRecord.getMetadata().getValue().getElements().get(0).getElements();
 
-        doc.addField("id", recordIdentifier);
-        doc.addField("institutionName", anInstitutionName);
+        doc.setField("id", recordIdentifier);
+        doc.setField("institutionName", anInstitutionName);
 
         for (final String setSpec : setSpecs) {
             setNames.add(aSetNameLookup.get(setSpec));
         }
 
-        doc.addField("collectionName", setNames);
-        doc.addField("set_spec", setSpecs);
+        doc.setField("collectionName", setNames);
+        doc.setField("set_spec", setSpecs);
 
         for (final Element element : allElements) {
             final String name = element.getName();
@@ -145,7 +145,7 @@ final class HarvestServiceUtils {
             if (thumbnailURL.isPresent()) {
                 LOGGER.debug(MessageCodes.PRL_018, recordIdentifier, thumbnailURL.get());
 
-                doc.addField("thumbnail_url", thumbnailURL.get().toString());
+                doc.setField("thumbnail_url", thumbnailURL.get().toString());
             }
 
             for (final Element element : allElements) {
@@ -176,11 +176,11 @@ final class HarvestServiceUtils {
 
             if (!stringifiedItemUrls.isEmpty()) {
                 // The URL with the highest score is probably the canonical item URL
-                doc.addField("external_link", stringifiedItemUrls.get(0).toString());
+                doc.setField("external_link", stringifiedItemUrls.get(0).toString());
             }
             if (stringifiedItemUrls.size() > 1) {
                 // All other URLs go in this field
-                doc.addField("alternate_external_link", stringifiedItemUrls.subList(1, stringifiedItemUrls.size()));
+                doc.setField("alternate_external_link", stringifiedItemUrls.subList(1, stringifiedItemUrls.size()));
             }
 
             for (final Element element : allElements) {
@@ -206,19 +206,19 @@ final class HarvestServiceUtils {
 
             // Now that we know which values are item URLs and thumbnail URLs, we can avoid them
             for (final Entry<String, List<String>> entry : dcElementsMap.entrySet()) {
-                doc.addField(entry.getKey() + "_keyword", entry.getValue());
+                doc.setField(entry.getKey() + "_keyword", entry.getValue());
 
                 switch (entry.getKey()) {
                     case DC_DATE:
                         final List<Integer> decades = DateUtils.getDecadesAscending(entry.getValue());
 
                         if (!decades.isEmpty()) {
-                            doc.addField("decade", decades);
-                            doc.addField("sort_decade", decades.get(0));
+                            doc.setField("decade", decades);
+                            doc.setField("sort_decade", decades.get(0));
                         }
                         break;
                     case DC_TITLE:
-                        doc.addField("first_title", entry.getValue().get(0));
+                        doc.setField("first_title", entry.getValue().get(0));
                         break;
                     default:
                         break;
