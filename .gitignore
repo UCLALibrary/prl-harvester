@@ -11,3 +11,6 @@ vertx-start-process.id
 
 # Generated build artifacts
 src/main/tools/eclipse
+
+# The upstream project's ruleset
+src/main/tools/pmd/ruleset.xml

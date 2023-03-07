@@ -138,6 +138,7 @@ public class HarvestJobSchedulerServiceIT {
             if (myService != null) {
                 return myService.close();
             }
+
             return Future.succeededFuture();
         }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
