@@ -8,7 +8,7 @@ There are a couple of dependencies a developer must have installed in order to b
 
 * A [JDK](https://adoptium.net/marketplace/) (&gt;=17)
 * [Maven](https://maven.apache.org/download.cgi) (&gt;=3.8)
-* [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (&gt;=16)
+* [Node.js](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (&gt;=16) and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 
 ## Running in Development
 
