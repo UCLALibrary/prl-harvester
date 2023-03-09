@@ -6,20 +6,20 @@ ARG ALPINE_TAG
 FROM alpine:${ALPINE_TAG}
 
 # Store some project metadata in the Docker image
-LABEL ContainerName="${project.name}" ContainerSourceCode=${project.url}
+LABEL ContainerName="${project.name}" ContainerSourceCode="${project.url}"
 
 # Install packages and setup the application's user
-WORKDIR /opt/${project.artifactId}
+WORKDIR "/opt/${project.artifactId}"
 RUN apk add openjdk17 --quiet --no-cache \
-  && addgroup -S ${project.artifactId} \
-  && adduser -S ${project.artifactId} -G ${project.artifactId} \
-  && chown ${project.artifactId}:${project.artifactId} /opt/${project.artifactId}
+  && addgroup -S "${project.artifactId}" \
+  && adduser -S "${project.artifactId}" -G "${project.artifactId}" \
+  && chown "${project.artifactId}":"${project.artifactId}" "/opt/${project.artifactId}"
 
 # Copy files from our build environment into the container
-COPY maven/${project.artifactId}-${project.version}.jar /opt/${project.artifactId}/
+COPY maven/"${project.artifactId}-${project.version}.jar" "/opt/${project.artifactId}/"
 
 # The user that runs the application
-USER ${project.artifactId}
+USER "${project.artifactId}"
 
 # The service's exposed port
 EXPOSE ${HTTP_PORT}

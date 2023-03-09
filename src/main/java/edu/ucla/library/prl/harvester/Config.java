@@ -66,6 +66,11 @@ public final class Config {
      */
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
 
+    /**
+     * The ENV property for the LDAP URL.
+     */
+    public static final String LDAP_URL = "LDAP_URL";
+
     // Below are additional configuration options required by test classes (i.e., not the application).
 
     /**

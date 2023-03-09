@@ -2,6 +2,14 @@
 
 OAI-PMH harvester for the Pacific Rim Library.
 
+## Dependencies
+
+There are a couple of dependencies a developer must have installed in order to build this project.
+
+* A [JDK](https://adoptium.net/marketplace/) (&gt;=17)
+* [Maven](https://maven.apache.org/download.cgi) (&gt;=3.8)
+* [Node.js](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (&gt;=16) and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+
 ## Running in Development
 
     mvn vertx:initialize vertx:run
@@ -30,3 +38,13 @@ Some of the integration tests run harvest jobs on OAI-PMH data providers running
 ```bash
 mvn verify -Ptest-real-providers
 ```
+
+## Independently testing the front-end application
+
+The prl-harvester's front-end application can be developed independently of the main prl-harvester application.
+
+To do this, follow the instructions on the front-end application's [README](src/main/frontend/README.md) file.
+
+## Contact
+
+We use an internal ticketing system, but we've left the GitHub [issues](https://github.com/UCLALibrary/prl-harvester/issues) open in case you'd like to file a ticket or make a suggestion.

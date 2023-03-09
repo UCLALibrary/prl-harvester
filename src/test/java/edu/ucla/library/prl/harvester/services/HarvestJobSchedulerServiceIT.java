@@ -21,14 +21,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
 import org.quartz.TriggerBuilder;
 
 import com.google.i18n.phonenumbers.NumberParseException;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
 
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
@@ -37,11 +40,7 @@ import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
-
 import io.ino.solrs.JavaAsyncSolrClient;
-
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -60,6 +59,7 @@ import io.vertx.sqlclient.Pool;
  */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
+@DisabledIfSystemProperty(named = "skipCronTests", matches = "true")
 public class HarvestJobSchedulerServiceIT {
 
     private static final Logger LOGGER =
@@ -137,9 +137,9 @@ public class HarvestJobSchedulerServiceIT {
         wipeBackingServices.compose(nil -> {
             if (myService != null) {
                 return myService.close();
-            } else {
-                return Future.succeededFuture();
             }
+
+            return Future.succeededFuture();
         }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
