@@ -104,7 +104,7 @@ public class HarvestJobSchedulerServiceIT {
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
 
             // Set up HarvestScheduleStoreService
-            final HarvestScheduleStoreService dbService = HarvestScheduleStoreService.create(dbConnectionPool);
+            final HarvestScheduleStoreService dbService = HarvestScheduleStoreService.create(aVertx, dbConnectionPool);
 
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)
                     .register(HarvestScheduleStoreService.class, dbService);
@@ -169,29 +169,33 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(initialJob -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(jobID -> {
             final Checkpoint jobResultReceived = aContext.checkpoint();
 
             LOGGER.debug(MessageCodes.PRL_030);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
-                final JobResult jobResult = new JobResult(message.body());
-                final CompositeFuture queryBackingServices =
-                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                TestUtils.getAllDocuments(mySolrClient));
+                // The application code that updates the database is listening on this address too, so wait a second to
+                // ensure that happened
+                aVertx.setTimer(1000, timerID -> {
+                    final JobResult jobResult = new JobResult(message.body());
+                    final CompositeFuture queryBackingServices =
+                            CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                    TestUtils.getAllDocuments(mySolrClient));
 
-                queryBackingServices.onSuccess(results -> {
-                    final Job job = results.resultAt(0);
-                    final SolrDocumentList solrDocs = results.resultAt(1);
+                    queryBackingServices.onSuccess(results -> {
+                        final Job job = results.resultAt(0);
+                        final SolrDocumentList solrDocs = results.resultAt(1);
 
-                    aContext.verify(() -> {
-                        assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
-                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
-                        assertTrue(job.getLastSuccessfulRun().isPresent());
-                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
-                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+                        aContext.verify(() -> {
+                            assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertTrue(job.getLastSuccessfulRun().isPresent());
+                            assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                    job.getLastSuccessfulRun().get().withNano(0).toInstant());
 
-                        jobResultReceived.flag();
+                            jobResultReceived.flag();
+                        });
                     });
                 });
             });
@@ -230,23 +234,27 @@ public class HarvestJobSchedulerServiceIT {
             LOGGER.debug(MessageCodes.PRL_031);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
-                final JobResult jobResult = new JobResult(message.body());
-                final CompositeFuture queryBackingServices =
-                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                TestUtils.getAllDocuments(mySolrClient));
+                // The application code that updates the database is listening on this address too, so wait a second to
+                // ensure that happened
+                aVertx.setTimer(1000, timerID -> {
+                    final JobResult jobResult = new JobResult(message.body());
+                    final CompositeFuture queryBackingServices =
+                            CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                    TestUtils.getAllDocuments(mySolrClient));
 
-                queryBackingServices.onSuccess(results -> {
-                    final Job job = results.resultAt(0);
-                    final SolrDocumentList solrDocs = results.resultAt(1);
+                    queryBackingServices.onSuccess(results -> {
+                        final Job job = results.resultAt(0);
+                        final SolrDocumentList solrDocs = results.resultAt(1);
 
-                    aContext.verify(() -> {
-                        assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
-                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
-                        assertTrue(job.getLastSuccessfulRun().isPresent());
-                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
-                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+                        aContext.verify(() -> {
+                            assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertTrue(job.getLastSuccessfulRun().isPresent());
+                            assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                    job.getLastSuccessfulRun().get().withNano(0).toInstant());
 
-                        jobResultReceived.flag();
+                            jobResultReceived.flag();
+                        });
                     });
                 });
             });
@@ -258,12 +266,18 @@ public class HarvestJobSchedulerServiceIT {
             myService = service;
 
             return addInstitution().compose(institutionID -> {
+                final Job job;
+
                 try {
-                    return service.addJob(new Job(institutionID, myTestProviderBaseURL, List.of(SET1),
-                            getFutureCronExpression(1), null));
+                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1), getFutureCronExpression(1),
+                            null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
                 }
+
+                return myHarvestScheduleStoreServiceProxy.addJob(job).compose(jobID -> {
+                    return service.addJob(jobID, job);
+                });
             });
         }).onSuccess(initialJob -> {
             LOGGER.debug(MessageCodes.PRL_030);
@@ -292,23 +306,27 @@ public class HarvestJobSchedulerServiceIT {
             LOGGER.debug(MessageCodes.PRL_030);
 
             aVertx.eventBus().<JsonObject>consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
-                final JobResult jobResult = new JobResult(message.body());
-                final CompositeFuture queryBackingServices =
-                        CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                TestUtils.getAllDocuments(mySolrClient));
+                // The application code that updates the database is listening on this address too, so wait a second to
+                // ensure that happened
+                aVertx.setTimer(1000, timerID -> {
+                    final JobResult jobResult = new JobResult(message.body());
+                    final CompositeFuture queryBackingServices =
+                            CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
+                                    TestUtils.getAllDocuments(mySolrClient));
 
-                queryBackingServices.onSuccess(results -> {
-                    final Job job = results.resultAt(0);
-                    final SolrDocumentList solrDocs = results.resultAt(1);
+                    queryBackingServices.onSuccess(results -> {
+                        final Job job = results.resultAt(0);
+                        final SolrDocumentList solrDocs = results.resultAt(1);
 
-                    aContext.verify(() -> {
-                        assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
-                        assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
-                        assertTrue(job.getLastSuccessfulRun().isPresent());
-                        assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
-                                job.getLastSuccessfulRun().get().withNano(0).toInstant());
+                        aContext.verify(() -> {
+                            assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertTrue(job.getLastSuccessfulRun().isPresent());
+                            assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
+                                    job.getLastSuccessfulRun().get().withNano(0).toInstant());
 
-                        jobResultReceived.flag();
+                            jobResultReceived.flag();
+                        });
                     });
                 });
             });

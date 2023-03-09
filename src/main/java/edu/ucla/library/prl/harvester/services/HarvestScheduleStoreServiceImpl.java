@@ -11,9 +11,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
@@ -146,13 +150,31 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
      */
     private final Pool myDbConnectionPool;
 
+    /**
+     * A handler that listens for job results and updates the database accordingly.
+     */
+    private final MessageConsumer<JsonObject> myJobResultHandler;
+
     // See: https://vertx.io/docs/vertx-sql-client-templates/java/#_mapping_with_jackson_databind
     static {
         DatabindCodec.mapper().registerModule(new JavaTimeModule());
     }
 
-    HarvestScheduleStoreServiceImpl(final Pool aDbConnectionPool) {
+    HarvestScheduleStoreServiceImpl(final Vertx aVertx, final Pool aDbConnectionPool) {
         myDbConnectionPool = aDbConnectionPool;
+
+        // Listen for completed jobs and update the database with the start time of the job's last successful run
+        myJobResultHandler = aVertx.eventBus().consumer(HarvestJobSchedulerService.JOB_RESULT_ADDRESS, message -> {
+            final JobResult jobResult = new JobResult(message.body());
+            final int jobID = jobResult.getJobID();
+
+            getJob(jobID).compose(job -> {
+                final Job withNewLastSuccessfulTime = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
+                        job.getSets().orElse(null), job.getScheduleCronExpression(), jobResult.getStartTime());
+
+                return updateJob(jobID, withNewLastSuccessfulTime);
+            });
+        });
     }
 
     @Override
@@ -328,6 +350,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<Void> close() {
-        return Future.succeededFuture();
+        return myJobResultHandler.unregister();
     }
 }

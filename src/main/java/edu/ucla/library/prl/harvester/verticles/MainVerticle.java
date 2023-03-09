@@ -24,6 +24,7 @@ import edu.ucla.library.prl.harvester.handlers.UpdateInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.UpdateJobHandler;
 import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
+import edu.ucla.library.prl.harvester.services.HarvestService;
 
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
@@ -65,26 +66,15 @@ public class MainVerticle extends AbstractVerticle {
     /**
      * The collection of deployed event bus services.
      */
-    private Set<MessageConsumer<?>> myEventBusServices;
+    private Set<MessageConsumer<JsonObject>> myEventBusServices;
 
     @Override
     public void start(final Promise<Void> aPromise) {
         ConfigRetriever.create(vertx).getConfig().compose(config -> {
-            final ServiceBinder serviceBinder = new ServiceBinder(vertx);
-            final MessageConsumer<?> scheduleStoreService;
-
             myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(vertx, config);
 
-            scheduleStoreService = serviceBinder.setAddress(HarvestScheduleStoreService.ADDRESS).register(
-                    HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(myDbConnectionPool));
-
-            return HarvestJobSchedulerService.create(vertx, config).compose(service -> {
-                final MessageConsumer<?> schedulerService;
-
-                schedulerService = serviceBinder.setAddress(HarvestJobSchedulerService.ADDRESS)
-                        .register(HarvestJobSchedulerService.class, service);
-
-                myEventBusServices = Set.of(schedulerService, scheduleStoreService);
+            return createEventBusServices(config).compose(services -> {
+                myEventBusServices = services;
 
                 return createRouter(config).compose(router -> createHttpServer(config, router));
             });
@@ -106,6 +96,28 @@ public class MainVerticle extends AbstractVerticle {
 
             return CompositeFuture.all(closeEventBusServices).compose(result -> myDbConnectionPool.close());
         }).onFailure(aPromise::fail).onSuccess(result -> aPromise.complete());
+    }
+
+    /**
+     * Creates the event bus services.
+     *
+     * @param aConfig A configuration
+     * @return A Future that resolves to the event bus services
+     */
+    public Future<Set<MessageConsumer<JsonObject>>> createEventBusServices(final JsonObject aConfig) {
+        final ServiceBinder serviceBinder = new ServiceBinder(vertx);
+        final MessageConsumer<JsonObject> harvestService = serviceBinder.setAddress(HarvestService.ADDRESS)
+                .register(HarvestService.class, HarvestService.create(vertx, aConfig));
+        final MessageConsumer<JsonObject> scheduleStoreService = serviceBinder
+                .setAddress(HarvestScheduleStoreService.ADDRESS).register(HarvestScheduleStoreService.class,
+                        HarvestScheduleStoreService.create(vertx, myDbConnectionPool));
+
+        return HarvestJobSchedulerService.create(vertx, aConfig).map(service -> {
+            final MessageConsumer<JsonObject> schedulerService = serviceBinder
+                    .setAddress(HarvestJobSchedulerService.ADDRESS).register(HarvestJobSchedulerService.class, service);
+
+            return Set.of(harvestService, schedulerService, scheduleStoreService);
+        });
     }
 
     /**

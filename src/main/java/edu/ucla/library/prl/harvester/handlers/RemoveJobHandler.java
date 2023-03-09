@@ -28,7 +28,9 @@ public final class RemoveJobHandler extends AbstractRequestHandler {
         try {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
 
-            myHarvestJobSchedulerService.removeJob(id).onSuccess(nil -> {
+            myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
+                return myHarvestJobSchedulerService.removeJob(id);
+            }).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
             }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {

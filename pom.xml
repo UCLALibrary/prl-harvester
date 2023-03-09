@@ -650,6 +650,7 @@
                   <PGPORT>${test.db.port}</PGPORT>
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+                  <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
                 </env>
                 <links>
                   <link>pgsql:pgsql</link>

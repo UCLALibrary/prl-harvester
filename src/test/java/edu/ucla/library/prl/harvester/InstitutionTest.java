@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -102,7 +103,7 @@ public class InstitutionTest {
         final String exampleName = "Name 1";
         final String exampleDescription = "Description 1";
         final String exampleLocation = "Location 1";
-        final Optional<InternetAddress> exampleEmail = Optional.of(new InternetAddress("test0@example.com"));
+        final Optional<InternetAddress> exampleEmail = Optional.of(new InternetAddress("test1@example.com"));
         final Optional<PhoneNumber> examplePhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 1000", null));
         final Optional<URL> exampleWebContact = Optional.of(new URL("http://example.com/1/contact"));
         final URL exampleWebsite = new URL("http://example.com/1");
@@ -206,7 +207,7 @@ public class InstitutionTest {
         final String validDescription = "Description 2";
         final String validLocation = "Location 2";
 
-        final String validEmail = new InternetAddress("test1@example.com", true).toString();
+        final String validEmail = new InternetAddress("test2@example.com", true).toString();
         final String invalidEmail = "@example.com"; // Missing username
 
         final String validPhone = PHONE_NUMBER_UTIL.format(PHONE_NUMBER_UTIL.parse("+1 888 200 2000", null),
@@ -274,7 +275,7 @@ public class InstitutionTest {
         final String validName = "Name 3";
         final String validDescription = "Description 3";
         final String validLocation = "Location 3";
-        final Optional<InternetAddress> validEmail = Optional.of(new InternetAddress("test2@example.com"));
+        final Optional<InternetAddress> validEmail = Optional.of(new InternetAddress("test3@example.com"));
         final Optional<PhoneNumber> validPhone = Optional.of(PHONE_NUMBER_UTIL.parse("+1 888 200 3000", null));
         final Optional<URL> validWebContact = Optional.of(new URL("http://example.com/3/contact"));
         final URL validWebsite = new URL("http://example.com/3");
@@ -308,5 +309,19 @@ public class InstitutionTest {
     @Test
     void testInstitutionNullJsonObject() {
         assertThrows(NullPointerException.class, () -> new Institution(null));
+    }
+
+    /**
+     * Tests that attempting to transform an institution without an ID into a Solr document throws an error.
+     */
+    @Test
+    void testInstitutionToSolrDocWithoutID() {
+        assertThrows(NoSuchElementException.class, () -> {
+            final Institution institution = new Institution("Name 5", "Description 5", "Location 5",
+                    Optional.of(new InternetAddress("test5@example.com")), Optional.empty(), Optional.empty(),
+                    new URL("http://example.com/5"));
+
+            institution.toSolrDoc();
+        });
     }
 }

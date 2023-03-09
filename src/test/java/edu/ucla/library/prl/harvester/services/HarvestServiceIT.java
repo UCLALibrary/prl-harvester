@@ -85,7 +85,7 @@ public class HarvestServiceIT {
             final Institution testInstitution;
             final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             final HarvestScheduleStoreService scheduleStoreService =
-                    HarvestScheduleStoreService.create(dbConnectionPool);
+                    HarvestScheduleStoreService.create(aVertx, dbConnectionPool);
             final HarvestService service = HarvestService.create(aVertx, config);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 

@@ -1037,6 +1037,7 @@
     <field name="prrla_member_location" type="string" />
     <field name="prrla_member_email" type="string" />
     <field name="prrla_member_phone" type="string" />
+    <field name="prrla_member_web_contact" type="string" />
     <field name="prrla_member_website" type="string" />
     <field name="prrla_member_latitude" type="string" />
     <field name="prrla_member_longitude" type="string" />
@@ -1084,6 +1085,7 @@
     <field name="sort_decade" type="string" />
     <field name="first_title" type="prrla_facet" />
     <field name="thumbnail_url" type="string" />
+    <field name="set_spec" type="string" multiValued="true" />
 
     <!-- Keyword search -->
     <field name="text" type="text_general" stored="false" multiValued="true" />

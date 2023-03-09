@@ -21,12 +21,13 @@
   <entry key="PRL_013">Failed to delete instituion with ID: {}</entry>
   <entry key="PRL_014">Failed to delete job with ID: {}</entry>
   <entry key="PRL_015">Failed job update: no match for job ID {} and institution ID {}</entry>
-  <entry key="PRL_016">Job found for fake nstitution ID: {}</entry>
+  <entry key="PRL_016">Job found for fake institution ID: {}</entry>
   <entry key="PRL_017">{} {} -> HTTP {} ({})</entry>
   <entry key="PRL_018">Thumbnail image for {} found at: {}</entry>
   <entry key="PRL_019">Failed institution update: no match for institution ID {}</entry>
   <entry key="PRL_020">Failed to schedule job with ID {}: {}</entry>
   <entry key="PRL_021">Failed to unschedule job with ID {}: {}</entry>
+  <entry key="PRL_022">An Institution must be assigned a unique identifier by the database before this operation can be performed</entry>
 
   <entry key="PRL_030">Database initialized</entry>
   <entry key="PRL_031">Service instantiated</entry>

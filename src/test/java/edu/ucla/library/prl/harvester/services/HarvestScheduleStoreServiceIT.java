@@ -90,7 +90,7 @@ public class HarvestScheduleStoreServiceIT {
 
         retriever.getConfig().compose(config -> {
             final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
-            final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(dbConnectionPool);
+            final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(aVertx, dbConnectionPool);
             final ServiceBinder binder = new ServiceBinder(aVertx);
 
             myHarvestScheduleStoreService = binder.setAddress(HarvestScheduleStoreService.ADDRESS)

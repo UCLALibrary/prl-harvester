@@ -17,7 +17,6 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 
 import edu.ucla.library.prl.harvester.Job;
-import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 
 import info.freelibrary.util.Logger;
@@ -55,11 +54,6 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     private static final String HARVEST_SERVICE = "harvestService";
 
     /**
-     * The {@link SchedulerContext} key for the harvest schedule store service proxy.
-     */
-    private static final String HARVEST_SCHEDULE_STORE_SERVICE = "harvestScheduleStoreService";
-
-    /**
      * A proxy to the harvest service, for running jobs.
      */
     @SuppressWarnings("PMD.SingularField")
@@ -89,25 +83,22 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
         myScheduler = new StdSchedulerFactory().getScheduler();
         myScheduler.getContext().put(VERTX_EVENT_BUS, aVertx.eventBus());
         myScheduler.getContext().put(HARVEST_SERVICE, myHarvestService);
-        myScheduler.getContext().put(HARVEST_SCHEDULE_STORE_SERVICE, myHarvestScheduleStoreService);
         myScheduler.start();
     }
 
     @Override
-    public Future<Integer> addJob(final Job aJob) {
-        return myHarvestScheduleStoreService.addJob(aJob)
-                .compose(jobID -> scheduleJob(Job.withID(aJob, jobID), false).map(jobID));
+    public Future<Void> addJob(final int aJobId, final Job aJob) {
+        return scheduleJob(aJobId, aJob, false);
     }
 
     @Override
     public Future<Void> updateJob(final int aJobId, final Job aJob) {
-        return myHarvestScheduleStoreService.updateJob(aJobId, aJob)
-                .compose(nil -> scheduleJob(Job.withID(aJob, aJobId), true));
+        return scheduleJob(aJobId, aJob, true);
     }
 
     @Override
     public Future<Void> removeJob(final int aJobId) {
-        return myHarvestScheduleStoreService.removeJob(aJobId).compose(nil -> unscheduleJob(aJobId));
+        return unscheduleJob(aJobId);
     }
 
     @Override
@@ -131,19 +122,21 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     @SuppressWarnings("rawtypes")
     Future<Void> initializeScheduler() {
         return myHarvestScheduleStoreService.listJobs().compose(jobs -> {
-            return CompositeFuture.all(jobs.stream().map(job -> (Future) scheduleJob(job, true)).toList());
+            return CompositeFuture
+                    .all(jobs.stream().map(job -> (Future) scheduleJob(job.getID().get(), job, true)).toList());
         }).mapEmpty();
     }
 
     /**
+     * @param aJobID A job ID
      * @param aJob A job
      * @param aReplaceIfExists Whether or not to overwrite the job if it already exists
      * @return A Future that succeeds if the job was added to, or updated in, the scheduler
      */
-    private Future<Void> scheduleJob(final Job aJob, final boolean aReplaceIfExists) {
-        final JobKey key = new JobKey(Integer.toString(aJob.getID().get()));
+    private Future<Void> scheduleJob(final int aJobID, final Job aJob, final boolean aReplaceIfExists) {
+        final JobKey key = new JobKey(Integer.toString(aJobID));
         final JobDetail jobDetail = JobBuilder.newJob(RunHarvest.class).withIdentity(key)
-                .usingJobData(ENCODED_JOB_JSON, aJob.toJson().encode()).build();
+                .usingJobData(ENCODED_JOB_JSON, Job.withID(aJob, aJobID).toJson().encode()).build();
         final CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.cronSchedule(aJob.getScheduleCronExpression());
         final CronTrigger trigger =
                 TriggerBuilder.newTrigger().withSchedule(scheduleBuilder).startNow().endAt(null).build();
@@ -204,19 +197,8 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
                 final HarvestService harvestService = (HarvestService) schedulerContext.get(HARVEST_SERVICE);
                 final EventBus eventBus = (EventBus) schedulerContext.get(VERTX_EVENT_BUS);
 
-                // Do the work
-                final Future<JobResult> execution = harvestService.run(job).compose(jobResult -> {
-                    final int jobID = Integer.parseInt(jobDetail.getKey().getName());
-                    final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
-                            job.getSets().orElse(null), job.getScheduleCronExpression(), jobResult.getStartTime());
-                    final HarvestScheduleStoreService scheduleStoreService =
-                            (HarvestScheduleStoreService) schedulerContext.get(HARVEST_SCHEDULE_STORE_SERVICE);
-
-                    return scheduleStoreService.updateJob(jobID, updatedJob).map(jobResult);
-                });
-
-                // Publish the result
-                execution.onSuccess(jobResult -> {
+                // Do the work and publish the result
+                harvestService.run(job).onSuccess(jobResult -> {
                     eventBus.publish(JOB_RESULT_ADDRESS, jobResult.toJson());
                 }).onFailure(details -> {
                     eventBus.publish(ERROR_ADDRESS, details.getMessage());

@@ -3,12 +3,9 @@ package edu.ucla.library.prl.harvester.services;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -17,17 +14,13 @@ import org.apache.solr.common.SolrInputDocument;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
-import org.dspace.xoai.serviceprovider.exceptions.BadArgumentException;
-import org.dspace.xoai.serviceprovider.exceptions.NoSetHierarchyException;
-import org.dspace.xoai.serviceprovider.parameters.ListRecordsParameters;
-
-import com.google.common.collect.ImmutableList;
 
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.OaipmhUtils;
 
 import info.freelibrary.util.IllegalArgumentI18nException;
 import info.freelibrary.util.Logger;
@@ -37,7 +30,6 @@ import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -91,7 +83,7 @@ public class HarvestServiceImpl implements HarvestService {
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
         final int institutionID = aJob.getInstitutionID();
-        final Future<ImmutableList<Set>> listSets = listSetsAsync(baseURL);
+        final Future<List<Set>> listSets = OaipmhUtils.listSets(myVertx, baseURL);
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
         if (aJob.getID().isEmpty()) {
@@ -123,7 +115,8 @@ public class HarvestServiceImpl implements HarvestService {
             LOGGER.debug(MessageCodes.PRL_008, aJob.toJson(), startTime);
 
             // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
-            harvest = listRecords(baseURL, targetSets, aJob.getMetadataPrefix(), aJob.getLastSuccessfulRun());
+            harvest = OaipmhUtils.listRecords(myVertx, baseURL, targetSets, aJob.getMetadataPrefix(),
+                    aJob.getLastSuccessfulRun());
 
             return harvest.compose(records -> {
                 final Future<Void> solrResult;
@@ -139,37 +132,6 @@ public class HarvestServiceImpl implements HarvestService {
         }).recover(details -> {
             // TODO: consider retrying on failure
             return Future.failedFuture(new ServiceException(hashCode(), details.toString()));
-        });
-    }
-
-    /**
-     * Performs a listRecords operation.
-     *
-     * @param aBaseURL The OAI-PMH base URL
-     * @param aSets The non-empty list of sets to harvest
-     * @param aMetadataPrefix The OAI-PMH metadata prefix
-     * @param aFrom The optional timestamp of the last successful run
-     * @return The list of OAI-PMH records
-     */
-    private Future<List<Record>> listRecords(final URL aBaseURL, final List<String> aSets, final String aMetadataPrefix,
-            final Optional<OffsetDateTime> aFrom) {
-        @SuppressWarnings("rawtypes")
-        final List<Future> selectiveHarvests = new LinkedList<>();
-
-        for (final String setSpec : aSets) {
-            final ListRecordsParameters params =
-                    ListRecordsParameters.request().withMetadataPrefix(aMetadataPrefix).withSetSpec(setSpec);
-
-            aFrom.ifPresent(from -> params.withFrom(Date.from(from.toInstant())));
-
-            selectiveHarvests.add(listRecordsAsync(aBaseURL, params));
-        }
-
-        return CompositeFuture.all(selectiveHarvests).map(result -> {
-            final List<ImmutableList<Record>> results = result.<ImmutableList<Record>>list();
-
-            // Flatten the list of lists
-            return results.parallelStream().flatMap(List::parallelStream).collect(Collectors.toUnmodifiableList());
         });
     }
 
@@ -202,52 +164,6 @@ public class HarvestServiceImpl implements HarvestService {
 
             return Future.fromCompletionStage(updateResponse);
         });
-    }
-
-    /**
-     * Provides an asynchronous API for the synchronous XOAI listSets API.
-     *
-     * @param aBaseURL An OAI-PMH base URL
-     * @return A Future that resolves to a list of OAI-PMH sets
-     */
-    private Future<ImmutableList<Set>> listSetsAsync(final URL aBaseURL) {
-        final Promise<ImmutableList<Set>> promise = Promise.promise();
-
-        myVertx.<ImmutableList<Set>>executeBlocking(execution -> {
-            try {
-                final Iterator<Set> synchronousResult = HarvestServiceUtils.getNewOaipmhClient(aBaseURL).listSets();
-
-                execution.complete(ImmutableList.copyOf(synchronousResult));
-            } catch (final NoSetHierarchyException details) {
-                execution.fail(details.getCause());
-            }
-        }, false, promise);
-
-        return promise.future();
-    }
-
-    /**
-     * Provides an asynchronous API for the synchronous XOAI listRecords API.
-     *
-     * @param aBaseURL An OAI-PMH base URL
-     * @param aParams The OAI-PMH request parameters
-     * @return A Future that resolves to a list of OAI-PMH records
-     */
-    private Future<ImmutableList<Record>> listRecordsAsync(final URL aBaseURL, final ListRecordsParameters aParams) {
-        final Promise<ImmutableList<Record>> promise = Promise.promise();
-
-        myVertx.<ImmutableList<Record>>executeBlocking(execution -> {
-            try {
-                final Iterator<Record> synchronousResult =
-                        HarvestServiceUtils.getNewOaipmhClient(aBaseURL).listRecords(aParams);
-
-                execution.complete(ImmutableList.copyOf(synchronousResult));
-            } catch (final BadArgumentException details) {
-                execution.fail(details.getCause());
-            }
-        }, false, promise);
-
-        return promise.future();
     }
 
     @Override

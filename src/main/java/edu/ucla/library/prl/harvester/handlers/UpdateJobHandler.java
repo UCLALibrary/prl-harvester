@@ -34,7 +34,9 @@ public final class UpdateJobHandler extends AbstractRequestHandler {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
             final Job job = new Job(aContext.body().asJsonObject());
 
-            myHarvestJobSchedulerService.updateJob(id, job).onSuccess(nil -> {
+            myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
+                return myHarvestJobSchedulerService.updateJob(id, job);
+            }).onSuccess(nil -> {
                 final JsonObject responseBody = Job.withID(job, id).toJson();
 
                 response.setStatusCode(HttpStatus.SC_OK)
