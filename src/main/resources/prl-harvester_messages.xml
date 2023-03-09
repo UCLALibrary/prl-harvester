@@ -37,4 +37,6 @@
   <entry key="PRL_034">At {}, we can be reasonably certain the job has been removed</entry>
   <entry key="PRL_035">JobResult received, but the Job should have been unscheduled</entry>
   <entry key="PRL_036">The static asset {} could not be resolved: HTTP {} {}</entry>
+  <entry key="PRL_037">Contents of Solr after {}: {}</entry>
+
 </properties>

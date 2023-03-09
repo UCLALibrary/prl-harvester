@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +33,6 @@ import info.freelibrary.util.LoggerFactory;
 import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -114,11 +114,15 @@ public class JobRequestsFT {
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
+     * @param aTestInfo Information about the current test
      */
     @AfterEach
-    public void afterEach(final Vertx aVertx, final VertxTestContext aContext) {
-        CompositeFuture.all(TestUtils.wipeDatabase(myDbConnectionPool), TestUtils.wipeSolr(mySolrClient))
-                .onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+    public void afterEach(final Vertx aVertx, final VertxTestContext aContext, final TestInfo aTestInfo) {
+        TestUtils.getAllDocuments(mySolrClient).compose(result -> {
+            LOGGER.info(MessageCodes.PRL_037, aTestInfo.getDisplayName(), result.toString());
+
+            return TestUtils.resetApplication(myWebClient);
+        }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -157,6 +161,7 @@ public class JobRequestsFT {
     @Test
     void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Job job;
         final Future<HttpResponse<Buffer>> addJob;
 
@@ -180,6 +185,8 @@ public class JobRequestsFT {
 
                 responseVerified.flag();
             });
+
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
 
             // Second request
             listJobs = myWebClient.get(JOBS).expect(ResponsePredicate.JSON).send();
@@ -208,6 +215,7 @@ public class JobRequestsFT {
     @Test
     void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Job job;
         final Future<HttpResponse<Buffer>> addJob;
 
@@ -232,6 +240,8 @@ public class JobRequestsFT {
 
                 responseVerified.flag();
             });
+
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -262,6 +272,7 @@ public class JobRequestsFT {
     @Test
     void testGetAfterUpdateAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job job;
         final Job updatedJob;
         final Future<HttpResponse<Buffer>> addJob;
@@ -289,6 +300,8 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
             updateJob = myWebClient.put(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON)
@@ -304,6 +317,8 @@ public class JobRequestsFT {
 
                     responseVerified.flag();
                 });
+
+                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, updatedJob, true);
 
                 // Third request
                 getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
@@ -333,6 +348,7 @@ public class JobRequestsFT {
     @Test
     void testGetAfterRemoveAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job job;
         final Future<HttpResponse<Buffer>> addJob;
 
@@ -358,6 +374,8 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
             removeJob = myWebClient.delete(JOB.expandToString(jobID)).send();
@@ -370,6 +388,8 @@ public class JobRequestsFT {
 
                     responseVerified.flag();
                 });
+
+                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, false);
 
                 // Third request
                 getJob = myWebClient.get(JOB.expandToString(jobID)).send();
@@ -410,6 +430,8 @@ public class JobRequestsFT {
      */
     @Test
     void testUpdateBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Job job;
         final Future<HttpResponse<Buffer>> updateJob;
 
@@ -425,7 +447,11 @@ public class JobRequestsFT {
         updateJob.onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
-            }).completeNow();
+
+                responseVerified.flag();
+            });
+
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, false);
         }).onFailure(aContext::failNow);
     }
 
@@ -452,6 +478,8 @@ public class JobRequestsFT {
      */
     @Test
     void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Job validJob;
         final JsonObject invalidJobJson;
 
@@ -467,7 +495,12 @@ public class JobRequestsFT {
         myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
-            }).completeNow();
+
+                responseVerified.flag();
+
+            });
+
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, false);
         }).onFailure(aContext::failNow);
     }
 
@@ -480,6 +513,7 @@ public class JobRequestsFT {
     @Test
     void testUpdateInvalidJobAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job validJob;
         final Future<HttpResponse<Buffer>> addJob;
 
@@ -504,7 +538,10 @@ public class JobRequestsFT {
                 assertTrue(responseJob.getID().isPresent());
 
                 responseVerified.flag();
+
             });
+
+            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, true);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -516,7 +553,10 @@ public class JobRequestsFT {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateJobResponse.statusCode());
 
                     responseVerified.flag();
+
                 });
+
+                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, true);
 
                 return Future.succeededFuture();
             });

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.MalformedURLException;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.mail.internet.AddressException;
 
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +33,6 @@ import info.freelibrary.util.LoggerFactory;
 import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -86,11 +88,15 @@ public class InstitutionRequestsFT {
     /**
      * @param aVertx A Vert.x instance
      * @param aContext A test context
+     * @param aTestInfo Information about the current test
      */
     @AfterEach
-    public void afterEach(final Vertx aVertx, final VertxTestContext aContext) {
-        CompositeFuture.all(TestUtils.wipeDatabase(myDbConnectionPool), TestUtils.wipeSolr(mySolrClient))
-                .onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+    public void afterEach(final Vertx aVertx, final VertxTestContext aContext, final TestInfo aTestInfo) {
+        TestUtils.getAllDocuments(mySolrClient).compose(result -> {
+            LOGGER.info(MessageCodes.PRL_037, aTestInfo.getDisplayName(), result.toString());
+
+            return TestUtils.resetApplication(myWebClient);
+        }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -129,6 +135,8 @@ public class InstitutionRequestsFT {
     @Test
     void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint solrVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
 
@@ -152,6 +160,10 @@ public class InstitutionRequestsFT {
 
                 responseVerified.flag();
             });
+
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                    Optional.of(Set.of(responseInstitution)));
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
 
             // Second request
             listInstitutions = myWebClient.get(INSTITUTIONS).expect(ResponsePredicate.JSON).send();
@@ -181,6 +193,8 @@ public class InstitutionRequestsFT {
     @Test
     void testGetAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint solrVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
 
@@ -205,6 +219,10 @@ public class InstitutionRequestsFT {
 
                 responseVerified.flag();
             });
+
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                    Optional.of(Set.of(responseInstitution)));
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
@@ -236,6 +254,8 @@ public class InstitutionRequestsFT {
     @Test
     void testGetAfterUpdateAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
+        final Checkpoint solrVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution institution;
         final Institution updatedInstitution;
         final Future<HttpResponse<Buffer>> addInstitution;
@@ -263,6 +283,10 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                    Optional.of(Set.of(responseInstitution)));
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
             updateInstitution = myWebClient.put(INSTITUTION.expandToString(institutionID))
@@ -278,6 +302,11 @@ public class InstitutionRequestsFT {
 
                     responseVerified.flag();
                 });
+
+                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                        Optional.of(Set.of(responseInstitution2)));
+                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool,
+                        updatedInstitution, true);
 
                 // Third request
                 getInstitution = myWebClient.get(INSTITUTION.expandToString(institutionID))
@@ -309,6 +338,8 @@ public class InstitutionRequestsFT {
     @Test
     void testGetAfterRemoveAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(3);
+        final Checkpoint solrVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution institution;
         final Future<HttpResponse<Buffer>> addInstitution;
 
@@ -334,6 +365,10 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                    Optional.of(Set.of(responseInstitution)));
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
             removeInstitution = myWebClient.delete(INSTITUTION.expandToString(institutionID)).send();
@@ -346,6 +381,10 @@ public class InstitutionRequestsFT {
 
                     responseVerified.flag();
                 });
+
+                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
+                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution,
+                        false);
 
                 // Third request
                 getInstitution = myWebClient.get(INSTITUTION.expandToString(institutionID)).send();
@@ -386,6 +425,9 @@ public class InstitutionRequestsFT {
      */
     @Test
     void testUpdateBeforeAdd(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint solrVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Institution institution;
         final Future<HttpResponse<Buffer>> updateInstitution;
 
@@ -402,7 +444,13 @@ public class InstitutionRequestsFT {
         updateInstitution.onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_NOT_FOUND, response.statusCode());
-            }).completeNow();
+
+                responseVerified.flag();
+            });
+
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution,
+                    false);
         }).onFailure(aContext::failNow);
     }
 
@@ -429,6 +477,9 @@ public class InstitutionRequestsFT {
      */
     @Test
     void testAddInvalidInstitution(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint solrVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
         final Institution validInstitution;
         final JsonObject invalidInstitutionJson;
 
@@ -444,7 +495,13 @@ public class InstitutionRequestsFT {
         myWebClient.post(INSTITUTIONS).sendJson(invalidInstitutionJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
-            }).completeNow();
+
+                responseVerified.flag();
+            });
+
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, validInstitution,
+                    false);
         }).onFailure(aContext::failNow);
     }
 
@@ -458,6 +515,8 @@ public class InstitutionRequestsFT {
     @Test
     void testUpdateInvalidInstitutionAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
+        final Checkpoint solrVerified = aContext.checkpoint(2);
+        final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution validInstitution;
         final Future<HttpResponse<Buffer>> addInstitution;
 
@@ -485,6 +544,11 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
+            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                    Optional.of(Set.of(responseInstitution)));
+            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, validInstitution,
+                    true);
+
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
             invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
@@ -496,7 +560,13 @@ public class InstitutionRequestsFT {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateInstitutionResponse.statusCode());
 
                     responseVerified.flag();
+
                 });
+
+                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
+                        Optional.of(Set.of(responseInstitution)));
+                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool,
+                        validInstitution, true);
 
                 return Future.succeededFuture();
             });
