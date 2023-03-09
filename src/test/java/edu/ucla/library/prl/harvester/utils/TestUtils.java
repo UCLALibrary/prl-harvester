@@ -17,12 +17,11 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
-import io.vertx.junit5.Checkpoint;
-import io.vertx.junit5.VertxTestContext;
-import io.vertx.junit5.VertxTestContext.ExecutionBlock;
 import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlResult;
-import io.vertx.sqlclient.Tuple;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.uritemplate.UriTemplate;
 import io.vertx.uritemplate.Variables;
@@ -104,8 +103,6 @@ public final class TestUtils {
     private static final OffsetDateTimeRandomizer RAND_DATE = new OffsetDateTimeRandomizer();
 
     private static final String SOLR_SELECT_ALL = "*:*";
-
-    private static final String SOLR_SELECT_BY_ID = "id:\"{}\"";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestUtils.class, MessageCodes.BUNDLE);
 
@@ -194,19 +191,17 @@ public final class TestUtils {
     }
 
     /**
-     * Clears out the Solr index of item records associated with a single institution.
+     * Removes item records associated with a single institution from the Solr index.
      *
      * @param aSolrClient A Solr client
      * @param anInstitutionName The name of the institution whose item records should be removed
      * @return A Future that succeeds if the Solr index was modified successfully, and fails otherwise
      */
-    public static Future<UpdateResponse> wipeSolrRecords(final JavaAsyncSolrClient aSolrClient,
+    public static Future<UpdateResponse> removeItemRecords(final JavaAsyncSolrClient aSolrClient,
             final String anInstitutionName) {
-        final CompletionStage<UpdateResponse> wipeSolrRecords =
-                aSolrClient.deleteByQuery(StringUtils.format("institutionName:\"{}\"", anInstitutionName))
-                        .thenCompose(result -> aSolrClient.commit());
+        final String query = StringUtils.format("institutionName:\"{}\"", anInstitutionName);
 
-        return Future.fromCompletionStage(wipeSolrRecords);
+        return Future.fromCompletionStage(aSolrClient.deleteByQuery(query).thenCompose(result -> aSolrClient.commit()));
     }
 
     /**
@@ -214,32 +209,9 @@ public final class TestUtils {
      * @return A Future that resolves to the list of all documents
      */
     public static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
-        final CompletionStage<SolrDocumentList> results =
-                aSolrClient.query(getSolrParamsFromQuery(SOLR_SELECT_ALL)).thenApply(QueryResponse::getResults);
+        final SolrParams params = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
 
-        return Future.fromCompletionStage(results);
-    }
-
-    /**
-     * @param aSolrClient A Solr client
-     * @param anInstitutionName An institution name
-     * @return A Future that resolves to the list of documents that should not exceed a size of 1
-     */
-    public static Future<SolrDocumentList> getInstitutionDoc(final JavaAsyncSolrClient aSolrClient,
-            final String anInstitutionName) {
-        final String query = StringUtils.format(SOLR_SELECT_BY_ID, anInstitutionName);
-        final CompletionStage<SolrDocumentList> results =
-                aSolrClient.query(getSolrParamsFromQuery(query)).thenApply(QueryResponse::getResults);
-
-        return Future.fromCompletionStage(results);
-    }
-
-    /**
-     * @param aQuery A Solr query string
-     * @return The params
-     */
-    private static SolrParams getSolrParamsFromQuery(final String aQuery) {
-        return new NamedList<>(Map.of("q", aQuery)).toSolrParams();
+        return Future.fromCompletionStage(aSolrClient.query(params).thenApply(QueryResponse::getResults));
     }
 
     /**
@@ -284,133 +256,95 @@ public final class TestUtils {
 
                 return CompositeFuture.all(instIDs.map(deleteInst).toList());
             });
-        }).compose(result -> {
-            return result.mapEmpty();
+        }).mapEmpty();
+    }
+
+    /**
+     * Constructs some assertions for the institutions table in the database.
+     *
+     * @param aDbConnectionPool A database connection pool
+     * @param anInstitutionList The optional exhaustive list of institutions that must be represented in the database
+     * @return A Future that resolves to a Runnable consisting of the assertions
+     */
+    public static Future<Runnable> getDatabaseInstitutionAssertions(final Pool aDbConnectionPool,
+            final Optional<Set<Institution>> anInstitutionList) {
+        return aDbConnectionPool.withConnection(connection -> {
+            final String query = """
+                SELECT name, description, location, email, phone, webContact AS "webContact", website
+                FROM public.institutions
+                """;
+
+            return connection.query(query).execute();
+        }).map(result -> {
+            if (anInstitutionList.isPresent()) {
+                return () -> {
+                    final Set<Institution> institutions = anInstitutionList.get();
+
+                    assertEquals(institutions.size(), result.rowCount());
+
+                    for (final Institution institution : institutions) {
+                        assertTrue(matchingRowExists(result, institution.toJson()));
+                    }
+                };
+            }
+
+            return () -> {
+                assertEquals(0, result.rowCount());
+            };
         });
     }
 
     /**
-     * Runs some assertions on institution rows in a database.
+     * Constructs some assertions for the jobs table in the database.
      *
-     * @param aContext A test context
-     * @param aCheckpoint A checkpoint that will be flagged if the appropriate assertions pass
      * @param aDbConnectionPool A database connection pool
-     * @param anInstitution An institution that may or not be represented in the database
-     * @param anExpectedExistence Whether or not an institution is expected to be represented in the database
+     * @param aJobList The optional exhaustive list of jobs that must be represented in the database
+     * @return A Future that resolves to a Runnable consisting of the assertions
      */
-    public static void assertExpectedDatabaseInstitutionRow(final VertxTestContext aContext,
-            final Checkpoint aCheckpoint, final Pool aDbConnectionPool, final Institution anInstitution,
-            final boolean anExpectedExistence) {
-        aDbConnectionPool.withConnection(connection -> {
-            final String query = """
-                SELECT id, name, description, location, email, phone, webContact AS "webContact", website
-                FROM public.institutions
-                WHERE name = $1
-                """;
-
-            return connection.preparedQuery(query).execute(Tuple.of(anInstitution.getName()));
-        }).onSuccess(result -> {
-            final ExecutionBlock checksToRun;
-
-            if (anExpectedExistence) {
-                checksToRun = () -> {
-                    final JsonObject expected;
-                    final Institution institution;
-
-                    assertEquals(1, result.rowCount());
-
-                    institution = new Institution(result.iterator().next().toJson());
-                    expected = anInstitution.toJson().put(Institution.ID, institution.getID()
-                            .orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022))));
-
-                    assertEquals(expected, institution.toJson());
-
-                    aCheckpoint.flag();
-                };
-            } else {
-                checksToRun = () -> {
-                    assertEquals(0, result.rowCount());
-
-                    aCheckpoint.flag();
-                };
-            }
-
-            aContext.verify(checksToRun);
-        }).onFailure(aContext::failNow);
-    }
-
-    /**
-     * Runs some assertions on job rows in a database.
-     *
-     * @param aContext A test context
-     * @param aCheckpoint A checkpoint that will be flagged if the appropriate assertions pass
-     * @param aDbConnectionPool A database connection pool
-     * @param aJob A job that may or not be represented in the database
-     * @param anExpectedExistence Whether or not a job is expected to be represented in the database
-     */
-    public static void assertExpectedDatabaseJobRow(final VertxTestContext aContext, final Checkpoint aCheckpoint,
-            final Pool aDbConnectionPool, final Job aJob, final boolean anExpectedExistence) {
-        aDbConnectionPool.withConnection(connection -> {
+    public static Future<Runnable> getDatabaseJobAssertions(final Pool aDbConnectionPool,
+            final Optional<Set<Job>> aJobList) {
+        return aDbConnectionPool.withConnection(connection -> {
             final String query = """
                 SELECT
-                    id, institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+                    institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
                     metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
                     scheduleCronExpression AS "scheduleCronExpression"
                 FROM public.harvestjobs
-                WHERE repositoryBaseURL = $1
                 """;
 
-            return connection.preparedQuery(query).execute(Tuple.of(aJob.getRepositoryBaseURL().toString()));
-        }).onSuccess(result -> {
-            final ExecutionBlock checksToRun;
+            return connection.query(query).execute();
+        }).map(result -> {
+            if (aJobList.isPresent()) {
+                return () -> {
+                    final Set<Job> jobs = aJobList.get();
 
-            if (anExpectedExistence) {
-                checksToRun = () -> {
-                    final JsonObject expected;
-                    final Job job;
+                    assertEquals(jobs.size(), result.rowCount());
 
-                    assertEquals(1, result.rowCount());
-
-                    job = new Job(result.iterator().next().toJson());
-                    expected = aJob.toJson().put(Job.ID, job.getID()
-                            .orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023))));
-
-                    assertEquals(expected, job.toJson());
-
-                    aCheckpoint.flag();
-                };
-            } else {
-                checksToRun = () -> {
-                    assertEquals(0, result.rowCount());
-
-                    aCheckpoint.flag();
+                    for (final Job job : jobs) {
+                        assertTrue(matchingRowExists(result, job.toJson()));
+                    }
                 };
             }
 
-            aContext.verify(checksToRun);
-        }).onFailure(aContext::failNow);
+            return () -> {
+                assertEquals(0, result.rowCount());
+            };
+        });
     }
 
     /**
-     * Runs some assertions on institution docs in a Solr index.
+     * Constructs some assertions for the institution docs in the Solr index.
      *
-     * @param aContext A test context
-     * @param aCheckpoint A checkpoint
      * @param aSolrClient A Solr client
-     * @param anInstitutionList The optional exhaustive list of institutions expected to be represented in the index
+     * @param anInstitutionList The optional exhaustive list of institutions that must be represented in the index
+     * @return A Future that resolves to a Runnable consisting of the assertions
      */
-    public static void assertExpectedSolrState(final VertxTestContext aContext, final Checkpoint aCheckpoint,
-            final JavaAsyncSolrClient aSolrClient, final Optional<Set<Institution>> anInstitutionList) {
-        getAllDocuments(aSolrClient).onSuccess(result -> {
-            final ExecutionBlock checksToRun;
-
+    public static Future<Runnable> getSolrInstitutionAssertions(final JavaAsyncSolrClient aSolrClient,
+            final Optional<Set<Institution>> anInstitutionList) {
+        return getAllDocuments(aSolrClient).map(result -> {
             if (anInstitutionList.isPresent()) {
-                checksToRun = () -> {
-                    final Set<Institution> institutions;
-
-                    assertTrue(anInstitutionList.isPresent());
-
-                    institutions = anInstitutionList.get();
+                return () -> {
+                    final Set<Institution> institutions = anInstitutionList.get();
 
                     assertEquals(institutions.size(), result.getNumFound());
 
@@ -423,19 +357,26 @@ public final class TestUtils {
                         assertTrue(output.isPresent());
                         assertTrue(documentsAreEffectivelyEqual(input, output.get()));
                     }
-
-                    aCheckpoint.flag();
-                };
-            } else {
-                checksToRun = () -> {
-                    assertEquals(0, result.getNumFound());
-
-                    aCheckpoint.flag();
                 };
             }
 
-            aContext.verify(checksToRun);
-        }).onFailure(aContext::failNow);
+            return () -> {
+                assertEquals(0, result.getNumFound());
+            };
+        });
+    }
+
+    /**
+     * @param aRows Database query results
+     * @param anExpectedRowAsJson The JSON representation that exactly one of the rows should have
+     * @return Whether there exists a row that matches the expected JSON representation
+     */
+    private static boolean matchingRowExists(final RowSet<Row> aRows, final JsonObject anExpectedRowAsJson) {
+        final RowIterator<Row> iterator = aRows.iterator();
+
+        return Stream.generate(iterator::next).limit(1000000).filter(row -> {
+            return row.toJson().equals(anExpectedRowAsJson);
+        }).findAny().isPresent();
     }
 
     /**

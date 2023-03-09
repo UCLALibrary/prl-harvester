@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.MalformedURLException;
 import java.text.ParseException;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.mail.internet.AddressException;
 
@@ -186,7 +188,13 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job))).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
 
             // Second request
             listJobs = myWebClient.get(JOBS).expect(ResponsePredicate.JSON).send();
@@ -241,7 +249,13 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job))).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -300,7 +314,13 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job))).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -318,7 +338,14 @@ public class JobRequestsFT {
                     responseVerified.flag();
                 });
 
-                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, updatedJob, true);
+                TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(updatedJob)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                dbVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
 
                 // Third request
                 getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
@@ -374,7 +401,13 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, true);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job))).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -389,7 +422,13 @@ public class JobRequestsFT {
                     responseVerified.flag();
                 });
 
-                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, false);
+                TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                    aContext.verify(() -> {
+                        assertions.run();
+
+                        dbVerified.flag();
+                    });
+                }).onFailure(aContext::failNow);
 
                 // Third request
                 getJob = myWebClient.get(JOB.expandToString(jobID)).send();
@@ -451,7 +490,13 @@ public class JobRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, job, false);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
@@ -500,7 +545,13 @@ public class JobRequestsFT {
 
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, false);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
@@ -541,7 +592,14 @@ public class JobRequestsFT {
 
             });
 
-            TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, true);
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(validJob)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
@@ -556,7 +614,14 @@ public class JobRequestsFT {
 
                 });
 
-                TestUtils.assertExpectedDatabaseJobRow(aContext, dbVerified, myDbConnectionPool, validJob, true);
+                TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(validJob)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                dbVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
 
                 return Future.succeededFuture();
             });

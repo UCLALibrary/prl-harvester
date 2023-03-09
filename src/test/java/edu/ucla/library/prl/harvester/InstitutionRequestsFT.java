@@ -161,9 +161,23 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                    Optional.of(Set.of(responseInstitution)));
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            solrVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(institution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             listInstitutions = myWebClient.get(INSTITUTIONS).expect(ResponsePredicate.JSON).send();
@@ -220,9 +234,23 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                    Optional.of(Set.of(responseInstitution)));
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            solrVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(institution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
@@ -283,9 +311,23 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                    Optional.of(Set.of(responseInstitution)));
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            solrVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(institution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
@@ -303,10 +345,23 @@ public class InstitutionRequestsFT {
                     responseVerified.flag();
                 });
 
-                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                        Optional.of(Set.of(responseInstitution2)));
-                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool,
-                        updatedInstitution, true);
+                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution2)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                solrVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
+
+                TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(updatedInstitution)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                dbVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
 
                 // Third request
                 getInstitution = myWebClient.get(INSTITUTION.expandToString(institutionID))
@@ -365,9 +420,23 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                    Optional.of(Set.of(responseInstitution)));
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution, true);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            solrVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(institution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
@@ -382,9 +451,22 @@ public class InstitutionRequestsFT {
                     responseVerified.flag();
                 });
 
-                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
-                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution,
-                        false);
+                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.empty()).onSuccess(assertions -> {
+                    aContext.verify(() -> {
+                        assertions.run();
+
+                        solrVerified.flag();
+                    });
+                }).onFailure(aContext::failNow);
+
+                TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.empty())
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                dbVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
 
                 // Third request
                 getInstitution = myWebClient.get(INSTITUTION.expandToString(institutionID)).send();
@@ -448,9 +530,21 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, institution,
-                    false);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    solrVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
@@ -499,9 +593,21 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient, Optional.empty());
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, validInstitution,
-                    false);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    solrVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
@@ -544,10 +650,23 @@ public class InstitutionRequestsFT {
                 responseVerified.flag();
             });
 
-            TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                    Optional.of(Set.of(responseInstitution)));
-            TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool, validInstitution,
-                    true);
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            solrVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(validInstitution)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
+
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
@@ -563,10 +682,23 @@ public class InstitutionRequestsFT {
 
                 });
 
-                TestUtils.assertExpectedSolrState(aContext, solrVerified, mySolrClient,
-                        Optional.of(Set.of(responseInstitution)));
-                TestUtils.assertExpectedDatabaseInstitutionRow(aContext, dbVerified, myDbConnectionPool,
-                        validInstitution, true);
+                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                solrVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
+
+                TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(validInstitution)))
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                dbVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
 
                 return Future.succeededFuture();
             });

@@ -121,7 +121,7 @@ public class HarvestServiceIT {
     @AfterEach
     public void afterEach(final Vertx aVertx, final VertxTestContext aContext) {
         myHarvestScheduleStoreServiceProxy.getInstitution(myTestInstitutionID).compose(institution -> {
-            return TestUtils.wipeSolrRecords(mySolrClient, institution.getName());
+            return TestUtils.removeItemRecords(mySolrClient, institution.getName());
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
