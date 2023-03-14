@@ -2,14 +2,16 @@
 import { reactive, computed } from "vue"
 import InstitutionItem from "./InstitutionItem.vue"
 
-const state = reactive({ institutions: [], jobs: {} })
-const sortedInstitutions = computed(() => state.institutions.slice().sort((a, b) => (a.name < b.name ? -1 : 1)))
-const hasInstitutions = computed(() => state.institutions.length > 0)
+const state = reactive({ institutions: {}, jobs: {} })
+const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
+const hasInstitutions = computed(() => Object.keys(state.institutions).length > 0)
 
 fetch("/institutions")
     .then((response) => response.json())
     .then((institutions) => {
-        state.institutions = institutions
+        institutions.forEach((institution) => {
+            state.institutions[institution.id] = institution
+        })
     })
 
 fetch("/jobs")
