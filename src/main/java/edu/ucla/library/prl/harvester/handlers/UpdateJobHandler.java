@@ -99,7 +99,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
 
         // If we determined that there are sets to remove, do that now
         return getActualOldJobSets.compose(sets -> {
-            final Optional<List<String>> setsToRemove = Optional.of(getElementsInNewNotInOld(sets, newJobSets.get()));
+            final Optional<List<String>> setsToRemove = Optional.of(getDifference(sets, newJobSets.get()));
             final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institutionName,
                     oldJob.getRepositoryBaseURL(), setsToRemove);
 
@@ -117,7 +117,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @param aNewList A list representing a new, updated state
      * @return The list of elements that are in {@code aNewList} but not in {@code anOldList}
      */
-    private static List<String> getElementsInNewNotInOld(final List<String> anOldList, final List<String> aNewList) {
+    private static List<String> getDifference(final List<String> anOldList, final List<String> aNewList) {
         return anOldList.stream().filter(setSpec -> !aNewList.contains(setSpec)).toList();
     }
 }
