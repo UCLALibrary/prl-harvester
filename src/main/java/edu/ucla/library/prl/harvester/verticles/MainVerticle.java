@@ -136,18 +136,18 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.getStatus.name()).handler(new StatusHandler());
 
             // Institution operations
-            routeBuilder.operation(Op.addInstitution.name()).handler(new AddInstitutionHandler(vertx));
+            routeBuilder.operation(Op.addInstitution.name()).handler(new AddInstitutionHandler(vertx, aConfig));
             routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
             routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
-            routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx));
-            routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx));
+            routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx, aConfig));
+            routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx, aConfig));
 
             // Job operations
             routeBuilder.operation(Op.addJob.name()).handler(new AddJobHandler(vertx));
             routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
             routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
-            routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx));
-            routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx));
+            routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx, aConfig));
+            routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx, aConfig));
 
             // Admin interface
             routeBuilder.operation(Op.getAdmin.name()).handler(StaticHandler.create());

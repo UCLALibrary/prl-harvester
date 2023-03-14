@@ -119,8 +119,10 @@ public class HarvestServiceIT {
      * @param aContext A test context
      */
     @AfterEach
-    public void beforeEach(final Vertx aVertx, final VertxTestContext aContext) {
-        TestUtils.wipeSolr(mySolrClient).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
+    public void afterEach(final Vertx aVertx, final VertxTestContext aContext) {
+        myHarvestScheduleStoreServiceProxy.getInstitution(myTestInstitutionID).compose(institution -> {
+            return TestUtils.removeItemRecords(mySolrClient, institution.getName());
+        }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -129,7 +131,9 @@ public class HarvestServiceIT {
      */
     @AfterAll
     public void tearDown(final Vertx aVertx, final VertxTestContext aContext) {
-        myHarvestServiceProxy.close().compose(result -> {
+        TestUtils.wipeSolr(mySolrClient).compose(result -> {
+            return myHarvestServiceProxy.close();
+        }).compose(result -> {
             mySolrClient.shutdown();
 
             return TestUtils.wipeDatabase(myDbConnectionPool).compose(nil -> myDbConnectionPool.close());
