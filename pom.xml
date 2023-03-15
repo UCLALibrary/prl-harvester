@@ -374,6 +374,7 @@
             </goals>
             <phase>test</phase>
             <configuration>
+              <skip>${skipUTs}</skip>
               <arguments>
                 <argument>run</argument>
                 <argument>test:unit</argument>
