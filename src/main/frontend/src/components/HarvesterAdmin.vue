@@ -2,13 +2,16 @@
 import { reactive, ref, computed, provide } from "vue"
 import InstitutionItem from "./InstitutionItem.vue"
 
+// State that must be kept in sync with the back-end
 const state = reactive({ institutions: {}, jobs: {} })
+const hasInstitutions = computed(() => Object.keys(state.institutions).length > 0)
+const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
+
+// State exclusive to the front-end
 const displayInstitutionForm = ref(false)
 const institutionToAddOrUpdate = ref({})
 const institutionToRemove = ref()
 const actionResultAlert = ref()
-const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
-const hasInstitutions = computed(() => Object.keys(state.institutions).length > 0)
 
 // Initialize application state
 
