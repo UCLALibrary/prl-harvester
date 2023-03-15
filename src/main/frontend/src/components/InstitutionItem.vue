@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue"
+import { computed, inject } from "vue"
 import JobItem from "./JobItem.vue"
 
 const props = defineProps({
@@ -13,6 +13,7 @@ const props = defineProps({
     website: { type: String, required: true },
     jobs: { type: Array, required: true },
 })
+const setInstitutionToRemove = inject("setInstitutionToRemove")
 const sortedJobs = computed(() => {
     return props.jobs.slice().sort((a, b) => {
         const hostnameA = new URL(a.repositoryBaseURL).hostname
@@ -105,6 +106,8 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </tbody>
         </table>
         <p v-else>No jobs yet!</p>
+
+        <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
     </section>
 </template>
 
