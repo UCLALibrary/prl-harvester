@@ -91,6 +91,9 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </tr>
         </table>
 
+        <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Update</v-btn>
+        <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
+
         <h3>Jobs</h3>
         <table v-if="jobs.length > 0">
             <thead>
@@ -107,9 +110,6 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </tbody>
         </table>
         <p v-else>No jobs yet!</p>
-
-        <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Update</v-btn>
-        <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
     </section>
 </template>
 
