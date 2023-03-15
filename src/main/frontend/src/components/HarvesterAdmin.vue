@@ -10,6 +10,8 @@ const actionResultAlert = ref()
 const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
 const hasInstitutions = computed(() => Object.keys(state.institutions).length > 0)
 
+// Initialize application state
+
 fetch("/institutions")
     .then((response) => response.json())
     .then((institutions) => {
@@ -29,6 +31,9 @@ fetch("/jobs")
             state.jobs[job.institutionID].push(job)
         })
     })
+
+provide("setInstitutionToUpdate", setInstitutionToUpdate)
+provide("setInstitutionToRemove", setInstitutionToRemove)
 
 /**
  * Sets the component state that renders a dialog with a form for the user to add or update an institution.
@@ -166,9 +171,6 @@ async function removeInstitution(anInstitutionID) {
 
     setInstitutionToRemove(undefined)
 }
-
-provide("setInstitutionToUpdate", setInstitutionToUpdate)
-provide("setInstitutionToRemove", setInstitutionToRemove)
 </script>
 
 <template>
