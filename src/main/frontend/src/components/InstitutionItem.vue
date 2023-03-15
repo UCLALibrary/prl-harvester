@@ -13,6 +13,7 @@ const props = defineProps({
     website: { type: String, required: true },
     jobs: { type: Array, required: true },
 })
+const setInstitutionToUpdate = inject("setInstitutionToUpdate")
 const setInstitutionToRemove = inject("setInstitutionToRemove")
 const sortedJobs = computed(() => {
     return props.jobs.slice().sort((a, b) => {
@@ -107,6 +108,7 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
         </table>
         <p v-else>No jobs yet!</p>
 
+        <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Update</v-btn>
         <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
     </section>
 </template>

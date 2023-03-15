@@ -4,7 +4,7 @@ import InstitutionItem from "./InstitutionItem.vue"
 
 const state = reactive({ institutions: {}, jobs: {} })
 const displayInstitutionForm = ref(false)
-const institutionToAdd = ref({})
+const institutionToAddOrUpdate = ref({})
 const institutionToRemove = ref()
 const actionResultAlert = ref()
 const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
@@ -31,9 +31,14 @@ fetch("/jobs")
     })
 
 /**
- * Sets the component state that renders a dialog with a form for the user to add an institution.
+ * Sets the component state that renders a dialog with a form for the user to add or update an institution.
  */
 function toggleDisplayInstitutionForm() {
+    // If the form was rendered in update mode and is being hidden, clear it out
+    if (displayInstitutionForm.value && institutionToAddOrUpdate.value.id !== undefined) {
+        setInstitutionToAddOrUpdate({})
+    }
+
     displayInstitutionForm.value = !displayInstitutionForm.value
 }
 
@@ -42,12 +47,12 @@ function toggleDisplayInstitutionForm() {
  *
  * @param {Object} anInstitution The institution to add
  */
-function setInstitutionToAdd(anInstitution) {
-    institutionToAdd.value = anInstitution
+function setInstitutionToAddOrUpdate(anInstitution) {
+    institutionToAddOrUpdate.value = anInstitution
 }
 
 /**
- * Adds an institution
+ * Adds an institution.
  *
  * @param {Object} anInstitution The institution to add
  */
@@ -75,7 +80,55 @@ async function addInstitution(anInstitution) {
     }
 
     // Clear the form and hide it
-    setInstitutionToAdd({})
+    setInstitutionToAddOrUpdate({})
+    toggleDisplayInstitutionForm()
+}
+
+/**
+ * Renders a dialog with a form for the user to update the institution.
+ *
+ * @param {Number} anInstitutionID The ID of the institution to update
+ */
+function setInstitutionToUpdate(anInstitutionID) {
+    // Since the form is bound to `institutionToAddOrUpdate`, and we don't want to modify `state`: copy the object
+    const copyOfInstitution = Object.assign({}, state.institutions[anInstitutionID])
+
+    setInstitutionToAddOrUpdate(copyOfInstitution)
+
+    // Since the institution form is being reused for add and update, need to toggle its display manually
+    toggleDisplayInstitutionForm()
+}
+
+/**
+ * Updates an institution.
+ *
+ * @param {Object} anInstitution The institution to update
+ */
+async function updateInstitution(anInstitution) {
+    const response = await fetch(`/institutions/${anInstitution.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(anInstitution),
+    })
+
+    if (response.status === 200) {
+        const responseBody = await response.json()
+
+        state.institutions[responseBody.id] = responseBody
+
+        actionResultAlert.value = {
+            color: "success",
+            message: "Institution updated successfully",
+        }
+    } else {
+        actionResultAlert.value = {
+            color: "error",
+            message: `Institution update failed: HTTP ${response.status} (${response.statusText})`,
+        }
+    }
+
+    // Clear the form and hide it
+    setInstitutionToAddOrUpdate({})
     toggleDisplayInstitutionForm()
 }
 
@@ -114,6 +167,7 @@ async function removeInstitution(anInstitutionID) {
     setInstitutionToRemove(undefined)
 }
 
+provide("setInstitutionToUpdate", setInstitutionToUpdate)
 provide("setInstitutionToRemove", setInstitutionToRemove)
 </script>
 
@@ -130,17 +184,19 @@ provide("setInstitutionToRemove", setInstitutionToRemove)
     <v-dialog v-model="displayInstitutionForm" width="768">
         <v-card>
             <v-form>
-                <v-text-field label="Name" v-model="institutionToAdd.name" required></v-text-field>
-                <v-textarea label="Description" v-model="institutionToAdd.description" required></v-textarea>
-                <v-text-field label="Location" v-model="institutionToAdd.location" required></v-text-field>
-                <v-text-field label="Website" type="url" v-model="institutionToAdd.website" required></v-text-field>
-                <v-text-field label="Email" type="email" v-model="institutionToAdd.email"></v-text-field>
-                <v-text-field label="Phone" type="tel" v-model="institutionToAdd.phone"></v-text-field>
-                <v-text-field label="Web Contact" type="url" v-model="institutionToAdd.webContact"></v-text-field>
+                <v-text-field v-if="institutionToAddOrUpdate.id" label="ID" v-model="institutionToAddOrUpdate.id" disabled></v-text-field>
+                <v-text-field label="Name" v-model="institutionToAddOrUpdate.name" required></v-text-field>
+                <v-textarea label="Description" v-model="institutionToAddOrUpdate.description" required></v-textarea>
+                <v-text-field label="Location" v-model="institutionToAddOrUpdate.location" required></v-text-field>
+                <v-text-field label="Website" type="url" v-model="institutionToAddOrUpdate.website" required></v-text-field>
+                <v-text-field label="Email" type="email" v-model="institutionToAddOrUpdate.email"></v-text-field>
+                <v-text-field label="Phone" type="tel" v-model="institutionToAddOrUpdate.phone"></v-text-field>
+                <v-text-field label="Web Contact" type="url" v-model="institutionToAddOrUpdate.webContact"></v-text-field>
             </v-form>
             <v-card-actions class="d-flex justify-center align-baseline">
-                <v-btn color="primary" variant="outlined" width="auto" @click="addInstitution(institutionToAdd)">Add</v-btn>
-                <v-btn color="error" variant="outlined" width="auto" @click="toggleDisplayInstitutionForm">Cancel</v-btn>
+                <v-btn v-if="institutionToAddOrUpdate.id === undefined" color="primary" variant="outlined" width="auto" @click="addInstitution(institutionToAddOrUpdate)">Add</v-btn>
+                <v-btn v-else color="primary" variant="outlined" width="auto" @click="updateInstitution(institutionToAddOrUpdate)">Update</v-btn>
+                <v-btn variant="outlined" width="auto" @click="toggleDisplayInstitutionForm">Cancel</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
