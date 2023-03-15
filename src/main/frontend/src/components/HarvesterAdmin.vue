@@ -189,18 +189,48 @@ async function removeInstitution(anInstitutionID) {
     <v-dialog v-model="displayInstitutionForm" width="768">
         <v-card>
             <v-form>
-                <v-text-field v-if="institutionToAddOrUpdate.id" label="ID" v-model="institutionToAddOrUpdate.id" disabled></v-text-field>
+                <v-text-field
+                    v-if="institutionToAddOrUpdate.id"
+                    label="ID"
+                    v-model="institutionToAddOrUpdate.id"
+                    disabled
+                ></v-text-field>
                 <v-text-field label="Name" v-model="institutionToAddOrUpdate.name" required></v-text-field>
                 <v-textarea label="Description" v-model="institutionToAddOrUpdate.description" required></v-textarea>
                 <v-text-field label="Location" v-model="institutionToAddOrUpdate.location" required></v-text-field>
-                <v-text-field label="Website" type="url" v-model="institutionToAddOrUpdate.website" required></v-text-field>
+                <v-text-field
+                    label="Website"
+                    type="url"
+                    v-model="institutionToAddOrUpdate.website"
+                    required
+                ></v-text-field>
                 <v-text-field label="Email" type="email" v-model="institutionToAddOrUpdate.email"></v-text-field>
                 <v-text-field label="Phone" type="tel" v-model="institutionToAddOrUpdate.phone"></v-text-field>
-                <v-text-field label="Web Contact" type="url" v-model="institutionToAddOrUpdate.webContact"></v-text-field>
+                <v-text-field
+                    label="Web Contact"
+                    type="url"
+                    v-model="institutionToAddOrUpdate.webContact"
+                ></v-text-field>
             </v-form>
             <v-card-actions class="d-flex justify-center align-baseline">
-                <v-btn v-if="institutionToAddOrUpdate.id === undefined" color="primary" variant="outlined" width="auto" @click="addInstitution(institutionToAddOrUpdate)">Save</v-btn>
-                <v-btn v-else color="primary" variant="outlined" width="auto" @click="updateInstitution(institutionToAddOrUpdate)">Save</v-btn>
+                <v-btn
+                    v-if="institutionToAddOrUpdate.id === undefined"
+                    color="primary"
+                    variant="outlined"
+                    width="auto"
+                    @click="addInstitution(institutionToAddOrUpdate)"
+                >
+                    Save
+                </v-btn>
+                <v-btn
+                    v-else
+                    color="primary"
+                    variant="outlined"
+                    width="auto"
+                    @click="updateInstitution(institutionToAddOrUpdate)"
+                >
+                    Save
+                </v-btn>
                 <v-btn variant="outlined" width="auto" @click="toggleDisplayInstitutionForm">Cancel</v-btn>
             </v-card-actions>
         </v-card>
