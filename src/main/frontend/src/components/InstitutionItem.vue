@@ -91,7 +91,7 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </tr>
         </table>
 
-        <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Update</v-btn>
+        <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Edit</v-btn>
         <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
 
         <h3>Jobs</h3>

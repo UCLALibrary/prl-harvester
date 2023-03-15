@@ -199,8 +199,8 @@ async function removeInstitution(anInstitutionID) {
                 <v-text-field label="Web Contact" type="url" v-model="institutionToAddOrUpdate.webContact"></v-text-field>
             </v-form>
             <v-card-actions class="d-flex justify-center align-baseline">
-                <v-btn v-if="institutionToAddOrUpdate.id === undefined" color="primary" variant="outlined" width="auto" @click="addInstitution(institutionToAddOrUpdate)">Add</v-btn>
-                <v-btn v-else color="primary" variant="outlined" width="auto" @click="updateInstitution(institutionToAddOrUpdate)">Update</v-btn>
+                <v-btn v-if="institutionToAddOrUpdate.id === undefined" color="primary" variant="outlined" width="auto" @click="addInstitution(institutionToAddOrUpdate)">Save</v-btn>
+                <v-btn v-else color="primary" variant="outlined" width="auto" @click="updateInstitution(institutionToAddOrUpdate)">Save</v-btn>
                 <v-btn variant="outlined" width="auto" @click="toggleDisplayInstitutionForm">Cancel</v-btn>
             </v-card-actions>
         </v-card>
