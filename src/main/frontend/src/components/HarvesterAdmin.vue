@@ -36,7 +36,7 @@ provide("setInstitutionToUpdate", setInstitutionToUpdate)
 provide("setInstitutionToRemove", setInstitutionToRemove)
 
 /**
- * Sets the component state that renders a dialog with a form for the user to add or update an institution.
+ * Sets the component state that shows or hides the dialog with a form for the user to add or update an institution.
  */
 function toggleDisplayInstitutionForm() {
     // If the form was rendered in update mode and is being hidden, clear it out
@@ -90,7 +90,7 @@ async function addInstitution(anInstitution) {
 }
 
 /**
- * Renders a dialog with a form for the user to update the institution.
+ * Shows or hides the dialog with a form for the user to update the institution.
  *
  * @param {Number} anInstitutionID The ID of the institution to update
  */
@@ -138,7 +138,7 @@ async function updateInstitution(anInstitution) {
 }
 
 /**
- * Sets the component state that renders a dialog for the user to confirm institution removal.
+ * Sets the component state that shows or hides the dialog for the user to confirm institution removal.
  *
  * @param {Number} anInstitutionID The ID of the institution to remove
  */
