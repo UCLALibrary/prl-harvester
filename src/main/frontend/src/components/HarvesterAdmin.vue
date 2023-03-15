@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, computed, provide } from "vue"
+import { StatusCodes } from "http-status-codes"
 import InstitutionItem from "./InstitutionItem.vue"
 
 // State that must be kept in sync with the back-end
@@ -71,7 +72,7 @@ async function addInstitution(anInstitution) {
         body: JSON.stringify(anInstitution),
     })
 
-    if (response.status === 201) {
+    if (response.status === StatusCodes.CREATED) {
         const responseBody = await response.json()
 
         state.institutions[responseBody.id] = responseBody
@@ -119,7 +120,7 @@ async function updateInstitution(anInstitution) {
         body: JSON.stringify(anInstitution),
     })
 
-    if (response.status === 200) {
+    if (response.status === StatusCodes.OK) {
         const responseBody = await response.json()
 
         state.institutions[responseBody.id] = responseBody
@@ -157,7 +158,7 @@ function setInstitutionToRemove(anInstitutionID) {
 async function removeInstitution(anInstitutionID) {
     const response = await fetch(`/institutions/${anInstitutionID}`, { method: "DELETE" })
 
-    if (response.status === 204) {
+    if (response.status === StatusCodes.NO_CONTENT) {
         delete state.jobs[anInstitutionID]
         delete state.institutions[anInstitutionID]
 
