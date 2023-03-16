@@ -178,14 +178,16 @@ async function removeInstitution(anInstitutionID) {
 </script>
 
 <template>
-    <v-btn color="primary" variant="outlined" @click="toggleDisplayInstitutionForm">Add Institution</v-btn>
+    <v-btn color="primary" variant="outlined" @click="toggleDisplayInstitutionForm" class="ma-4">Add Institution</v-btn>
 
-    <ol v-if="hasInstitutions">
-        <li v-for="institution in sortedInstitutions" :key="institution.id">
+    <v-list v-if="hasInstitutions" lines="one">
+        <v-list-item v-for="institution in sortedInstitutions" :key="institution.id">
             <InstitutionItem v-bind="institution" :jobs="state.jobs[institution.id] || []" />
-        </li>
-    </ol>
-    <p v-else>No institutions yet!</p>
+        </v-list-item>
+    </v-list>
+    <v-card v-else variant="plain" width="auto">
+        <v-card-text max-width="auto">No institutions yet!</v-card-text>
+    </v-card>
 
     <v-dialog v-model="displayInstitutionForm" width="768">
         <v-card>
@@ -262,13 +264,4 @@ async function removeInstitution(anInstitutionID) {
     </v-snackbar>
 </template>
 
-<style scoped>
-ol {
-    display: grid;
-    gap: 2rem;
-}
-
-li {
-    list-style-type: none;
-}
-</style>
+<style scoped></style>
