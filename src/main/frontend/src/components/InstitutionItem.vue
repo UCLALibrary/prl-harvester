@@ -48,7 +48,6 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
 </script>
 
 <template>
-    <a class="anchor" aria-hidden="true" :href="`#${headingIdentifier}`">&sect;</a>
     <v-card :id="`${headingIdentifier}`" variant="outlined">
         <v-card-title class="text-h">{{ name }}</v-card-title>
         <v-row no-gutters>
