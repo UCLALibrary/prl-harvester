@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed, provide, inject } from "vue"
+import { ref, computed } from "vue"
 import { StatusCodes } from "http-status-codes"
 import InstitutionItem from "./InstitutionItem.vue"
 
 const props = defineProps({
     institutions: { type: Object, required: true },
     jobs: { type: Object, required: true },
+    sendAddInstitutionRequest: { type: Function },
+    sendUpdateInstitutionRequest: { type: Function },
+    sendRemoveInstitutionRequest: { type: Function },
 })
 const hasInstitutions = computed(() => Object.keys(props.institutions).length > 0)
 const sortedInstitutions = computed(() => Object.values(props.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
@@ -15,11 +18,6 @@ const institutionToAddOrUpdate = ref({})
 const institutionToRemove = ref()
 const actionResultAlert = ref()
 
-const stateSetInstitution = inject("stateSetInstitution")
-const stateDeleteInstitution = inject("stateDeleteInstitution")
-
-provide("setInstitutionToUpdate", setInstitutionToUpdate)
-provide("setInstitutionToRemove", setInstitutionToRemove)
 /**
  * Sets the component state that shows or hides the dialog with a form for the user to add or update an institution.
  */
@@ -47,17 +45,9 @@ function setInstitutionToAddOrUpdate(anInstitution) {
  * @param {Object} anInstitution The institution to add
  */
 async function addInstitution(anInstitution) {
-    const response = await fetch("/institutions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(anInstitution),
-    })
+    const response = await props.sendAddInstitutionRequest(anInstitution)
 
     if (response.status === StatusCodes.CREATED) {
-        const responseBody = await response.json()
-
-        stateSetInstitution(responseBody.id, responseBody)
-
         actionResultAlert.value = {
             color: "success",
             message: "Institution added successfully",
@@ -79,7 +69,7 @@ async function addInstitution(anInstitution) {
  *
  * @param {Number} anInstitutionID The ID of the institution to update
  */
-function setInstitutionToUpdate(anInstitutionID) {
+function selectInstitutionToUpdate(anInstitutionID) {
     // Since the form is bound to `institutionToAddOrUpdate`, and we don't want to modify `state`: copy the object
     const copyOfInstitution = Object.assign({}, props.institutions[anInstitutionID])
 
@@ -95,17 +85,9 @@ function setInstitutionToUpdate(anInstitutionID) {
  * @param {Object} anInstitution The institution to update
  */
 async function updateInstitution(anInstitution) {
-    const response = await fetch(`/institutions/${anInstitution.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(anInstitution),
-    })
+    const response = await props.sendUpdateInstitutionRequest(anInstitution)
 
     if (response.status === StatusCodes.OK) {
-        const responseBody = await response.json()
-
-        stateSetInstitution(responseBody.id, responseBody)
-
         actionResultAlert.value = {
             color: "success",
             message: "Institution updated successfully",
@@ -127,7 +109,7 @@ async function updateInstitution(anInstitution) {
  *
  * @param {Number} anInstitutionID The ID of the institution to remove
  */
-function setInstitutionToRemove(anInstitutionID) {
+function selectInstitutionToRemove(anInstitutionID) {
     institutionToRemove.value = anInstitutionID
 }
 
@@ -137,11 +119,9 @@ function setInstitutionToRemove(anInstitutionID) {
  * @param {Number} anInstitutionID The ID of the institution to remove
  */
 async function removeInstitution(anInstitutionID) {
-    const response = await fetch(`/institutions/${anInstitutionID}`, { method: "DELETE" })
+    const response = await props.sendRemoveInstitutionRequest(anInstitutionID)
 
     if (response.status === StatusCodes.NO_CONTENT) {
-        stateDeleteInstitution(anInstitutionID)
-
         actionResultAlert.value = {
             color: "success",
             message: "Institution removed successfully",
@@ -153,7 +133,7 @@ async function removeInstitution(anInstitutionID) {
         }
     }
 
-    setInstitutionToRemove(undefined)
+    selectInstitutionToRemove(undefined)
 }
 </script>
 
@@ -162,7 +142,12 @@ async function removeInstitution(anInstitutionID) {
 
     <v-list v-if="hasInstitutions" lines="one">
         <v-list-item v-for="institution in sortedInstitutions" :key="institution.id">
-            <InstitutionItem v-bind="institution" :jobs="props.jobs[institution.id] || []" />
+            <InstitutionItem
+                v-bind="institution"
+                :jobs="props.jobs[institution.id] || []"
+                :selectInstitutionToUpdate="selectInstitutionToUpdate"
+                :selectInstitutionToRemove="selectInstitutionToRemove"
+            />
         </v-list-item>
     </v-list>
     <v-card v-else variant="plain" width="auto">
@@ -223,18 +208,23 @@ async function removeInstitution(anInstitutionID) {
         <v-card>
             <v-card-text>
                 <p>
-                    This action will remove <strong>{{ props.institutions[institutionToRemove].name }}</strong
-                    >.
+                    This action will remove
+                    <strong>
+                        {{ props.institutions[institutionToRemove] && props.institutions[institutionToRemove].name }}
+                    </strong>
+                    .
                 </p>
                 <p v-if="props.jobs[institutionToRemove]">
-                    This will also remove its {{ props.jobs[institutionToRemove].length }} jobs and all harvested items.
+                    This will also remove its
+                    {{ props.jobs[institutionToRemove] && props.jobs[institutionToRemove].length }}
+                    jobs and all harvested items.
                 </p>
             </v-card-text>
             <v-card-actions class="d-flex justify-center align-baseline">
-                <v-btn color="red" variant="outlined" @click="removeInstitution(institutionToRemove)" width="auto"
-                    >Remove</v-btn
-                >
-                <v-btn variant="outlined" width="auto" @click="setInstitutionToRemove(undefined)">Cancel</v-btn>
+                <v-btn color="red" variant="outlined" @click="removeInstitution(institutionToRemove)" width="auto">
+                    Remove
+                </v-btn>
+                <v-btn variant="outlined" width="auto" @click="selectInstitutionToRemove(undefined)">Cancel</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>

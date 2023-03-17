@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject } from "vue"
+import { computed } from "vue"
 import JobItem from "./JobItem.vue"
 
 const props = defineProps({
@@ -12,9 +12,9 @@ const props = defineProps({
     webContact: { type: String },
     website: { type: String, required: true },
     jobs: { type: Array, required: true },
+    selectInstitutionToUpdate: { type: Function },
+    selectInstitutionToRemove: { type: Function },
 })
-const setInstitutionToUpdate = inject("setInstitutionToUpdate")
-const setInstitutionToRemove = inject("setInstitutionToRemove")
 const sortedJobs = computed(() => {
     return props.jobs.slice().sort((a, b) => {
         const hostnameA = new URL(a.repositoryBaseURL).hostname
@@ -107,8 +107,10 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             <p v-else>No jobs yet!</p>
         </v-card-text>
         <v-card-actions class="ma-2 pa-2">
-            <v-btn color="primary" variant="outlined" @click="setInstitutionToUpdate(id)">Edit</v-btn>
-            <v-btn color="red" variant="outlined" @click="setInstitutionToRemove(id)">Remove {{ `"${name}"` }}</v-btn>
+            <v-btn color="primary" variant="outlined" @click="selectInstitutionToUpdate(id)">Edit</v-btn>
+            <v-btn color="red" variant="outlined" @click="selectInstitutionToRemove(id)">
+                Remove {{ `"${name}"` }}
+            </v-btn>
         </v-card-actions>
     </v-card>
 </template>
