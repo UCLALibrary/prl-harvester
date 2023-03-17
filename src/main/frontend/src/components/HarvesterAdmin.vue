@@ -1,44 +1,25 @@
 <script setup>
-import { reactive, ref, computed, provide } from "vue"
+import { ref, computed, provide, inject } from "vue"
 import { StatusCodes } from "http-status-codes"
 import InstitutionItem from "./InstitutionItem.vue"
 
-// State that must be kept in sync with the back-end
-const state = reactive({ institutions: {}, jobs: {} })
-const hasInstitutions = computed(() => Object.keys(state.institutions).length > 0)
-const sortedInstitutions = computed(() => Object.values(state.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
+const props = defineProps({
+    institutions: { type: Object, required: true },
+    jobs: { type: Object, required: true },
+})
+const hasInstitutions = computed(() => Object.keys(props.institutions).length > 0)
+const sortedInstitutions = computed(() => Object.values(props.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
 
-// State exclusive to the front-end
 const displayInstitutionForm = ref(false)
 const institutionToAddOrUpdate = ref({})
 const institutionToRemove = ref()
 const actionResultAlert = ref()
 
-// Initialize application state
-
-fetch("/institutions")
-    .then((response) => response.json())
-    .then((institutions) => {
-        institutions.forEach((institution) => {
-            state.institutions[institution.id] = institution
-        })
-    })
-
-fetch("/jobs")
-    .then((response) => response.json())
-    .then((jobs) => {
-        jobs.forEach((job) => {
-            if (state.jobs[job.institutionID] === undefined) {
-                state.jobs[job.institutionID] = []
-            }
-
-            state.jobs[job.institutionID].push(job)
-        })
-    })
+const stateSetInstitution = inject("stateSetInstitution")
+const stateDeleteInstitution = inject("stateDeleteInstitution")
 
 provide("setInstitutionToUpdate", setInstitutionToUpdate)
 provide("setInstitutionToRemove", setInstitutionToRemove)
-
 /**
  * Sets the component state that shows or hides the dialog with a form for the user to add or update an institution.
  */
@@ -75,7 +56,7 @@ async function addInstitution(anInstitution) {
     if (response.status === StatusCodes.CREATED) {
         const responseBody = await response.json()
 
-        state.institutions[responseBody.id] = responseBody
+        stateSetInstitution(responseBody.id, responseBody)
 
         actionResultAlert.value = {
             color: "success",
@@ -100,7 +81,7 @@ async function addInstitution(anInstitution) {
  */
 function setInstitutionToUpdate(anInstitutionID) {
     // Since the form is bound to `institutionToAddOrUpdate`, and we don't want to modify `state`: copy the object
-    const copyOfInstitution = Object.assign({}, state.institutions[anInstitutionID])
+    const copyOfInstitution = Object.assign({}, props.institutions[anInstitutionID])
 
     setInstitutionToAddOrUpdate(copyOfInstitution)
 
@@ -123,7 +104,7 @@ async function updateInstitution(anInstitution) {
     if (response.status === StatusCodes.OK) {
         const responseBody = await response.json()
 
-        state.institutions[responseBody.id] = responseBody
+        stateSetInstitution(responseBody.id, responseBody)
 
         actionResultAlert.value = {
             color: "success",
@@ -159,8 +140,7 @@ async function removeInstitution(anInstitutionID) {
     const response = await fetch(`/institutions/${anInstitutionID}`, { method: "DELETE" })
 
     if (response.status === StatusCodes.NO_CONTENT) {
-        delete state.jobs[anInstitutionID]
-        delete state.institutions[anInstitutionID]
+        stateDeleteInstitution(anInstitutionID)
 
         actionResultAlert.value = {
             color: "success",
@@ -182,7 +162,7 @@ async function removeInstitution(anInstitutionID) {
 
     <v-list v-if="hasInstitutions" lines="one">
         <v-list-item v-for="institution in sortedInstitutions" :key="institution.id">
-            <InstitutionItem v-bind="institution" :jobs="state.jobs[institution.id] || []" />
+            <InstitutionItem v-bind="institution" :jobs="props.jobs[institution.id] || []" />
         </v-list-item>
     </v-list>
     <v-card v-else variant="plain" width="auto">
@@ -243,11 +223,11 @@ async function removeInstitution(anInstitutionID) {
         <v-card>
             <v-card-text>
                 <p>
-                    This action will remove <strong>{{ state.institutions[institutionToRemove].name }}</strong
+                    This action will remove <strong>{{ props.institutions[institutionToRemove].name }}</strong
                     >.
                 </p>
-                <p v-if="state.jobs[institutionToRemove]">
-                    This will also remove its {{ state.jobs[institutionToRemove].length }} jobs and all harvested items.
+                <p v-if="props.jobs[institutionToRemove]">
+                    This will also remove its {{ props.jobs[institutionToRemove].length }} jobs and all harvested items.
                 </p>
             </v-card-text>
             <v-card-actions class="d-flex justify-center align-baseline">
