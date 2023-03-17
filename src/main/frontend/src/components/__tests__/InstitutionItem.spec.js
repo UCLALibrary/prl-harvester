@@ -6,44 +6,76 @@ import * as directives from "vuetify/directives"
 import { mount } from "@vue/test-utils"
 
 import InstitutionItem from "../InstitutionItem.vue"
-import { testJob, testJobSelectiveHarvest } from "./JobItem.spec.js"
-
-const testInstitutionNoJobs = {
-    id: 1,
-    name: "Test Institution",
-    description: "A description of the institution.",
-    location: "The location of the institution.",
-    email: "test@example.edu",
-    phone: "+1 800 200 0000",
-    webContact: "http://example.edu/contact",
-    website: "http://example.edu",
-    jobs: [],
-}
-const testInstitution = {
-    ...testInstitutionNoJobs,
-    jobs: [testJob, testJobSelectiveHarvest],
-}
+import { testJob, testJobSelectiveHarvest, testInstitution } from "./TestData.js"
 
 describe("InstitutionItem", () => {
     const vuetify = createVuetify({ components, directives })
 
+    /**
+     * Checks that the institution metadata is rendered as expected.
+     *
+     * @param {VueWrapper} wrapper The result of mounting a {@link InstitutionItem}
+     * @param {object} institution The data that should be rendered
+     */
+    function checkInstitution(wrapper, institution) {
+        Object.entries(institution)
+            .filter(([key, value]) => key !== "id" && value !== null)
+            .forEach((keyValuePair) => {
+                expect(wrapper.text()).toContain(keyValuePair.at(1))
+            })
+    }
+
+    /**
+     * Checks whether the jobs metadata is rendered or not.
+     *
+     * @param {VueWrapper} wrapper The result of mounting a {@link InstitutionItem}
+     * @param {object[]} jobs The data that should be rendered
+     */
+    function checkJobs(wrapper, jobs) {
+        const jobsTable = wrapper.find(".harvest-jobs")
+
+        if (jobs.length > 0) {
+            expect(jobsTable.exists()).toBeTruthy()
+            expect(jobsTable.findAll("tbody").at(0).findAll("tr").length).toStrictEqual(jobs.length)
+        } else {
+            expect(jobsTable.exists()).toBeFalsy()
+            expect(wrapper.text()).toContain("No jobs yet!")
+        }
+    }
+
+    /**
+     * Checks that the HTML button elements are rendered as expected.
+     *
+     * @param {VueWrapper} wrapper The result of mounting a {@link InstitutionItem}
+     */
+    function checkButtons(wrapper) {
+        const buttons = wrapper.findAll("button")
+        expect(buttons.length).toStrictEqual(2)
+        expect(buttons.at(0).text()).toContain("Edit")
+        expect(buttons.at(1).text()).toContain("Remove")
+    }
+
     it("renders properly without jobs", () => {
+        const jobs = []
         const wrapper = mount(InstitutionItem, {
-            props: { ...testInstitutionNoJobs },
+            props: { ...testInstitution, jobs },
             global: { plugins: [vuetify] },
         })
 
-        expect(wrapper.text()).toContain("Test Institution").toContain("No jobs yet!")
+        checkInstitution(wrapper, testInstitution)
+        checkJobs(wrapper, jobs)
+        checkButtons(wrapper)
     })
+
     it("renders properly with jobs", () => {
+        const jobs = [testJob, testJobSelectiveHarvest]
         const wrapper = mount(InstitutionItem, {
-            props: { ...testInstitution },
+            props: { ...testInstitution, jobs },
             global: { plugins: [vuetify] },
         })
 
-        expect(wrapper.text())
-            .toContain("Test Institution")
-            .toContain(testJob.repositoryBaseURL)
-            .toContain(testJobSelectiveHarvest.repositoryBaseURL)
+        checkInstitution(wrapper, testInstitution)
+        checkJobs(wrapper, jobs)
+        checkButtons(wrapper)
     })
 })
