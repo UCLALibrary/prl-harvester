@@ -49,6 +49,7 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
 
 <template>
     <v-card :id="`${headingIdentifier}`" variant="outlined">
+        <!-- First, a rendering of the institution metadata -->
         <v-card-title class="text-h">{{ name }}</v-card-title>
         <v-row no-gutters>
             <v-col cols="4">
@@ -88,6 +89,8 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </v-col>
         </v-row>
         <v-divider class="border-opacity-25"></v-divider>
+
+        <!-- Next, a rendering of the associated jobs (if any) -->
         <v-card-subtitle class="ma-2 pa-2 text-subtitle-1">Jobs</v-card-subtitle>
         <v-card-text>
             <v-table v-if="jobs.length > 0" class="harvest-jobs">

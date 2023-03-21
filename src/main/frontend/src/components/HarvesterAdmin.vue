@@ -154,6 +154,7 @@ async function removeInstitution(anInstitutionID) {
         <v-card-text max-width="auto">No institutions yet!</v-card-text>
     </v-card>
 
+    <!-- A conditionally-rendered form for adding or updating an institution -->
     <v-dialog v-model="displayInstitutionForm" width="768">
         <v-card>
             <v-form>
@@ -204,6 +205,7 @@ async function removeInstitution(anInstitutionID) {
         </v-card>
     </v-dialog>
 
+    <!-- A conditionally-rendered confirmation prompt for removing an institution -->
     <v-dialog v-if="institutionToRemove" v-model="institutionToRemove" width="auto">
         <v-card>
             <v-card-text>
@@ -229,6 +231,7 @@ async function removeInstitution(anInstitutionID) {
         </v-card>
     </v-dialog>
 
+    <!-- Information on the success or failure of the most recent HTTP request to the back-end -->
     <v-snackbar v-if="actionResultAlert" v-model="actionResultAlert" :color="actionResultAlert.color">
         {{ actionResultAlert.message }}
     </v-snackbar>

@@ -8,7 +8,7 @@ import HarvesterAdmin from "./components/HarvesterAdmin.vue"
 const state = reactive({ institutions: {}, jobs: {} })
 
 /**
- * Sends an addInstitution request and updates the front-end state according to the response.
+ * Sends an addInstitution request and, if successful, updates the state with the result.
  *
  * @param {Object} anInstitution The institution
  * @returns The HTTP response
@@ -30,7 +30,7 @@ async function sendAddInstitutionRequest(anInstitution) {
 }
 
 /**
- * Sends an updateInstitution request and updates the front-end state according to the response.
+ * Sends an updateInstitution request and, if successful, updates the state with the result.
  *
  * @param {Object} anInstitution The institution
  * @returns The HTTP response
@@ -52,7 +52,7 @@ async function sendUpdateInstitutionRequest(anInstitution) {
 }
 
 /**
- * Sends an removeInstitution request and updates the front-end state according to the response.
+ * Sends an removeInstitution request and, if successful, updates the state with the result.
  *
  * @param {Number} anInstitutionID The ID of the institution
  * @returns The HTTP response
