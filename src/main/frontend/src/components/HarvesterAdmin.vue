@@ -150,7 +150,7 @@ async function removeInstitution(anInstitutionID) {
         <v-list-item v-for="institution in sortedInstitutions" :key="institution.id">
             <InstitutionItem
                 v-bind="institution"
-                :jobs="props.jobs[institution.id] || []"
+                :jobs="props.jobs[institution.id] || {}"
                 :selectInstitutionToUpdate="selectInstitutionToUpdate"
                 :selectInstitutionToRemove="selectInstitutionToRemove" />
         </v-list-item>

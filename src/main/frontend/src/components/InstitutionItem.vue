@@ -11,12 +11,12 @@ const props = defineProps({
     phone: { type: String },
     webContact: { type: String },
     website: { type: String, required: true },
-    jobs: { type: Array, required: true },
+    jobs: { type: Object, required: true },
     selectInstitutionToUpdate: { type: Function },
     selectInstitutionToRemove: { type: Function },
 })
 const sortedJobs = computed(() => {
-    return props.jobs.slice().sort((a, b) => {
+    return Object.values(props.jobs).sort((a, b) => {
         const hostnameA = new URL(a.repositoryBaseURL).hostname
         const hostnameB = new URL(b.repositoryBaseURL).hostname
 
@@ -93,7 +93,7 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
         <!-- Next, a rendering of the associated jobs (if any) -->
         <v-card-subtitle class="ma-2 pa-2 text-subtitle-1">Jobs</v-card-subtitle>
         <v-card-text>
-            <v-table v-if="jobs.length > 0" class="harvest-jobs">
+            <v-table v-if="sortedJobs.length > 0" class="harvest-jobs">
                 <thead>
                     <tr>
                         <th>Repository Base URL</th>

@@ -80,10 +80,10 @@ fetch("/jobs")
     .then((jobs) => {
         jobs.forEach((job) => {
             if (state.jobs[job.institutionID] === undefined) {
-                state.jobs[job.institutionID] = []
+                state.jobs[job.institutionID] = {}
             }
 
-            state.jobs[job.institutionID].push(job)
+            state.jobs[job.institutionID][job.id] = job
         })
     })
 </script>
