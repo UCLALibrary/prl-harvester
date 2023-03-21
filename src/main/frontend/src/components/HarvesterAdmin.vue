@@ -142,8 +142,7 @@ async function removeInstitution(anInstitutionID) {
         color="primary"
         variant="outlined"
         @click="toggleDisplayInstitutionForm"
-        class="propose-add-institution ma-4"
-    >
+        class="propose-add-institution ma-4">
         Add Institution
     </v-btn>
 
@@ -153,8 +152,7 @@ async function removeInstitution(anInstitutionID) {
                 v-bind="institution"
                 :jobs="props.jobs[institution.id] || []"
                 :selectInstitutionToUpdate="selectInstitutionToUpdate"
-                :selectInstitutionToRemove="selectInstitutionToRemove"
-            />
+                :selectInstitutionToRemove="selectInstitutionToRemove" />
         </v-list-item>
     </v-list>
     <v-card v-else variant="plain" width="auto">
@@ -169,8 +167,7 @@ async function removeInstitution(anInstitutionID) {
                     v-if="institutionToAddOrUpdate.id"
                     label="ID"
                     v-model="institutionToAddOrUpdate.id"
-                    disabled
-                ></v-text-field>
+                    disabled></v-text-field>
                 <v-text-field label="Name" v-model="institutionToAddOrUpdate.name" required></v-text-field>
                 <v-textarea label="Description" v-model="institutionToAddOrUpdate.description" required></v-textarea>
                 <v-text-field label="Location" v-model="institutionToAddOrUpdate.location" required></v-text-field>
@@ -178,15 +175,13 @@ async function removeInstitution(anInstitutionID) {
                     label="Website"
                     type="url"
                     v-model="institutionToAddOrUpdate.website"
-                    required
-                ></v-text-field>
+                    required></v-text-field>
                 <v-text-field label="Email" type="email" v-model="institutionToAddOrUpdate.email"></v-text-field>
                 <v-text-field label="Phone" type="tel" v-model="institutionToAddOrUpdate.phone"></v-text-field>
                 <v-text-field
                     label="Web Contact"
                     type="url"
-                    v-model="institutionToAddOrUpdate.webContact"
-                ></v-text-field>
+                    v-model="institutionToAddOrUpdate.webContact"></v-text-field>
             </v-form>
             <v-card-actions class="d-flex justify-center align-baseline">
                 <v-btn
@@ -195,8 +190,7 @@ async function removeInstitution(anInstitutionID) {
                     variant="outlined"
                     width="auto"
                     class="confirm-add-institution"
-                    @click="addInstitution(institutionToAddOrUpdate)"
-                >
+                    @click="addInstitution(institutionToAddOrUpdate)">
                     Save
                 </v-btn>
                 <v-btn
@@ -205,16 +199,14 @@ async function removeInstitution(anInstitutionID) {
                     variant="outlined"
                     width="auto"
                     class="confirm-update-institution"
-                    @click="updateInstitution(institutionToAddOrUpdate)"
-                >
+                    @click="updateInstitution(institutionToAddOrUpdate)">
                     Save
                 </v-btn>
                 <v-btn
                     variant="outlined"
                     width="auto"
                     @click="toggleDisplayInstitutionForm"
-                    class="cancel-add-or-update-institution"
-                >
+                    class="cancel-add-or-update-institution">
                     Cancel
                 </v-btn>
             </v-card-actions>
@@ -244,16 +236,14 @@ async function removeInstitution(anInstitutionID) {
                     variant="outlined"
                     @click="removeInstitution(institutionToRemove)"
                     width="auto"
-                    class="confirm-remove-institution"
-                >
+                    class="confirm-remove-institution">
                     Remove
                 </v-btn>
                 <v-btn
                     variant="outlined"
                     width="auto"
                     @click="selectInstitutionToRemove(undefined)"
-                    class="cancel-remove-institution"
-                >
+                    class="cancel-remove-institution">
                     Cancel
                 </v-btn>
             </v-card-actions>

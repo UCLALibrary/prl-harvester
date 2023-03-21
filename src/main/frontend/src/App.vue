@@ -98,8 +98,7 @@ fetch("/jobs")
             v-bind="state"
             :sendAddInstitutionRequest="sendAddInstitutionRequest"
             :sendUpdateInstitutionRequest="sendUpdateInstitutionRequest"
-            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest"
-        />
+            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest" />
     </main>
 
     <footer>PRL Harvester Admin v{{ version }}</footer>
