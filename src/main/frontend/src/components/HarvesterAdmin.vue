@@ -138,7 +138,14 @@ async function removeInstitution(anInstitutionID) {
 </script>
 
 <template>
-    <v-btn color="primary" variant="outlined" @click="toggleDisplayInstitutionForm" class="ma-4">Add Institution</v-btn>
+    <v-btn
+        color="primary"
+        variant="outlined"
+        @click="toggleDisplayInstitutionForm"
+        class="propose-add-institution ma-4"
+    >
+        Add Institution
+    </v-btn>
 
     <v-list v-if="hasInstitutions" lines="one">
         <v-list-item v-for="institution in sortedInstitutions" :key="institution.id">
@@ -187,6 +194,7 @@ async function removeInstitution(anInstitutionID) {
                     color="primary"
                     variant="outlined"
                     width="auto"
+                    class="confirm-add-institution"
                     @click="addInstitution(institutionToAddOrUpdate)"
                 >
                     Save
@@ -196,11 +204,19 @@ async function removeInstitution(anInstitutionID) {
                     color="primary"
                     variant="outlined"
                     width="auto"
+                    class="confirm-update-institution"
                     @click="updateInstitution(institutionToAddOrUpdate)"
                 >
                     Save
                 </v-btn>
-                <v-btn variant="outlined" width="auto" @click="toggleDisplayInstitutionForm">Cancel</v-btn>
+                <v-btn
+                    variant="outlined"
+                    width="auto"
+                    @click="toggleDisplayInstitutionForm"
+                    class="cancel-add-or-update-institution"
+                >
+                    Cancel
+                </v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -223,10 +239,23 @@ async function removeInstitution(anInstitutionID) {
                 </p>
             </v-card-text>
             <v-card-actions class="d-flex justify-center align-baseline">
-                <v-btn color="red" variant="outlined" @click="removeInstitution(institutionToRemove)" width="auto">
+                <v-btn
+                    color="red"
+                    variant="outlined"
+                    @click="removeInstitution(institutionToRemove)"
+                    width="auto"
+                    class="confirm-remove-institution"
+                >
                     Remove
                 </v-btn>
-                <v-btn variant="outlined" width="auto" @click="selectInstitutionToRemove(undefined)">Cancel</v-btn>
+                <v-btn
+                    variant="outlined"
+                    width="auto"
+                    @click="selectInstitutionToRemove(undefined)"
+                    class="cancel-remove-institution"
+                >
+                    Cancel
+                </v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>

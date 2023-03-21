@@ -110,8 +110,20 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             <p v-else>No jobs yet!</p>
         </v-card-text>
         <v-card-actions class="ma-2 pa-2">
-            <v-btn color="primary" variant="outlined" @click="selectInstitutionToUpdate(id)">Edit</v-btn>
-            <v-btn color="red" variant="outlined" @click="selectInstitutionToRemove(id)">
+            <v-btn
+                color="primary"
+                variant="outlined"
+                @click="selectInstitutionToUpdate(id)"
+                class="propose-edit-institution"
+            >
+                Edit
+            </v-btn>
+            <v-btn
+                color="red"
+                variant="outlined"
+                @click="selectInstitutionToRemove(id)"
+                class="propose-remove-institution"
+            >
                 Remove {{ `"${name}"` }}
             </v-btn>
         </v-card-actions>

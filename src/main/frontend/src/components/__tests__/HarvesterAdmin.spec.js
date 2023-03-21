@@ -38,15 +38,23 @@ describe("HarvesterAdmin", () => {
         const nInstitutionButtons = 2 * institutions.length
 
         expect(buttons.length).toStrictEqual(1 + nInstitutionButtons)
-        expect(buttons.at(0).text()).toStrictEqual("Add Institution")
+
+        let button = buttons.at(0)
+
+        expect(button.text()).toStrictEqual("Add Institution")
+        expect(button.classes()).toContain("propose-add-institution")
 
         if (institutions.length > 0) {
             // Each institution should have an Edit and Remove button
             for (let i = 1; i < nInstitutionButtons; i++) {
+                button = buttons.at(i)
+
                 if (i % 2 === 1) {
-                    expect(buttons.at(i).text()).toStrictEqual("Edit")
+                    expect(button.text()).toStrictEqual("Edit")
+                    expect(button.classes()).toContain("propose-edit-institution")
                 } else {
-                    expect(buttons.at(i).text()).toContain("Remove")
+                    expect(button.text()).toContain("Remove")
+                    expect(button.classes()).toContain("propose-remove-institution")
                 }
             }
         }
@@ -72,7 +80,7 @@ describe("HarvesterAdmin", () => {
         })
 
         it("displays a form for adding an institution when the appropriate button is clicked", async () => {
-            const addInstitutionButton = wrapper.findAll("button").at(0)
+            const addInstitutionButton = wrapper.find(".propose-add-institution")
 
             addInstitutionFormFields.forEach((value) => {
                 expect(document.body.innerHTML).not.toContain(value)
@@ -110,7 +118,7 @@ describe("HarvesterAdmin", () => {
         })
 
         it("displays a form for updating an institution when the appropriate button is clicked", async () => {
-            const updateInstitutionButton = wrapper.findAll("button").at(1) // FIXME: use id of the element to find
+            const updateInstitutionButton = wrapper.find(".propose-edit-institution")
 
             updateInstitutionFormFields.forEach((value) => {
                 expect(document.body.innerHTML).not.toContain(value)
@@ -124,7 +132,7 @@ describe("HarvesterAdmin", () => {
         })
 
         it("displays a dialog to confirm removing an institution when the appropriate button is clicked", async () => {
-            const removeInstitutionButton = wrapper.findAll("button").at(2) // FIXME: use id of the element to find
+            const removeInstitutionButton = wrapper.find(".propose-remove-institution")
             const removeInstitutionDialogText = "This action will remove"
 
             expect(document.body.innerHTML).not.toContain(removeInstitutionDialogText)
