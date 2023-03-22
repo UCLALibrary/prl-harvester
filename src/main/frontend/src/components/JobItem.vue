@@ -9,33 +9,62 @@ const props = defineProps({
     metadataPrefix: { type: String, required: true },
     scheduleCronExpression: { type: String, required: true },
     lastSuccessfulRun: { type: Date },
+    selectJobToUpdate: { type: Function },
+    selectJobToRemove: { type: Function },
 })
-const sortedSets = computed(() => props.sets.slice().sort())
-const isSelectiveHarvest = computed(() => props.sets.length > 0)
+const isSelectiveHarvest = computed(() => (props.sets ? props.sets.length > 0 : false))
+const sortedSets = computed(() => (props.sets ? props.sets.slice().sort() : []))
 </script>
 
 <template>
-    <tr>
-        <td>
-            <a :href="`${repositoryBaseURL}?verb=Identify`">{{ repositoryBaseURL }}</a>
-        </td>
-        <td>
-            <v-list v-if="isSelectiveHarvest">
-                <v-list-item v-for="set in sortedSets" :key="set" density="compact">
-                    <a :href="`${repositoryBaseURL}?verb=ListRecords&set=${set}&metadataPrefix=${metadataPrefix}`">
-                        {{ set }}
-                    </a>
+    <v-card variant="outlined" height="auto" width="auto">
+        <v-card-text>
+            <v-list>
+                <v-list-item density="compact" prepend-icon="mdi-town-hall">
+                    <v-list-item-subtitle>
+                        <a :href="`${repositoryBaseURL}?verb=Identify`">{{ repositoryBaseURL }}</a>
+                    </v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item density="compact" prepend-icon="mdi-archive">
+                    <v-list v-if="isSelectiveHarvest">
+                        <span v-for="set in sortedSets" :key="set" density="compact">
+                            <a
+                                :href="`${repositoryBaseURL}?verb=ListRecords&set=${set}&metadataPrefix=${metadataPrefix}`">
+                                {{ set }} </a
+                            >,
+                        </span>
+                    </v-list>
+                    <span v-else class="optional-field-placeholder">(entire repository)</span>
+                </v-list-item>
+                <v-list-item density="compact" prepend-icon="mdi-file-code">{{ metadataPrefix }}</v-list-item>
+                <v-list-item density="compact" prepend-icon="mdi-calendar-clock">
+                    <v-list-item-subtitle>{{ scheduleCronExpression }}</v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item density="compact" prepend-icon="mdi-timeline-check">
+                    <v-list-item-subtitle>
+                        <span v-if="lastSuccessfulRun">{{ lastSuccessfulRun }}</span>
+                        <span v-else class="optional-field-placeholder">(no successful runs yet)</span>
+                    </v-list-item-subtitle>
                 </v-list-item>
             </v-list>
-            <span v-else class="optional-field-placeholder">(entire repository)</span>
-        </td>
-        <td>{{ metadataPrefix }}</td>
-        <td>{{ scheduleCronExpression }}</td>
-        <td>
-            <span v-if="lastSuccessfulRun">{{ lastSuccessfulRun }}</span>
-            <span v-else class="optional-field-placeholder">(no successful runs yet)</span>
-        </td>
-    </tr>
+        </v-card-text>
+        <v-card-actions class="ma-2 pa-2">
+            <v-btn
+                color="primary"
+                variant="outlined"
+                @click="selectJobToUpdate([id, institutionID])"
+                class="propose-edit-job">
+                Edit
+            </v-btn>
+            <v-btn
+                color="red"
+                variant="outlined"
+                @click="selectJobToRemove([id, institutionID])"
+                class="propose-remove-job">
+                Remove
+            </v-btn>
+        </v-card-actions>
+    </v-card>
 </template>
 
 <style scoped></style>

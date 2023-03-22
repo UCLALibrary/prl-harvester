@@ -14,6 +14,9 @@ const props = defineProps({
     jobs: { type: Object, required: true },
     selectInstitutionToUpdate: { type: Function },
     selectInstitutionToRemove: { type: Function },
+    toggleDisplayJobForm: { type: Function },
+    selectJobToUpdate: { type: Function },
+    selectJobToRemove: { type: Function },
 })
 const sortedJobs = computed(() => {
     return Object.values(props.jobs).sort((a, b) => {
@@ -92,21 +95,22 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
 
         <!-- Next, a rendering of the associated jobs (if any) -->
         <v-card-subtitle class="ma-2 pa-2 text-subtitle-1">Jobs</v-card-subtitle>
+        <v-card-actions>
+            <v-btn color="primary" variant="outlined" @click="toggleDisplayJobForm(id)" class="propose-add-job ma-2">
+                Add Job
+            </v-btn>
+        </v-card-actions>
         <v-card-text>
-            <v-table v-if="sortedJobs.length > 0" class="harvest-jobs">
-                <thead>
-                    <tr>
-                        <th>Repository Base URL</th>
-                        <th>Sets</th>
-                        <th>Metadata Format</th>
-                        <th>Schedule</th>
-                        <th>Last Successful Run</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <JobItem v-for="job in sortedJobs" v-bind="job" :key="job.id" />
-                </tbody>
-            </v-table>
+            <v-container v-if="sortedJobs.length > 0" class="harvest-jobs">
+                <v-row justify="left">
+                    <v-col v-for="job in sortedJobs" :key="job.id" cols="auto">
+                        <JobItem
+                            v-bind="job"
+                            :selectJobToUpdate="selectJobToUpdate"
+                            :selectJobToRemove="selectJobToRemove" />
+                    </v-col>
+                </v-row>
+            </v-container>
             <p v-else>No jobs yet!</p>
         </v-card-text>
         <v-card-actions class="ma-2 pa-2">

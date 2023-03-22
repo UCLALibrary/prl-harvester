@@ -7,13 +7,16 @@ import { mount } from "@vue/test-utils"
 
 import HarvesterAdmin from "../HarvesterAdmin.vue"
 import InstitutionItem from "../InstitutionItem.vue"
-import { testInstitution } from "./TestData.js"
+import { testJob, testJobSelectiveHarvest, testInstitution } from "./TestData.js"
 
 describe("HarvesterAdmin", () => {
     const vuetify = createVuetify({ components, directives })
 
     const addInstitutionFormFields = ["Name", "Description", "Location", "Website", "Email", "Phone", "Web Contact"]
     const updateInstitutionFormFields = ["ID"].concat(addInstitutionFormFields)
+
+    const addJobFormFields = ["Repository Base URL", "Sets", "Metadata Format", "Schedule Cron Expression"]
+    const updateJobFormFields = ["ID"].concat(addJobFormFields)
 
     /**
      * Checks that the expected number of institutions are rendered.
@@ -35,7 +38,7 @@ describe("HarvesterAdmin", () => {
     function checkButtons(wrapper, institutionsMap) {
         const institutions = Object.values(institutionsMap)
         const buttons = wrapper.findAll("button")
-        const nInstitutionButtons = 2 * institutions.length
+        const nInstitutionButtons = 3 * institutions.length
 
         expect(buttons.length).toStrictEqual(1 + nInstitutionButtons)
 
@@ -49,7 +52,10 @@ describe("HarvesterAdmin", () => {
             for (let i = 1; i < nInstitutionButtons; i++) {
                 button = buttons.at(i)
 
-                if (i % 2 === 1) {
+                if (i % 3 === 1) {
+                    expect(button.text()).toStrictEqual("Add Job")
+                    expect(button.classes()).toContain("propose-add-job")
+                } else if (i % 3 === 2) {
                     expect(button.text()).toStrictEqual("Edit")
                     expect(button.classes()).toContain("propose-edit-institution")
                 } else {
@@ -140,6 +146,59 @@ describe("HarvesterAdmin", () => {
             await removeInstitutionButton.trigger("click")
 
             expect(document.body.innerHTML).toContain(removeInstitutionDialogText)
+        })
+
+        describe("without jobs", () => {
+            it("displays a form for adding a job when the appropriate button is clicked", async () => {
+                const addJobButton = wrapper.find(".propose-add-job")
+
+                addJobFormFields.forEach((value) => {
+                    expect(document.body.innerHTML).not.toContain(value)
+                })
+
+                await addJobButton.trigger("click")
+
+                addJobFormFields.forEach((value) => {
+                    expect(document.body.innerHTML).toContain(value)
+                })
+            })
+        })
+
+        describe("with jobs", () => {
+            const jobs = { [testInstitution.id]: { [testJob.id]: testJob, [testJobSelectiveHarvest.id]: testJobSelectiveHarvest } }
+            const data = { institutions, jobs }
+
+            beforeEach(() => {
+                wrapper = mount(HarvesterAdmin, {
+                    props: data,
+                    global: { plugins: [vuetify] },
+                })
+            })
+
+            it("displays a form for updating a job when the appropriate button is clicked", async () => {
+                const updateJobButton = wrapper.find(".propose-edit-job")
+
+                updateJobFormFields.forEach((value) => {
+                    expect(document.body.innerHTML).not.toContain(value)
+                })
+
+                await updateJobButton.trigger("click")
+
+                updateJobFormFields.forEach((value) => {
+                    expect(document.body.innerHTML).toContain(value)
+                })
+            })
+
+            it("displays a dialog to confirm removing a job when the appropriate button is clicked", async () => {
+                const removeJobButton = wrapper.find(".propose-remove-job")
+                const removeJobDialogText = "This action will remove"
+
+                expect(document.body.innerHTML).not.toContain(removeJobDialogText)
+
+                await removeJobButton.trigger("click")
+
+                expect(document.body.innerHTML).toContain(removeJobDialogText)
+            })
         })
 
         afterEach(() => {

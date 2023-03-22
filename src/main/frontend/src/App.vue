@@ -68,6 +68,71 @@ async function sendRemoveInstitutionRequest(anInstitutionID) {
     return response
 }
 
+/**
+ * Sends an addJob request and, if successful, updates the state with the result.
+ *
+ * @param {Object} aJob The job
+ * @returns The HTTP response
+ */
+async function sendAddJobRequest(aJob) {
+    const response = await fetch("/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aJob),
+    })
+
+    if (response.status === StatusCodes.CREATED) {
+        const responseBody = await response.json()
+
+        if (state.jobs[responseBody.institutionID] === undefined) {
+            state.jobs[responseBody.institutionID] = {}
+        }
+
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
+    }
+
+    return response
+}
+
+/**
+ * Sends an updateJob request and, if successful, updates the state with the result.
+ *
+ * @param {Object} aJob The job
+ * @returns The HTTP response
+ */
+async function sendUpdateJobRequest(aJob) {
+    const response = await fetch(`/jobs/${aJob.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aJob),
+    })
+
+    if (response.status === StatusCodes.OK) {
+        const responseBody = await response.json()
+
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
+    }
+
+    return response
+}
+
+/**
+ * Sends an removeJob request and, if successful, updates the state with the result.
+ *
+ * @param {Number} aJobID The ID of the job
+ * @param {Number} anInstitutionID The ID of the associated institution
+ * @returns The HTTP response
+ */
+async function sendRemoveJobRequest(aJobID, anInstitutionID) {
+    const response = await fetch(`/jobs/${aJobID}`, { method: "DELETE" })
+
+    if (response.status === StatusCodes.NO_CONTENT) {
+        delete state.jobs[anInstitutionID][aJobID]
+    }
+
+    return response
+}
+
 // Fetch data from back-end
 fetch("/institutions")
     .then((response) => response.json())
@@ -98,7 +163,10 @@ fetch("/jobs")
             v-bind="state"
             :sendAddInstitutionRequest="sendAddInstitutionRequest"
             :sendUpdateInstitutionRequest="sendUpdateInstitutionRequest"
-            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest" />
+            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest"
+            :sendAddJobRequest="sendAddJobRequest"
+            :sendUpdateJobRequest="sendUpdateJobRequest"
+            :sendRemoveJobRequest="sendRemoveJobRequest" />
     </main>
 
     <footer>PRL Harvester Admin v{{ version }}</footer>
