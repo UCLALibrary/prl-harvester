@@ -20,13 +20,13 @@ const isSelectiveHarvest = computed(() => props.sets.length > 0)
             <a :href="`${repositoryBaseURL}?verb=Identify`">{{ repositoryBaseURL }}</a>
         </td>
         <td>
-            <ul v-if="isSelectiveHarvest">
-                <li v-for="set in sortedSets" :key="set">
+            <v-list v-if="isSelectiveHarvest">
+                <v-list-item v-for="set in sortedSets" :key="set" density="compact">
                     <a :href="`${repositoryBaseURL}?verb=ListRecords&set=${set}&metadataPrefix=${metadataPrefix}`">
-                        <span>{{ set }}</span>
+                        {{ set }}
                     </a>
-                </li>
-            </ul>
+                </v-list-item>
+            </v-list>
             <span v-else class="optional-field-placeholder">(entire repository)</span>
         </td>
         <td>{{ metadataPrefix }}</td>
@@ -38,8 +38,4 @@ const isSelectiveHarvest = computed(() => props.sets.length > 0)
     </tr>
 </template>
 
-<style scoped>
-td {
-    padding: 0.5rem;
-}
-</style>
+<style scoped></style>

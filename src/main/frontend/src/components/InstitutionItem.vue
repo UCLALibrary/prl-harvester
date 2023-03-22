@@ -12,6 +12,8 @@ const props = defineProps({
     webContact: { type: String },
     website: { type: String, required: true },
     jobs: { type: Array, required: true },
+    selectInstitutionToUpdate: { type: Function },
+    selectInstitutionToRemove: { type: Function },
 })
 const sortedJobs = computed(() => {
     return props.jobs.slice().sort((a, b) => {
@@ -46,105 +48,84 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
 </script>
 
 <template>
-    <a class="anchor" aria-hidden="true" :href="`#${headingIdentifier}`">&sect;</a>
-    <section :id="`${headingIdentifier}`">
-        <h2>{{ name }}</h2>
-        <table class="institution-metadata">
-            <tr>
-                <th>Description</th>
-                <td>
+    <v-card :id="`${headingIdentifier}`" variant="outlined">
+        <!-- First, a rendering of the institution metadata -->
+        <v-card-title class="text-h">{{ name }}</v-card-title>
+        <v-row no-gutters>
+            <v-col cols="4">
+                <v-list>
+                    <v-list-item density="compact" prepend-icon="mdi-map-marker">
+                        <v-list-item-subtitle>{{ location }}</v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item density="compact" prepend-icon="mdi-web">
+                        <v-list-item-subtitle>
+                            <a :href="website">{{ website }}</a>
+                        </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item density="compact" prepend-icon="mdi-email">
+                        <v-list-item-subtitle>
+                            <a v-if="email" :href="`mailto:${email}`">{{ email }}</a>
+                            <span v-else class="optional-field-placeholder">(not provided)</span>
+                        </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item density="compact" prepend-icon="mdi-phone">
+                        <v-list-item-subtitle>
+                            <a v-if="phone" :href="`tel:${phone}`">{{ phone }}</a>
+                            <span v-else class="optional-field-placeholder">(not provided)</span>
+                        </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item density="compact" prepend-icon="mdi-link">
+                        <v-list-item-subtitle>
+                            <a v-if="webContact" :href="webContact">{{ webContact }}</a>
+                            <span v-else class="optional-field-placeholder">(not provided)</span>
+                        </v-list-item-subtitle>
+                    </v-list-item>
+                </v-list>
+            </v-col>
+            <v-col>
+                <v-sheet class="ma-2 pa-2">
                     <blockquote>{{ description }}</blockquote>
-                </td>
-            </tr>
-            <tr>
-                <th>Location</th>
-                <td>{{ location }}</td>
-            </tr>
-            <tr>
-                <th>Email</th>
-                <td>
-                    <a v-if="email" :href="`mailto:${email}`">{{ email }}</a>
-                    <span v-else class="optional-field-placeholder">(not provided)</span>
-                </td>
-            </tr>
-            <tr>
-                <th>Phone</th>
-                <td>
-                    <a v-if="phone" :href="`tel:${phone}`">{{ phone }}</a>
-                    <span v-else class="optional-field-placeholder">(not provided)</span>
-                </td>
-            </tr>
-            <tr>
-                <th>Web Contact</th>
-                <td>
-                    <a v-if="webContact" :href="webContact">{{ webContact }}</a>
-                    <span v-else class="optional-field-placeholder">(not provided)</span>
-                </td>
-            </tr>
-            <tr>
-                <th>Website</th>
-                <td>
-                    <a :href="website">{{ website }}</a>
-                </td>
-            </tr>
-        </table>
+                </v-sheet>
+            </v-col>
+        </v-row>
+        <v-divider class="border-opacity-25"></v-divider>
 
-        <h3>Jobs</h3>
-        <table v-if="jobs.length > 0">
-            <thead>
-                <tr>
-                    <th>Repository Base URL</th>
-                    <th>Sets</th>
-                    <th>Metadata Format</th>
-                    <th>Schedule</th>
-                    <th>Last Successful Run</th>
-                </tr>
-            </thead>
-            <tbody>
-                <JobItem v-for="job in sortedJobs" v-bind="job" :key="job.id" />
-            </tbody>
-        </table>
-        <p v-else>No jobs yet!</p>
-    </section>
+        <!-- Next, a rendering of the associated jobs (if any) -->
+        <v-card-subtitle class="ma-2 pa-2 text-subtitle-1">Jobs</v-card-subtitle>
+        <v-card-text>
+            <v-table v-if="jobs.length > 0" class="harvest-jobs">
+                <thead>
+                    <tr>
+                        <th>Repository Base URL</th>
+                        <th>Sets</th>
+                        <th>Metadata Format</th>
+                        <th>Schedule</th>
+                        <th>Last Successful Run</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <JobItem v-for="job in sortedJobs" v-bind="job" :key="job.id" />
+                </tbody>
+            </v-table>
+            <p v-else>No jobs yet!</p>
+        </v-card-text>
+        <v-card-actions class="ma-2 pa-2">
+            <v-btn
+                color="primary"
+                variant="outlined"
+                @click="selectInstitutionToUpdate(id)"
+                class="propose-edit-institution">
+                Edit
+            </v-btn>
+            <v-btn
+                color="red"
+                variant="outlined"
+                @click="selectInstitutionToRemove(id)"
+                class="propose-remove-institution">
+                Remove {{ `"${name}"` }}
+            </v-btn>
+        </v-card-actions>
+    </v-card>
 </template>
 
-<style scoped>
-h2 {
-    padding-bottom: 1rem;
-}
-
-h3 {
-    padding: 1rem 0;
-}
-
-thead th {
-    padding: 0.5rem;
-}
-
-tbody tr:nth-child(odd) {
-    background-color: #8bb8e8;
-}
-
-tbody tr:nth-child(even) {
-    background-color: #ffd100;
-}
-
-.anchor {
-    float: left;
-    margin-left: -2rem;
-    line-height: 1;
-    padding: 0.5rem;
-}
-
-.institution-metadata {
-    border-collapse: collapse;
-}
-
-.institution-metadata th {
-    padding: 0.5rem;
-}
-
-.institution-metadata tr {
-    border-bottom: thin solid;
-}
-</style>
+<style scoped></style>
