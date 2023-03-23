@@ -5,6 +5,15 @@ import { StatusCodes } from "http-status-codes"
 import { version } from "../package.json"
 import HarvesterAdmin from "./components/HarvesterAdmin.vue"
 
+/**
+ * The state object that should be kept in sync with the back-end state.
+ *
+ * The institutions map is from institution IDs to institutions. So for example, `state.institutions[1]` retrieves the
+ * institution with ID 1.
+ *
+ * The jobs map is from institutionIDs to a map from job IDs to jobs. So for example, `state.jobs[2][3]` retrieves the
+ * job with ID 3 and institutionID 2.
+ */
 const state = reactive({ institutions: {}, jobs: {} })
 
 /**
