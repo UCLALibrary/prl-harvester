@@ -37,6 +37,18 @@ describe("JobItem", () => {
             })
     }
 
+    /**
+     * Checks that the HTML button elements are rendered as expected.
+     *
+     * @param {VueWrapper} wrapper The result of mounting a {@link JobItem}
+     */
+    function checkButtons(wrapper) {
+        expect(wrapper.findAll("button").length).toStrictEqual(2)
+
+        expect(wrapper.find(".propose-edit-job").exists()).toBeTruthy()
+        expect(wrapper.find(".propose-remove-job").exists()).toBeTruthy()
+    }
+
     for (const testInfo of [
         {
             name: "without sets",
@@ -58,6 +70,7 @@ describe("JobItem", () => {
 
             it("renders properly", () => {
                 checkJob(wrapper, testInfo.job)
+                checkButtons(wrapper)
             })
 
             afterEach(() => {
