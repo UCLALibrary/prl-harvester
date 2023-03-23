@@ -51,7 +51,7 @@ describe("InstitutionItem", () => {
      * @param {object[]} jobs The data that should be rendered
      */
     function checkButtons(wrapper, jobs) {
-        expect(wrapper.findAll("button").length).toStrictEqual(3 + (2 * jobs.length))
+        expect(wrapper.findAll("button").length).toStrictEqual(3 + 2 * jobs.length)
 
         expect(wrapper.find(".propose-add-job").exists()).toBeTruthy()
         expect(wrapper.find(".propose-edit-institution").exists()).toBeTruthy()
@@ -62,52 +62,36 @@ describe("InstitutionItem", () => {
         }
     }
 
-    describe("without jobs", () => {
-        const jobs = []
-        const data = { ...testInstitution, jobs }
+    for (const testInfo of [
+        {
+            name: "without jobs",
+            institution: testInstitution,
+            jobs: [],
+        },
+        {
+            name: "with jobs",
+            institution: testInstitution,
+            jobs: [testJob, testJobSelectiveHarvest],
+        },
+    ]) {
+        describe(testInfo.name, () => {
+            const props = { ...testInfo.institution, jobs: testInfo.jobs }
 
-        let wrapper
+            let wrapper
 
-        beforeEach(() => {
-            wrapper = mount(InstitutionItem, {
-                props: data,
-                global: { plugins: [vuetify] },
+            beforeEach(() => {
+                wrapper = mount(InstitutionItem, { props, global: { plugins: [vuetify] } })
+            })
+
+            it("renders properly", () => {
+                checkInstitution(wrapper, testInfo.institution)
+                checkJobs(wrapper, testInfo.jobs)
+                checkButtons(wrapper, testInfo.jobs)
+            })
+
+            afterEach(() => {
+                wrapper.unmount()
             })
         })
-
-        it("renders properly", () => {
-            checkInstitution(wrapper, testInstitution)
-            checkJobs(wrapper, jobs)
-            checkButtons(wrapper, jobs)
-        })
-
-        afterEach(() => {
-            wrapper.unmount()
-        })
-    })
-
-    describe("with jobs", () => {
-        const jobs = [testJob, testJobSelectiveHarvest]
-        const data = { ...testInstitution, jobs }
-
-        let wrapper
-
-        beforeEach(() => {
-            wrapper = mount(InstitutionItem, {
-                props: data,
-                global: { plugins: [vuetify] },
-            })
-        })
-
-        it("renders properly", () => {
-            checkInstitution(wrapper, testInstitution)
-            checkJobs(wrapper, jobs)
-            checkButtons(wrapper, jobs)
-        })
-
-
-        afterEach(() => {
-            wrapper.unmount()
-        })
-    })
+    }
 })

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
 
 import { createVuetify } from "vuetify"
 import * as components from "vuetify/components"
@@ -37,23 +37,32 @@ describe("JobItem", () => {
             })
     }
 
-    it("renders properly without sets specified", () => {
-        const wrapper = mount(JobItem, {
-            props: testJob,
-            global: { plugins: [vuetify] },
+    for (const testInfo of [
+        {
+            name: "without sets",
+            job: testJob,
+        },
+        {
+            name: "with sets",
+            job: testJobSelectiveHarvest,
+        },
+    ]) {
+        describe(testInfo.name, () => {
+            const props = testInfo.job
+
+            let wrapper
+
+            beforeEach(() => {
+                wrapper = mount(JobItem, { props, global: { plugins: [vuetify] } })
+            })
+
+            it("renders properly", () => {
+                checkJob(wrapper, testInfo.job)
+            })
+
+            afterEach(() => {
+                wrapper.unmount()
+            })
         })
-
-        checkJob(wrapper, testJob)
-    })
-
-    it("renders properly with sets specified", () => {
-        const wrapper = mount(JobItem, {
-            props: testJobSelectiveHarvest,
-            global: { plugins: [vuetify] },
-        })
-
-        checkJob(wrapper, testJobSelectiveHarvest)
-    })
+    }
 })
-
-export { testJob, testJobSelectiveHarvest }

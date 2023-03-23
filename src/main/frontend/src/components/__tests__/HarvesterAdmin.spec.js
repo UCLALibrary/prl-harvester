@@ -165,7 +165,9 @@ describe("HarvesterAdmin", () => {
         })
 
         describe("with jobs", () => {
-            const jobs = { [testInstitution.id]: { [testJob.id]: testJob, [testJobSelectiveHarvest.id]: testJobSelectiveHarvest } }
+            const jobs = {
+                [testInstitution.id]: { [testJob.id]: testJob, [testJobSelectiveHarvest.id]: testJobSelectiveHarvest },
+            }
             const data = { institutions, jobs }
 
             beforeEach(() => {
