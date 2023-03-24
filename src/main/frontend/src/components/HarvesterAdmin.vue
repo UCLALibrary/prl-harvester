@@ -403,7 +403,7 @@ async function removeJob(aJobID, anInstitutionID) {
                     v-model="jobToAddOrUpdate.repositoryBaseURL"
                     required></v-text-field>
                 <v-text-field label="Metadata Format" model-value="oai_dc" disabled></v-text-field>
-                <!-- <v-text-field label="Sets" v-model="jobToAddOrUpdate.sets"></v-text-field> -->
+                <v-text-field label="Sets" v-model="jobToAddOrUpdate.sets"></v-text-field>
                 <v-text-field
                     label="Schedule Cron Expression"
                     v-model="jobToAddOrUpdate.scheduleCronExpression"
@@ -434,7 +434,7 @@ async function removeJob(aJobID, anInstitutionID) {
                         addJob({
                             institutionID: institutionIdForJob,
                             ...jobToAddOrUpdate,
-                            sets: [],
+                            sets: jobToAddOrUpdate.sets,
                             metadataPrefix: `oai_dc`,
                         })
                     ">
@@ -450,7 +450,7 @@ async function removeJob(aJobID, anInstitutionID) {
                         updateJob({
                             institutionID: institutionIdForJob,
                             ...jobToAddOrUpdate,
-                            sets: [],
+                            sets: jobToAddOrUpdate.sets,
                             metadataPrefix: `oai_dc`,
                         })
                     ">

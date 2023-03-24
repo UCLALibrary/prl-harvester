@@ -5,15 +5,15 @@ const props = defineProps({
     id: { type: Number, required: true },
     institutionID: { type: Number, required: true },
     repositoryBaseURL: { type: String, required: true },
-    sets: { type: Array, required: true },
+    sets: { type: String, required: true }, // Represented as a CSV-ified array throughout the front-end app, except when making HTTP requests to the back-end
     metadataPrefix: { type: String, required: true },
     scheduleCronExpression: { type: String, required: true },
     lastSuccessfulRun: { type: Date },
     selectJobToUpdate: { type: Function },
     selectJobToRemove: { type: Function },
 })
-const isSelectiveHarvest = computed(() => (props.sets ? props.sets.length > 0 : false))
-const sortedSets = computed(() => (props.sets ? props.sets.slice().sort() : []))
+const isSelectiveHarvest = computed(() => (props.sets ? props.sets.split(',').length > 0 : false))
+const sortedSets = computed(() => (props.sets ? props.sets.split(',') : []))
 </script>
 
 <template>
