@@ -449,9 +449,8 @@ function jobWithDeserializedSets(aJob) {
                     class="confirm-add-job"
                     @click="
                         addJob({
-                            institutionID: institutionIdForJob,
                             ...jobToAddOrUpdate,
-                            sets: jobToAddOrUpdate.sets,
+                            institutionID: institutionIdForJob,
                             metadataPrefix: `oai_dc`,
                         })
                     ">
@@ -465,9 +464,8 @@ function jobWithDeserializedSets(aJob) {
                     class="confirm-update-job"
                     @click="
                         updateJob({
-                            institutionID: institutionIdForJob,
                             ...jobToAddOrUpdate,
-                            sets: jobToAddOrUpdate.sets,
+                            institutionID: institutionIdForJob,
                             metadataPrefix: `oai_dc`,
                         })
                     ">
