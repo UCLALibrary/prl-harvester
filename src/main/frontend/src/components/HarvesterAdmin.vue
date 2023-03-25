@@ -96,10 +96,10 @@ async function addInstitution(anInstitution) {
 /**
  * Adds a job.
  *
- * @param {Object} aJob The job to add
+ * @param {Object} aJob A job with its sets represented as a CSV string
  */
 async function addJob(aJob) {
-    const response = await props.sendAddJobRequest(aJob)
+    const response = await props.sendAddJobRequest(jobWithDeserializedSets(aJob))
 
     if (response.status === StatusCodes.CREATED) {
         actionResultAlert.value = {
@@ -144,7 +144,8 @@ function selectJobToUpdate(anIDs) {
     // Since the form is bound to `jobToAddOrUpdate`, and we don't want to modify `state`: copy the object
     const copyOfJob = Object.assign({}, props.jobs[institutionID][jobID])
 
-    setJobToAddOrUpdate(copyOfJob)
+    // The form needs to work with a stringified version of the sets array
+    setJobToAddOrUpdate(jobWithCsvSerializedSets(copyOfJob))
 
     // Since the job form is being reused for add and update, need to toggle its display manually
     toggleDisplayJobForm(institutionID)
@@ -178,10 +179,10 @@ async function updateInstitution(anInstitution) {
 /**
  * Updates a aJob.
  *
- * @param {Object} aJob The job to update
+ * @param {Object} aJob A job with its sets represented as a CSV string
  */
 async function updateJob(aJob) {
-    const response = await props.sendUpdateJobRequest(aJob)
+    const response = await props.sendUpdateJobRequest(jobWithDeserializedSets(aJob))
 
     if (response.status === StatusCodes.OK) {
         actionResultAlert.value = {
@@ -270,6 +271,22 @@ async function removeJob(aJobID, anInstitutionID) {
     }
 
     selectJobToRemove(undefined)
+}
+
+/**
+ * @param {Object} aJob A job with its sets represented as an array
+ * @returns The job with its sets represented as a CSV string
+ */
+function jobWithCsvSerializedSets(aJob) {
+    return { ...aJob, sets: aJob.sets.join() }
+}
+
+/**
+ * @param {Object} aJob A job with its sets represented as a CSV string
+ * @returns The job with its sets represented as an array
+ */
+function jobWithDeserializedSets(aJob) {
+    return { ...aJob, sets: aJob.sets ? aJob.sets.split(",").map((s) => s.trim()) : [] }
 }
 </script>
 

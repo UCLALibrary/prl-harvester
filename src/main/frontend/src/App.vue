@@ -80,14 +80,14 @@ async function sendRemoveInstitutionRequest(anInstitutionID) {
 /**
  * Sends an addJob request and, if successful, updates the state with the result.
  *
- * @param {Object} aJob A job with its sets represented as a CSV string
+ * @param {Object} aJob A job
  * @returns The HTTP response
  */
 async function sendAddJobRequest(aJob) {
     const response = await fetch("/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jobWithDeserializedSets(aJob)),
+        body: JSON.stringify(aJob),
     })
 
     if (response.status === StatusCodes.CREATED) {
@@ -97,7 +97,7 @@ async function sendAddJobRequest(aJob) {
             state.jobs[responseBody.institutionID] = {}
         }
 
-        state.jobs[responseBody.institutionID][responseBody.id] = jobWithCsvSerializedSets(responseBody)
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
     }
 
     return response
@@ -106,20 +106,20 @@ async function sendAddJobRequest(aJob) {
 /**
  * Sends an updateJob request and, if successful, updates the state with the result.
  *
- * @param {Object} aJob A job with its sets represented as a CSV string
+ * @param {Object} aJob A job
  * @returns The HTTP response
  */
 async function sendUpdateJobRequest(aJob) {
     const response = await fetch(`/jobs/${aJob.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jobWithDeserializedSets(aJob)),
+        body: JSON.stringify(aJob),
     })
 
     if (response.status === StatusCodes.OK) {
         const responseBody = await response.json()
 
-        state.jobs[responseBody.institutionID][responseBody.id] = jobWithCsvSerializedSets(responseBody)
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
     }
 
     return response
@@ -142,22 +142,6 @@ async function sendRemoveJobRequest(aJobID, anInstitutionID) {
     return response
 }
 
-/**
- * @param {Object} aJob A job with its sets represented as an array
- * @returns The job with its sets represented as a CSV string
- */
-function jobWithCsvSerializedSets(aJob) {
-    return { ...aJob, sets: aJob.sets.join() }
-}
-
-/**
- * @param {Object} aJob A job with its sets represented as a CSV string
- * @returns The job with its sets represented as an array
- */
-function jobWithDeserializedSets(aJob) {
-    return { ...aJob, sets: aJob.sets ? aJob.sets.split(',').map(s => s.trim()) : [] }
-}
-
 // Fetch data from back-end
 fetch("/institutions")
     .then((response) => response.json())
@@ -173,7 +157,7 @@ fetch("/jobs")
                 state.jobs[job.institutionID] = {}
             }
 
-            state.jobs[job.institutionID][job.id] = jobWithCsvSerializedSets(job)
+            state.jobs[job.institutionID][job.id] = job
         })
     })
 </script>
