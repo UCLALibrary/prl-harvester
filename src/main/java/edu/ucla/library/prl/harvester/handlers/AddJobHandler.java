@@ -1,12 +1,16 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.util.List;
+
 import org.apache.http.HttpStatus;
 
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.InvalidJobJsonException;
 import edu.ucla.library.prl.harvester.MediaType;
+import edu.ucla.library.prl.harvester.OaipmhUtils;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
@@ -31,16 +35,22 @@ public final class AddJobHandler extends AbstractRequestHandler {
 
         try {
             final Job job = new Job(aContext.body().asJsonObject());
+            final Future<Void> validateOaipmhIdentifiers = OaipmhUtils.validateIdentifiers(myVertx,
+                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()));
 
-            myHarvestScheduleStoreService.addJob(job).compose(jobID -> {
-                return myHarvestJobSchedulerService.addJob(jobID, job).map(jobID);
-            }).onSuccess(jobID -> {
-                final JsonObject responseBody = Job.withID(job, jobID).toJson();
+            validateOaipmhIdentifiers.onSuccess(nil -> {
+                myHarvestScheduleStoreService.addJob(job).compose(jobID -> {
+                    return myHarvestJobSchedulerService.addJob(jobID, job).map(jobID);
+                }).onSuccess(jobID -> {
+                    final JsonObject responseBody = Job.withID(job, jobID).toJson();
 
-                response.setStatusCode(HttpStatus.SC_CREATED)
-                        .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
-                        .end(responseBody.encode());
-            }).onFailure(aContext::fail);
+                    response.setStatusCode(HttpStatus.SC_CREATED)
+                            .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
+                            .end(responseBody.encode());
+                }).onFailure(aContext::fail);
+            }).onFailure(details -> {
+                response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
+            });
         } catch (final InvalidJobJsonException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }

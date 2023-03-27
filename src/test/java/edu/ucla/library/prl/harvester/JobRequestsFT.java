@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.ParseException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -69,6 +71,8 @@ public class JobRequestsFT {
 
     private JavaAsyncSolrClient mySolrClient;
 
+    private URL myTestProviderBaseURL;
+
     private WebClient myWebClient;
 
     private int myInstitutionID;
@@ -85,6 +89,13 @@ public class JobRequestsFT {
 
             myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
+
+            try {
+                myTestProviderBaseURL = new URL(config.getString(Config.TEST_PROVIDER_BASE_URL));
+            } catch (final MalformedURLException details) {
+                return Future.failedFuture(details);
+            }
+
             myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
 
             return Future.succeededFuture();
@@ -168,8 +179,8 @@ public class JobRequestsFT {
         final Future<HttpResponse<Buffer>> addJob;
 
         try {
-            job = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of());
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -228,8 +239,8 @@ public class JobRequestsFT {
         final Future<HttpResponse<Buffer>> addJob;
 
         try {
-            job = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1));
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -292,9 +303,10 @@ public class JobRequestsFT {
         final Future<HttpResponse<Buffer>> addJob;
 
         try {
-            job = TestUtils.getRandomJob(myInstitutionID);
-            updatedJob = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET2));
+            updatedJob =
+                    TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1, TestUtils.SET2));
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -380,8 +392,8 @@ public class JobRequestsFT {
         final Future<HttpResponse<Buffer>> addJob;
 
         try {
-            job = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1));
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -475,8 +487,8 @@ public class JobRequestsFT {
         final Future<HttpResponse<Buffer>> updateJob;
 
         try {
-            job = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET2));
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -522,15 +534,15 @@ public class JobRequestsFT {
      * @param aContext A test context
      */
     @Test
-    void testAddInvalidJob(final Vertx aVertx, final VertxTestContext aContext) {
+    void testAddJobInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
         final Job validJob;
         final JsonObject invalidJobJson;
 
         try {
-            validJob = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            validJob = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of());
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -562,15 +574,16 @@ public class JobRequestsFT {
      * @param aContext A test context
      */
     @Test
-    void testUpdateInvalidJobAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
+    void testUpdateJobInvalidJsonAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job validJob;
         final Future<HttpResponse<Buffer>> addJob;
 
         try {
-            validJob = TestUtils.getRandomJob(myInstitutionID);
-        } catch (final MalformedURLException | ParseException details) {
+            validJob =
+                    TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1, TestUtils.SET2));
+        } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
@@ -625,6 +638,80 @@ public class JobRequestsFT {
 
                 return Future.succeededFuture();
             });
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#addJob} with an invalid OAI-PMH base URL results in HTTP 400.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testAddJobInvalidBaseURL(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
+        final Job invalidJob;
+
+        try {
+            invalidJob = TestUtils.getJob(myInstitutionID, new URL("http://example.com"), List.of());
+        } catch (final MalformedURLException | ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        myWebClient.post(JOBS).sendJson(invalidJob.toJson()).onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+
+                responseVerified.flag();
+
+            });
+
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link Op#addJob} with one or more undefined OAI-PMH sets results in HTTP 400.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testAddJobInvalidSets(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
+        final Job invalidJob;
+
+        try {
+            invalidJob = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of("set3"));
+        } catch (final ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        myWebClient.post(JOBS).sendJson(invalidJob.toJson()).onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+
+                responseVerified.flag();
+
+            });
+
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 }

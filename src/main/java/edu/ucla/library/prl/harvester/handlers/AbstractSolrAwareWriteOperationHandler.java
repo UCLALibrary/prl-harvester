@@ -23,11 +23,6 @@ public abstract class AbstractSolrAwareWriteOperationHandler extends AbstractReq
     protected final JavaAsyncSolrClient mySolrClient;
 
     /**
-     * The Vert.x instance.
-     */
-    protected final Vertx myVertx;
-
-    /**
      * @param aVertx A Vert.x instance
      * @param aConfig A configuration
      */
@@ -35,7 +30,6 @@ public abstract class AbstractSolrAwareWriteOperationHandler extends AbstractReq
         super(aVertx);
 
         mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
-        myVertx = aVertx;
     }
 
     /**

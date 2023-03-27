@@ -81,6 +81,10 @@ public final class TestUtils {
 
     public static final UriTemplate JOBS = UriTemplate.of("/jobs");
 
+    public static final String SET1 = "set1";
+
+    public static final String SET2 = "set2";
+
     private static final Random RANDOMIZER = new Random();
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();
@@ -162,6 +166,22 @@ public final class TestUtils {
         cronExpression.append(aSourceDate.getMonthValue()).append(blank);
         cronExpression.append(QUESTION);
         return cronExpression.toString();
+    }
+
+    /**
+     * Gets a job for testing against our test OAI-PMH repository.
+     *
+     * @param anInstitutionID The ID of the institution to associate the job with
+     * @param aBaseURL An OAI-PMH base URL that resolves to a repository
+     * @param aSets A list of OAI-PMH set specs that are defined on that repository
+     * @return A job object with data that matches our test setup
+     * @throws ParseException If there is something wrong with {@link #buildCron}
+     */
+    public static Job getJob(final Integer anInstitutionID, final URL aBaseURL, final List<String> aSets)
+            throws ParseException {
+        final CronExpression randCron = new CronExpression(buildCron(RAND_DATE.getRandomValue()));
+
+        return new Job(anInstitutionID, aBaseURL, aSets, randCron, null);
     }
 
     /**
