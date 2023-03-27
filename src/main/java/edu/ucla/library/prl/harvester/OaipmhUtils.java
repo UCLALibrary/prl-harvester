@@ -21,6 +21,9 @@ import org.dspace.xoai.serviceprovider.parameters.ListRecordsParameters;
 
 import com.google.common.collect.ImmutableList;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -30,6 +33,11 @@ import io.vertx.core.Vertx;
  * A utility class for working with OAI-PMH asynchronously.
  */
 public final class OaipmhUtils {
+
+    /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(OaipmhUtils.class, MessageCodes.BUNDLE);
 
     /**
      * Private constructor for utility class to prohibit instantiation.
@@ -43,6 +51,34 @@ public final class OaipmhUtils {
      */
     public static List<String> getSetSpecs(final List<Set> aSets) {
         return aSets.stream().map(Set::getSpec).toList();
+    }
+
+    /**
+     * Checks that the given URL points to an OAI-PMH repository, and (if provided) that the sets are defined.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aBaseURL A URL to check
+     * @param aSets A list of sets to check
+     * @return A Future that succeeds if the checks pass, and fails otherwise
+     */
+    public static Future<Void> validateIdentifiers(final Vertx aVertx, final URL aBaseURL, final List<String> aSets) {
+        final Promise<Void> validation = Promise.promise();
+
+        OaipmhUtils.listSets(aVertx, aBaseURL).onSuccess(sets -> {
+            final List<String> setSpecs = OaipmhUtils.getSetSpecs(sets);
+
+            for (final String set : aSets) {
+                if (!setSpecs.contains(set)) {
+                    validation.fail(LOGGER.getMessage(MessageCodes.PRL_025, aBaseURL, set));
+                }
+            }
+
+            validation.complete();
+        }).onFailure(details -> {
+            validation.fail(LOGGER.getMessage(MessageCodes.PRL_024, aBaseURL));
+        });
+
+        return validation.future();
     }
 
     /**
