@@ -570,7 +570,7 @@ public class InstitutionRequestsFT {
      * @param aContext A test context
      */
     @Test
-    void testAddInvalidInstitution(final Vertx aVertx, final VertxTestContext aContext) {
+    void testAddInstitutionInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint();
         final Checkpoint solrVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
@@ -619,7 +619,7 @@ public class InstitutionRequestsFT {
      * @param aContext A test context
      */
     @Test
-    void testUpdateInvalidInstitutionAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
+    void testUpdateInstitutionInvalidJsonAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint solrVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint(2);
