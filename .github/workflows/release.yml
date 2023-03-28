@@ -9,9 +9,6 @@ jobs:
     strategy:
       matrix:
         java: [ 17 ]
-    env:
-      AUTORELEASE_ARTIFACT: ${{ secrets.AUTORELEASE_ARTIFACT }}
-      SKIP_JAR_DEPLOYMENT: ${{ secrets.SKIP_JAR_DEPLOYMENT }}
     steps:
       - name: Check out source code
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
@@ -25,12 +22,6 @@ jobs:
         uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c #v3.6.0
         with:
           node-version: 16
-      - name: Set autorelease config
-        if: env.AUTORELEASE_ARTIFACT == null
-        run: echo "AUTORELEASE_ARTIFACT=false" >> $GITHUB_ENV
-      - name: Set Jar deployment config
-        if: env.SKIP_JAR_DEPLOYMENT == null
-        run: echo "SKIP_JAR_DEPLOYMENT=false" >> $GITHUB_ENV
       - name: Login to Docker repository
         uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # v2.0.0
         with:
@@ -45,9 +36,9 @@ jobs:
           nexus_password: ${{ secrets.SONATYPE_PASSWORD }}
           maven_profiles: release
           maven_args: >
-            -Drevision=${{ github.event.release.tag_name }} -DautoReleaseAfterClose=${{ env.AUTORELEASE_ARTIFACT }}
+            -Drevision=${{ github.event.release.tag_name }}
             -ntp -Dorg.slf4j.simpleLogger.log.net.sourceforge.pmd=error -Ddocker.showLogs=true
-            -DskipNexusStagingDeployMojo=${{ env.SKIP_JAR_DEPLOYMENT }}
+            -DskipNexusStagingDeployMojo=true -DautoReleaseAfterClose=false -Dgpg.skip=true
             -Ddocker.registry.username=${{ secrets.DOCKER_USERNAME }}
             -Ddocker.registry.account=${{ secrets.DOCKER_REGISTRY_ACCOUNT}}
             -Ddocker.registry.password=${{ secrets.DOCKER_PASSWORD }}
