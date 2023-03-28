@@ -1,5 +1,4 @@
-const testJob = {
-    id: 1,
+const testJobSeed = {
     institutionID: 1,
     repositoryBaseURL: "http://example.edu/provider",
     sets: [],
@@ -8,9 +7,15 @@ const testJob = {
     lastSuccessfulRun: null,
 }
 
+const testJob = {
+    id: 1,
+    ...testJobSeed,
+}
+
 const testJobSelectiveHarvest = {
-    ...testJob,
+    id: 2,
     sets: ["set1", "set2"],
+    ...testJobSeed,
 }
 
 const testInstitution = {

@@ -5,6 +5,15 @@ import { StatusCodes } from "http-status-codes"
 import { version } from "../package.json"
 import HarvesterAdmin from "./components/HarvesterAdmin.vue"
 
+/**
+ * The state object that should be kept in sync with the back-end state.
+ *
+ * The institutions map is from institution IDs to institutions. So for example, `state.institutions[1]` retrieves the
+ * institution with ID 1.
+ *
+ * The jobs map is from institutionIDs to a map from job IDs to jobs. So for example, `state.jobs[2][3]` retrieves the
+ * job with ID 3 and institutionID 2.
+ */
 const state = reactive({ institutions: {}, jobs: {} })
 
 /**
@@ -68,6 +77,71 @@ async function sendRemoveInstitutionRequest(anInstitutionID) {
     return response
 }
 
+/**
+ * Sends an addJob request and, if successful, updates the state with the result.
+ *
+ * @param {Object} aJob A job
+ * @returns The HTTP response
+ */
+async function sendAddJobRequest(aJob) {
+    const response = await fetch("/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aJob),
+    })
+
+    if (response.status === StatusCodes.CREATED) {
+        const responseBody = await response.json()
+
+        if (state.jobs[responseBody.institutionID] === undefined) {
+            state.jobs[responseBody.institutionID] = {}
+        }
+
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
+    }
+
+    return response
+}
+
+/**
+ * Sends an updateJob request and, if successful, updates the state with the result.
+ *
+ * @param {Object} aJob A job
+ * @returns The HTTP response
+ */
+async function sendUpdateJobRequest(aJob) {
+    const response = await fetch(`/jobs/${aJob.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aJob),
+    })
+
+    if (response.status === StatusCodes.OK) {
+        const responseBody = await response.json()
+
+        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
+    }
+
+    return response
+}
+
+/**
+ * Sends an removeJob request and, if successful, updates the state with the result.
+ *
+ * @param {Number} aJobID The ID of the job
+ * @param {Number} anInstitutionID The ID of the associated institution
+ * @returns The HTTP response
+ */
+async function sendRemoveJobRequest(aJobID, anInstitutionID) {
+    const response = await fetch(`/jobs/${aJobID}`, { method: "DELETE" })
+
+    if (response.status === StatusCodes.NO_CONTENT) {
+        delete state.jobs[anInstitutionID][aJobID]
+    }
+
+    return response
+}
+
 // Fetch data from back-end
 fetch("/institutions")
     .then((response) => response.json())
@@ -80,10 +154,10 @@ fetch("/jobs")
     .then((jobs) => {
         jobs.forEach((job) => {
             if (state.jobs[job.institutionID] === undefined) {
-                state.jobs[job.institutionID] = []
+                state.jobs[job.institutionID] = {}
             }
 
-            state.jobs[job.institutionID].push(job)
+            state.jobs[job.institutionID][job.id] = job
         })
     })
 </script>
@@ -98,7 +172,10 @@ fetch("/jobs")
             v-bind="state"
             :sendAddInstitutionRequest="sendAddInstitutionRequest"
             :sendUpdateInstitutionRequest="sendUpdateInstitutionRequest"
-            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest" />
+            :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest"
+            :sendAddJobRequest="sendAddJobRequest"
+            :sendUpdateJobRequest="sendUpdateJobRequest"
+            :sendRemoveJobRequest="sendRemoveJobRequest" />
     </main>
 
     <footer>PRL Harvester Admin v{{ version }}</footer>
