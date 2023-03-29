@@ -61,6 +61,9 @@ public class InstitutionRequestsFT {
 
     private static final UriTemplate INSTITUTIONS = UriTemplate.of("/institutions");
 
+    private static final String MISSING_NAME_VALIDATION_ERROR =
+            "[Bad Request] Validation error for body application/json: provided object should contain property name";
+
     private Pool myDbConnectionPool;
 
     private JavaAsyncSolrClient mySolrClient;
@@ -584,11 +587,13 @@ public class InstitutionRequestsFT {
             return;
         }
 
-        invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
+        invalidInstitutionJson = validInstitution.toJson();
+        invalidInstitutionJson.remove(Institution.NAME);
 
         myWebClient.post(INSTITUTIONS).sendJson(invalidInstitutionJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+                assertEquals(MISSING_NAME_VALIDATION_ERROR, response.bodyAsString());
 
                 responseVerified.flag();
             });
@@ -670,13 +675,17 @@ public class InstitutionRequestsFT {
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
-            invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
+
+            invalidInstitutionJson = validInstitution.toJson();
+            invalidInstitutionJson.remove(Institution.NAME);
+
             updateInstitution =
                     myWebClient.put(INSTITUTION.expandToString(institutionID)).sendJson(invalidInstitutionJson);
 
             return updateInstitution.compose(updateInstitutionResponse -> {
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateInstitutionResponse.statusCode());
+                    assertEquals(MISSING_NAME_VALIDATION_ERROR, updateInstitutionResponse.bodyAsString());
 
                     responseVerified.flag();
 
