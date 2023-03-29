@@ -84,7 +84,7 @@ async function addInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution add failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Institution add failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
@@ -109,7 +109,7 @@ async function addJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job add failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Job add failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
@@ -167,7 +167,7 @@ async function updateInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution update failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Institution update failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
@@ -192,7 +192,7 @@ async function updateJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job update failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Job update failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
@@ -242,7 +242,7 @@ async function removeInstitution(anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution remove failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Institution remove failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
@@ -266,7 +266,7 @@ async function removeJob(aJobID, anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job remove failed: HTTP ${response.status} (${response.statusText})`,
+            message: `Job remove failed: HTTP ${response.status} (${await response.text()})`,
         }
     }
 
