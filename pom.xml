@@ -519,7 +519,7 @@
             <PGPASSWORD>${test.db.password}</PGPASSWORD>
             <PGPORT>${test.db.port}</PGPORT>
             <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
-            <TEST_PROVIDER_BASE_URL>http://localhost:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
+            <TEST_PROVIDER_BASE_URL>http://172.17.0.1:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
             <LDAP_URL>ldap://0.0.0.0:${test.auth.ldap}</LDAP_URL>
           </environmentVariables>
           <excludedGroups>real-provider</excludedGroups>

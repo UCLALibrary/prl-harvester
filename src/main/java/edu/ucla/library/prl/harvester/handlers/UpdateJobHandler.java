@@ -43,22 +43,29 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
             final JsonObject jobJSON = aContext.body().asJsonObject();
             final Job job = new Job(jobJSON);
+            final Future<Void> validateOaipmhIdentifiers = OaipmhUtils.validateIdentifiers(myVertx,
+                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()));
 
-            myHarvestScheduleStoreService.getJob(id).compose(oldJob -> {
-                return myHarvestScheduleStoreService.getInstitution(oldJob.getInstitutionID()).compose(institution -> {
-                    return myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                        return myHarvestJobSchedulerService.updateJob(id, job);
-                    }).compose(nil -> {
-                        return updateSolr(Tuple.of(oldJob.toJson(), jobJSON, institution.getName()));
-                    });
-                });
-            }).onSuccess(nil -> {
-                final JsonObject responseBody = Job.withID(job, id).toJson();
+            validateOaipmhIdentifiers.onSuccess(none -> {
+                myHarvestScheduleStoreService.getJob(id).compose(oldJob -> {
+                    return myHarvestScheduleStoreService.getInstitution(oldJob.getInstitutionID())
+                            .compose(institution -> {
+                                return myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
+                                    return myHarvestJobSchedulerService.updateJob(id, job);
+                                }).compose(nil -> {
+                                    return updateSolr(Tuple.of(oldJob.toJson(), jobJSON, institution.getName()));
+                                });
+                            });
+                }).onSuccess(nil -> {
+                    final JsonObject responseBody = Job.withID(job, id).toJson();
 
-                response.setStatusCode(HttpStatus.SC_OK)
-                        .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
-                        .end(responseBody.encode());
-            }).onFailure(aContext::fail);
+                    response.setStatusCode(HttpStatus.SC_OK)
+                            .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
+                            .end(responseBody.encode());
+                }).onFailure(aContext::fail);
+            }).onFailure(details -> {
+                response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
+            });
         } catch (final InvalidJobJsonException | NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }

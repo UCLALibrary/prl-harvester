@@ -18,6 +18,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -32,6 +35,11 @@ import io.vertx.junit5.VertxTestContext;
  */
 @ExtendWith(VertxExtension.class)
 public class OaipmhUtilsFT {
+
+    /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(OaipmhUtils.class, MessageCodes.BUNDLE);
 
     private static final String SET1 = "set1";
 
@@ -84,6 +92,62 @@ public class OaipmhUtilsFT {
                 Arguments.of(List.of(SET1), 2), //
                 Arguments.of(List.of(SET2), 3), //
                 Arguments.of(List.of(SET1, SET2), 5));
+    }
+
+    /**
+     * Tests that {@link OaipmhUtils#validateIdentifiers} succeeds when passed valid data.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testValidateIdentifiers(final Vertx aVertx, final VertxTestContext aContext) {
+        getTestDataProviderURL(aVertx).compose(url -> {
+            return OaipmhUtils.validateIdentifiers(aVertx, url, List.of(SET1, SET2));
+        }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that {@link OaipmhUtils#validateIdentifiers} results in failure when passed an invalid base URL.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testValidateIdentifiersInvalidBaseURL(final Vertx aVertx, final VertxTestContext aContext) {
+        final URL invalidOaipmhBaseURL;
+
+        try {
+            invalidOaipmhBaseURL = new URL("http://example.com");
+        } catch (final MalformedURLException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2)).onFailure(details -> {
+            aContext.verify(() -> {
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL), details.getMessage());
+            }).completeNow();
+        }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
+    }
+
+    /**
+     * Tests that {@link OaipmhUtils#validateIdentifiers} results in failure when passed an invalid set spec.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testValidateIdentifiersInvalidSetSpec(final Vertx aVertx, final VertxTestContext aContext) {
+        final String undefinedSet = "set3";
+
+        getTestDataProviderURL(aVertx).compose(url -> {
+            return OaipmhUtils.validateIdentifiers(aVertx, url, List.of(undefinedSet)).onFailure(details -> {
+                aContext.verify(() -> {
+                    assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, url, undefinedSet), details.getMessage());
+                }).completeNow();
+            }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
+        });
     }
 
     /**
