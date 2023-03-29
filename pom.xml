@@ -738,6 +738,7 @@
               <name>ncar/joai-project:${joai.version}</name>
               <build>
                 <dockerFile>${project.build.directory}/checkout/joai/Dockerfile</dockerFile>
+                <skipPush>true</skipPush>
               </build>
               <run>
                 <containerNamePattern>${project.artifactId}_provider</containerNamePattern>
