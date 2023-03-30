@@ -84,7 +84,7 @@ async function addInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Institution add failed"),
+            message: await getErrorMessage(response, "Institution add"),
         }
     }
 
@@ -109,7 +109,7 @@ async function addJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Job add failed"),
+            message: await getErrorMessage(response, "Job add"),
         }
     }
 
@@ -167,7 +167,7 @@ async function updateInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Institution update failed"),
+            message: await getErrorMessage(response, "Institution update"),
         }
     }
 
@@ -192,7 +192,7 @@ async function updateJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Job update failed"),
+            message: await getErrorMessage(response, "Job update"),
         }
     }
 
@@ -242,7 +242,7 @@ async function removeInstitution(anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Institution remove failed"),
+            message: await getErrorMessage(response, "Institution remove"),
         }
     }
 
@@ -266,7 +266,7 @@ async function removeJob(aJobID, anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: await getErrorMessage(response, "Job remove failed"),
+            message: await getErrorMessage(response, "Job remove"),
         }
     }
 
@@ -291,11 +291,11 @@ function jobWithDeserializedSets(aJob) {
 
 /**
  * @param {Response} aResponse An HTTP response
- * @param {String} aPrefix A prefix for the error message
+ * @param {String} anOperation The operation that failed
  * @returns An error message
  */
-async function getErrorMessage(aResponse, aPrefix) {
-    return `${aPrefix}: HTTP ${aResponse.status} (${await aResponse.text()})`
+async function getErrorMessage(aResponse, anOperation) {
+    return `${anOperation} failed: HTTP ${aResponse.status} (${await aResponse.text()})`
 }
 </script>
 
