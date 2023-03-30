@@ -67,10 +67,6 @@ public class JobRequestsFT {
 
     private static final UriTemplate JOBS = UriTemplate.of("/jobs");
 
-    private static final String MISSING_INSTITUTIONID_VALIDATION_ERROR =
-            "[Bad Request] Validation error for body application/json: " +
-                    "provided object should contain property institutionID";
-
     private Pool myDbConnectionPool;
 
     private JavaAsyncSolrClient mySolrClient;
@@ -557,7 +553,7 @@ public class JobRequestsFT {
         myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
-                assertEquals(MISSING_INSTITUTIONID_VALIDATION_ERROR, response.bodyAsString());
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Job.INSTITUTION_ID), response.bodyAsString());
 
                 responseVerified.flag();
 
@@ -631,7 +627,8 @@ public class JobRequestsFT {
             return updateJob.compose(updateJobResponse -> {
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateJobResponse.statusCode());
-                    assertEquals(MISSING_INSTITUTIONID_VALIDATION_ERROR, updateJobResponse.bodyAsString());
+                    assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Job.INSTITUTION_ID),
+                            updateJobResponse.bodyAsString());
 
                     responseVerified.flag();
 

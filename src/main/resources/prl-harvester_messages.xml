@@ -41,5 +41,6 @@
   <entry key="PRL_036">The static asset {} could not be resolved: HTTP {} {}</entry>
   <entry key="PRL_037">Contents of Solr after {}: {}</entry>
   <entry key="PRL_038">Validation succeeded, but it should have failed</entry>
+  <entry key="PRL_039">[Bad Request] Validation error for body application/json: provided object should contain property {}</entry>
 
 </properties>
