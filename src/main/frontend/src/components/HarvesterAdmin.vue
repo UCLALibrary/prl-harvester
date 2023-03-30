@@ -84,7 +84,7 @@ async function addInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution add failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Institution add failed"),
         }
     }
 
@@ -109,7 +109,7 @@ async function addJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job add failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Job add failed"),
         }
     }
 
@@ -167,7 +167,7 @@ async function updateInstitution(anInstitution) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution update failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Institution update failed"),
         }
     }
 
@@ -192,7 +192,7 @@ async function updateJob(aJob) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job update failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Job update failed"),
         }
     }
 
@@ -242,7 +242,7 @@ async function removeInstitution(anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Institution remove failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Institution remove failed"),
         }
     }
 
@@ -266,7 +266,7 @@ async function removeJob(aJobID, anInstitutionID) {
     } else {
         actionResultAlert.value = {
             color: "error",
-            message: `Job remove failed: HTTP ${response.status} (${await response.text()})`,
+            message: await getErrorMessage(response, "Job remove failed"),
         }
     }
 
@@ -287,6 +287,15 @@ function jobWithCsvSerializedSets(aJob) {
  */
 function jobWithDeserializedSets(aJob) {
     return { ...aJob, sets: aJob.sets ? aJob.sets.split(",").map((s) => s.trim()) : [] }
+}
+
+/**
+ * @param {Response} aResponse An HTTP response
+ * @param {String} aPrefix A prefix for the error message
+ * @returns An error message
+ */
+async function getErrorMessage(aResponse, aPrefix) {
+    return `${aPrefix}: HTTP ${aResponse.status} (${await aResponse.text()})`
 }
 </script>
 
