@@ -547,11 +547,13 @@ public class JobRequestsFT {
             return;
         }
 
-        invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
+        invalidJobJson = validJob.toJson();
+        invalidJobJson.remove(Job.INSTITUTION_ID);
 
         myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Job.INSTITUTION_ID), response.bodyAsString());
 
                 responseVerified.flag();
 
@@ -616,12 +618,17 @@ public class JobRequestsFT {
 
             // Second request
             jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
-            invalidJobJson = validJob.toJson().put(Job.INSTITUTION_ID, null);
+
+            invalidJobJson = validJob.toJson();
+            invalidJobJson.remove(Job.INSTITUTION_ID);
+
             updateJob = myWebClient.put(JOB.expandToString(jobID)).sendJson(invalidJobJson);
 
             return updateJob.compose(updateJobResponse -> {
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateJobResponse.statusCode());
+                    assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Job.INSTITUTION_ID),
+                            updateJobResponse.bodyAsString());
 
                     responseVerified.flag();
 

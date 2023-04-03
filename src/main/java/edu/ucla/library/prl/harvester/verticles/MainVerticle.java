@@ -14,6 +14,7 @@ import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.AddJobHandler;
 import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.GetJobHandler;
+import edu.ucla.library.prl.harvester.handlers.InformativeBadRequestHandler;
 import edu.ucla.library.prl.harvester.handlers.ListInstitutionsHandler;
 import edu.ucla.library.prl.harvester.handlers.ListJobsHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveInstitutionHandler;
@@ -129,7 +130,6 @@ public class MainVerticle extends AbstractVerticle {
     public Future<Router> createRouter(final JsonObject aConfig) {
         // Load the OpenAPI specification
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
-            final ServiceExceptionHandler serviceExceptionHandler = new ServiceExceptionHandler();
             final Router router;
 
             // Associate handlers with operation IDs from the OpenAPI spec
@@ -155,7 +155,7 @@ public class MainVerticle extends AbstractVerticle {
             router = routeBuilder.createRouter();
             router.route("/assets/*").handler(StaticHandler.create("webroot/assets"));
             router.route().handler(FaviconHandler.create(vertx, "webroot/favicon.ico"))
-                    .failureHandler(serviceExceptionHandler);
+                    .failureHandler(new InformativeBadRequestHandler()).failureHandler(new ServiceExceptionHandler());
 
             return router;
         });

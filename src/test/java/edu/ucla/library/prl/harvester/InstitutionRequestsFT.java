@@ -584,11 +584,13 @@ public class InstitutionRequestsFT {
             return;
         }
 
-        invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
+        invalidInstitutionJson = validInstitution.toJson();
+        invalidInstitutionJson.remove(Institution.NAME);
 
         myWebClient.post(INSTITUTIONS).sendJson(invalidInstitutionJson).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Institution.NAME), response.bodyAsString());
 
                 responseVerified.flag();
             });
@@ -670,13 +672,18 @@ public class InstitutionRequestsFT {
 
             // Second request
             institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
-            invalidInstitutionJson = validInstitution.toJson().put(Institution.NAME, null);
+
+            invalidInstitutionJson = validInstitution.toJson();
+            invalidInstitutionJson.remove(Institution.NAME);
+
             updateInstitution =
                     myWebClient.put(INSTITUTION.expandToString(institutionID)).sendJson(invalidInstitutionJson);
 
             return updateInstitution.compose(updateInstitutionResponse -> {
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_BAD_REQUEST, updateInstitutionResponse.statusCode());
+                    assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Institution.NAME),
+                            updateInstitutionResponse.bodyAsString());
 
                     responseVerified.flag();
 
