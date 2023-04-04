@@ -156,16 +156,8 @@ public final class TestUtils {
     }
 
     private static String buildCron(final OffsetDateTime aSourceDate) {
-        final String blank = " ";
-        final StringBuffer cronExpression = new StringBuffer();
-
-        cronExpression.append(aSourceDate.getSecond()).append(blank);
-        cronExpression.append(aSourceDate.getMinute()).append(blank);
-        cronExpression.append(aSourceDate.getHour()).append(blank);
-        cronExpression.append(aSourceDate.getDayOfMonth()).append(blank);
-        cronExpression.append(aSourceDate.getMonthValue()).append(blank);
-        cronExpression.append(QUESTION);
-        return cronExpression.toString();
+        return String.format("%d %d %d %d %d ?", aSourceDate.getSecond(), aSourceDate.getMinute(),
+                aSourceDate.getHour(), aSourceDate.getDayOfMonth(), aSourceDate.getMonthValue());
     }
 
     /**
