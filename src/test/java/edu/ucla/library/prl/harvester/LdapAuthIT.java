@@ -1,17 +1,27 @@
 
 package edu.ucla.library.prl.harvester;
 
+import static edu.ucla.library.prl.harvester.handlers.AuthHandler.FORM_USERNAME;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
-import io.vertx.ext.auth.ldap.LdapAuthentication;
-import io.vertx.ext.auth.ldap.LdapAuthenticationOptions;
+import io.vertx.ext.auth.authorization.RoleBasedAuthorization;
+import io.vertx.ext.auth.ldap.LdapAuthnOptions;
+import io.vertx.ext.auth.ldap.LdapAuthnProvider;
+import io.vertx.ext.auth.ldap.LdapAuthzProvider;
+import io.vertx.ext.auth.ldap.LdapRole;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 
@@ -21,10 +31,15 @@ import io.vertx.junit5.VertxTestContext;
 @ExtendWith(VertxExtension.class)
 public class LdapAuthIT {
 
-    /**
-     * A logger for the LdapAuthIT tests.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(LdapAuthIT.class, MessageCodes.BUNDLE);
+    /** Authentication options for our testing environment. */
+    private static final LdapAuthnOptions AUTH_OPTS = new LdapAuthnOptions().setURL(System.getenv(Config.LDAP_URL))
+            .setAuthenticationQuery(System.getenv(Config.LDAP_AUTH_QUERY));
+
+    /** The test user's username. */
+    private static final String USERNAME = System.getenv(Config.LDAP_USERNAME);
+
+    /** The test user's password. */
+    private static final String PASSWORD = System.getenv(Config.LDAP_PASSWORD);
 
     /**
      * A test that confirms the Vert.x LDAP client can connect to the LDAP container.
@@ -34,15 +49,59 @@ public class LdapAuthIT {
      */
     @Test
     public void testLdapConnection(final Vertx aVertx, final VertxTestContext aContext) {
-        final String ldapURL = System.getenv(Config.LDAP_URL); // If null, auth creation will fail
-        final LdapAuthenticationOptions ldapOpts = new LdapAuthenticationOptions().setUrl(ldapURL)
-                .setAuthenticationQuery("cn={0},ou=prlgroup,dc=glauth,dc=com");
-        final AuthenticationProvider auth = LdapAuthentication.create(aVertx, ldapOpts);
+        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx, AUTH_OPTS);
 
         // Testing password, used during container-tested build, is hard-coded (for now?)
-        auth.authenticate(new UsernamePasswordCredentials("prl", "pearl")).onSuccess(user -> {
-            // Just a "hello world" test for now...
+        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
             aContext.completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * A test that confirms LDAP user authentication works.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A testing context
+     */
+    @Test
+    public void testLdapUser(final Vertx aVertx, final VertxTestContext aContext) {
+        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
+                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_AUTH_QUERY), new ArrayList<>()));
+
+        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
+            final JsonObject principal = user.principal();
+
+            aContext.verify(() -> {
+                assertEquals(principal.getString(FORM_USERNAME), USERNAME);
+                assertEquals(principal.getJsonArray("amr").getString(0), "pwd");
+            }).completeNow();
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * A test that confirms LDAP user authorization works.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A testing context
+     */
+    @Test
+    public void testLdapAuthentication(final Vertx aVertx, final VertxTestContext aContext) {
+        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
+                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_AUTH_QUERY), new ArrayList<>()));
+
+        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
+            final LdapAuthzProvider authorization = LdapAuthzProvider.create(new LdapRole(FORM_USERNAME, USERNAME));
+
+            authorization.getAuthorizations(user).onFailure(aContext::failNow).onSuccess(check -> {
+                final Set<String> providerIDs = user.authorizations().getProviderIds();
+                final String role = StringUtils.format("{}:{}", FORM_USERNAME, USERNAME);
+
+                aContext.verify(() -> {
+                    assertEquals(1, providerIDs.size());
+                    assertTrue(providerIDs.contains(LdapAuthzProvider.DEFAULT_ID));
+                    assertTrue(RoleBasedAuthorization.create(role).match(user));
+                }).completeNow();
+            });
         }).onFailure(aContext::failNow);
     }
 }

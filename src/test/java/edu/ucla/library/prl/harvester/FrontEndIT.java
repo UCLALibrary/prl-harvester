@@ -7,10 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -31,6 +29,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.WebClientSession;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
@@ -41,7 +40,7 @@ import io.vertx.junit5.VertxTestContext;
  */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
-public class FrontEndIT {
+public class FrontEndIT extends AuthorizedFIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FrontEndIT.class, MessageCodes.BUNDLE);
 
@@ -56,10 +55,11 @@ public class FrontEndIT {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
             final String host = config.getString(Config.HTTP_HOST);
             final int port = config.getInteger(Config.HTTP_PORT);
+            final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
-            myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
+            myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return Future.succeededFuture();
+            return authorize(myWebClient);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
@@ -128,9 +128,8 @@ public class FrontEndIT {
 
         if (HttpStatus.SC_OK == statusCode) {
             return Future.succeededFuture();
-        } else {
-            return Future.failedFuture(
-                    LOGGER.getMessage(MessageCodes.PRL_036, anAssetURL, statusCode, anAssetResponse.bodyAsString()));
         }
+        return Future.failedFuture(
+                LOGGER.getMessage(MessageCodes.PRL_036, anAssetURL, statusCode, anAssetResponse.bodyAsString()));
     }
 }

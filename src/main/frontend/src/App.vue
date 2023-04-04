@@ -165,6 +165,17 @@ fetch("/jobs")
 <template>
     <header>
         <h1>PRL Harvester Admin</h1>
+        <form id="login" action="/login" method="post">
+            <fieldset>
+                <label for="username">Username: </label>
+                <input class="login" type="text" name="username" id="username" size="8" />
+                <br />
+                <label for="password">Password: </label>
+                <input class="login" type="password" name="password" id="password" size="8" />
+                <br />
+                <input type="submit" name="Login" value="Login" />
+            </fieldset>
+        </form>
     </header>
 
     <main>
@@ -184,6 +195,19 @@ fetch("/jobs")
 <style scoped>
 header {
     padding-bottom: 2rem;
+}
+
+header form {
+    text-align: right;
+}
+
+header form fieldset {
+    border-width: 0px;
+}
+
+header form fieldset input.login {
+    background-color: #f9f9f9;
+    margin-bottom: 2px;
 }
 
 footer {

@@ -1,34 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>edu.ucla.library</groupId>
   <artifactId>prl-harvester</artifactId>
   <version>${revision}</version>
   <name>PRL Harvester</name>
   <description></description>
   <url>https://github.com/UCLALibrary/prl-harvester</url>
-
   <licenses>
     <license>
       <name>The 3-Clause BSD License</name>
       <url>https://opensource.org/licenses/BSD-3-clause</url>
     </license>
   </licenses>
-
   <scm>
     <connection>scm:git:git@github.com:UCLALibrary/prl-harvester.git</connection>
     <developerConnection>scm:git:git@github.com:UCLALibrary/prl-harvester.git</developerConnection>
     <url>git@github.com:UCLALibrary/prl-harvester.git</url>
   </scm>
-
   <issueManagement>
     <system>GitHub</system>
     <url>https://github.com/UCLALibrary/prl-harvester/issues</url>
   </issueManagement>
-
+  <developers>
+    <developer>
+      <id>markmatney</id>
+      <name>Mark A. Matney, Jr.</name>
+      <email>mmatney@library.ucla.edu</email>
+      <organization>UCLA Library</organization>
+      <organizationUrl>http://github.com/uclalibrary</organizationUrl>
+      <timezone>America/Los_Angeles</timezone>
+      <roles>
+        <role>Lead Developer</role>
+      </roles>
+    </developer>
+    <!-- Contributors: https://github.com/UCLALibrary/prl-harvester/graphs/contributors -->
+  </developers>
   <properties>
-    <vertx.version>4.3.3</vertx.version>
+    <vertx.version>4.4.1</vertx.version>
     <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
     <quartz.version>2.3.2</quartz.version>
@@ -37,11 +46,8 @@
     <solrs.version>2.6.0</solrs.version>
     <xoai.version>4.2.0</xoai.version>
     <guava.version>31.1-jre</guava.version>
-    <jackson.version>2.14.1</jackson.version>
-
-    <!-- Security update overrides -->
-    <snakeyaml.version>1.32</snakeyaml.version>
-
+    <jackson.version>2.14.2</jackson.version>
+    <ldap.auth.version>4.4.0</ldap.auth.version>
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
     <clean.plugin.version>3.1.0</clean.plugin.version>
@@ -51,59 +57,46 @@
     <scm.plugin.version>1.13.0</scm.plugin.version>
     <patch.plugin.version>1.2</patch.plugin.version>
     <exec.plugin.version>3.1.0</exec.plugin.version>
-
     <!-- Test dependency versions -->
     <junit.version>5.9.0</junit.version>
     <jeasy.version>5.0.0</jeasy.version>
     <jsoup.version>1.15.4</jsoup.version>
-
     <!-- Docker component versions -->
-    <docker.alpine.version>3.16.2</docker.alpine.version>
+    <docker.alpine.version>3.17.3</docker.alpine.version>
     <postgres.version>12.12-alpine</postgres.version>
     <solr.version>9</solr.version>
     <docker.localstack.version>1.1.0</docker.localstack.version>
     <glauth.version>v2.1.0</glauth.version>
     <joai.version>v3.3</joai.version>
-
     <!-- Name of the main Vert.x verticle -->
     <vertx.verticle>edu.ucla.library.prl.harvester.verticles.MainVerticle</vertx.verticle>
-
     <!-- The default logging level for the application -->
     <logLevel>ERROR</logLevel>
-
     <!-- Testing properties -->
     <live.test.reloads>false</live.test.reloads>
-
     <!-- The Docker registry user and password used for publishing images -->
     <docker.registry.username />
     <docker.registry.password />
     <!-- The Docker registry account, if supplied, must end with a slash (e.g. "account/") -->
     <docker.registry.account />
-
     <!-- Helm Maven Plugin -->
     <helm.maven.plugin.version>2.10.0</helm.maven.plugin.version>
     <helm.version>3.8.0</helm.version>
     <helm.maven.repo.publish.url></helm.maven.repo.publish.url>
     <helm.maven.repo.username></helm.maven.repo.username>
     <helm.maven.repo.password></helm.maven.repo.password>
-
     <!-- Helm Chart Properties -->
     <helm.chart.name>prl-harvester</helm.chart.name>
-
     <!-- Increment this version number when logic change is made to src/main/helm/prl-harvester -->
     <helm.chart.version>1.0.0</helm.chart.version>
-
     <!-- This can be left alone as this will set a default image tag in the helm chart relative to the release tag -->
     <helm.chart.app.version>${revision}</helm.chart.app.version>
-
     <!-- Parameterized user since we'll use for other harvesting applications too -->
     <test.db.user>prl</test.db.user>
-    
     <!-- Specific types of skips -->
     <skipUTs>false</skipUTs>
     <skipITs>false</skipITs>
   </properties>
-
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -122,7 +115,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>info.freelibrary</groupId>
@@ -187,10 +179,6 @@
       <artifactId>vertx-jdbc-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-auth-ldap</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.quartz-scheduler</groupId>
       <artifactId>quartz</artifactId>
       <version>${quartz.version}</version>
@@ -249,14 +237,12 @@
       <artifactId>jackson-datatype-jsr310</artifactId>
       <version>${jackson.version}</version>
     </dependency>
-
-    <!-- Security update overrides -->
+    <!-- Local repo dependencies -->
     <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>${snakeyaml.version}</version>
+      <groupId>edu.ucla.library</groupId>
+      <artifactId>vertx-auth-ldap</artifactId>
+      <version>${ldap.auth.version}</version>
     </dependency>
-
     <!-- Below dependencies only used for testing -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -286,9 +272,7 @@
       <version>${jsoup.version}</version>
       <scope>test</scope>
     </dependency>
-
   </dependencies>
-
   <build>
     <testResources>
       <testResource>
@@ -303,7 +287,6 @@
         </includes>
       </testResource>
     </testResources>
-
     <plugins>
       <!-- Cleans up generated source code -->
       <plugin>
@@ -318,7 +301,6 @@
           </filesets>
         </configuration>
       </plugin>
-
       <!-- Configures the compiler to work with the vertx-codegen dependency (if necessary) -->
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -327,7 +309,6 @@
           <useIncrementalCompilation>false</useIncrementalCompilation>
         </configuration>
       </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -397,7 +378,6 @@
           </execution>
         </executions>
       </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -413,7 +393,6 @@
           </portNames>
         </configuration>
       </plugin>
-
       <!-- Processes resources codes and generates media types -->
       <plugin>
         <groupId>info.freelibrary</groupId>
@@ -440,7 +419,6 @@
           </execution>
         </executions>
       </plugin>
-
       <!-- Checks code for best practices, performance, etc. -->
       <plugin>
         <artifactId>maven-pmd-plugin</artifactId>
@@ -450,13 +428,11 @@
           </rulesets>
         </configuration>
       </plugin>
-
       <!-- Formats code according to our project's rules -->
       <plugin>
         <groupId>net.revelc.code.formatter</groupId>
         <artifactId>formatter-maven-plugin</artifactId>
       </plugin>
-
       <!-- Generates Javadocs documentation -->
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -469,22 +445,18 @@
           </links>
         </configuration>
       </plugin>
-
       <!-- Checks that conforms to our project's rules -->
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
-
       <!-- Enforces rules like: no snapshot dependencies, etc. -->
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
       </plugin>
-
       <!-- Unpacks build tools from upstream parent project -->
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
       </plugin>
-
       <!-- Runs unit tests on the application's code -->
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -500,7 +472,6 @@
           </environmentVariables>
         </configuration>
       </plugin>
-
       <!-- Runs functional tests on the application's code -->
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -510,7 +481,7 @@
           <!-- Allows tests to use shared database/HTTP connection pools w/o throwing IllegalStateException(s) -->
           <parallel>none</parallel>
           <environmentVariables>
-            <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
+            <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT> <!-- 1 day -->
             <HTTP_HOST>localhost</HTTP_HOST>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
             <PGHOSTADDR>localhost</PGHOSTADDR>
@@ -521,6 +492,12 @@
             <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
             <TEST_PROVIDER_BASE_URL>http://172.17.0.1:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
             <LDAP_URL>ldap://0.0.0.0:${test.auth.ldap}</LDAP_URL>
+            <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
+            <!--<LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
+            <LDAP_ATTRIBUTE_KEY>cn</LDAP_ATTRIBUTE_KEY>
+            <LDAP_ATTRIBUTE_VALUE>prl</LDAP_ATTRIBUTE_VALUE>-->
+            <LDAP_USERNAME>prl</LDAP_USERNAME>
+            <LDAP_PASSWORD>pearl</LDAP_PASSWORD>
           </environmentVariables>
           <excludedGroups>real-provider</excludedGroups>
           <systemPropertyVariables>
@@ -528,7 +505,6 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
-
       <!-- Disable standard deploy; we publish a Docker image, not Jar file -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -538,7 +514,6 @@
           <skip>true</skip>
         </configuration>
       </plugin>
-
       <!-- Checks out the jOAI source so DMP can build a Docker image from it -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -561,7 +536,6 @@
           </execution>
         </executions>
       </plugin>
-
       <!-- The jOAI container is missing a required dependency on some machines -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -584,7 +558,6 @@
           </execution>
         </executions>
       </plugin>
-
       <!-- Creates a Docker image and uses it for functional testing -->
       <plugin>
         <groupId>io.fabric8</groupId>
@@ -652,6 +625,11 @@
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                   <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
+                  <LDAP_URL>ldap://172.17.0.1:${test.auth.ldap}</LDAP_URL>
+                  <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
+                  <LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
+                  <LDAP_ATTRIBUTE_KEY>cn</LDAP_ATTRIBUTE_KEY>
+                  <LDAP_ATTRIBUTE_VALUE>prl</LDAP_ATTRIBUTE_VALUE>
                 </env>
                 <links>
                   <link>pgsql:pgsql</link>
@@ -804,7 +782,6 @@
           </imagesMap>
         </configuration>
         <executions>
-
           <!-- Builds the Docker image -->
           <execution>
             <id>docker-build</id>
@@ -813,7 +790,6 @@
               <goal>build</goal>
             </goals>
           </execution>
-
           <!-- Creates and starts the Docker containers for integration testing -->
           <execution>
             <id>docker-start</id>
@@ -822,7 +798,6 @@
               <goal>start</goal>
             </goals>
           </execution>
-
           <!-- Stops and removes the integration tests' Docker containers -->
           <execution>
             <id>docker-stop</id>
@@ -834,7 +809,6 @@
               <allContainers>true</allContainers>
             </configuration>
           </execution>
-
           <!-- Deploys the PRL-Harvester Docker image -->
           <execution>
             <id>docker-deploy</id>
@@ -858,7 +832,6 @@
           </execution>
         </executions>
       </plugin>
-
       <!-- Integrate Helm Maven Plugin -->
       <plugin>
         <groupId>com.deviceinsight.helm</groupId>
@@ -885,7 +858,6 @@
       </plugin>
     </plugins>
   </build>
-
   <profiles>
     <profile>
       <id>linux-os</id>
@@ -903,7 +875,6 @@
         </dependency>
       </dependencies>
     </profile>
-
     <!-- A profile to use to build an executable Jar file (which is the default) -->
     <profile>
       <id>uber-jar-compile</id>
@@ -932,7 +903,6 @@
         </plugins>
       </build>
     </profile>
-
     <!-- A profile for running the server in a live test mode -->
     <profile>
       <id>live</id>
@@ -974,7 +944,6 @@
               </execution>
             </executions>
           </plugin>
-
           <plugin>
             <groupId>io.reactiverse</groupId>
             <artifactId>vertx-maven-plugin</artifactId>
@@ -1001,7 +970,6 @@
         </plugins>
       </build>
     </profile>
-
     <profile>
       <id>snyk-check</id>
       <activation>
@@ -1045,7 +1013,6 @@
         </plugins>
       </build>
     </profile>
-
     <profile>
       <id>debug</id>
       <properties>
@@ -1121,7 +1088,6 @@
         </plugins>
       </build>
     </profile>
-
     <profile>
       <id>test-real-providers</id>
       <build>
@@ -1137,7 +1103,13 @@
       </build>
     </profile>
   </profiles>
-
+  <repositories>
+    <repository>
+      <id>${project.artifactId}</id>
+      <name>${project.name}</name>
+      <url>file://${project.basedir}/libs</url>
+    </repository>
+  </repositories>
   <!-- The parent project still uses the older repo locations; new projects use the below -->
   <distributionManagement>
     <snapshotRepository>
@@ -1149,12 +1121,10 @@
       <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
   </distributionManagement>
-
   <!-- The parent project to this project -->
   <parent>
     <artifactId>freelib-parent</artifactId>
     <groupId>info.freelibrary</groupId>
     <version>7.4.0</version>
   </parent>
-
 </project>

@@ -28,8 +28,18 @@
     <appender-ref ref="FILE" />
     <appender-ref ref="STDOUT" />
   </logger>
+  <logger name="org.quartz" level="ERROR" additivity="false">
+    <appender-ref ref="FILE" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="edu.ucla.library.prl" level="DEBUG" additivity="false">
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="info.freelibrary" level="ERROR" additivity="false">
+    <appender-ref ref="STDOUT" />
+  </logger>
 
-  <root level="ERROR">
+  <root level="DEBUG">
     <appender-ref ref="FILE" />
     <appender-ref ref="STDOUT" />
   </root>

@@ -27,6 +27,11 @@ PGPASSWORD|The database password|No|pass
 PGPORT|The database port|No|5432
 PGUSER|The database username|No|user
 SOLR_CORE_URL|The Solr core URL|Yes|
+LDAP_URL|The LDAP server URL|Yes|
+LDAP_AUTH_QUERY|The LDAP query to authenticate user|Yes|
+LDAP_USER_QUERY|The LDAP query to retrieve user info|Yes|
+LDAP_ATTRIBUTE_KEY|The LDAP attribute key used to authorize user|Yes|
+LDAP_ATTRIBUTE_VALUE|The LDAP attribute value used to authorize user|Yes|
 
 ## Running
 
@@ -92,7 +97,7 @@ mvn verify -Ptest-real-providers
 
 The prl-harvester's front-end application can be developed independently of the main prl-harvester application.
 
-To do this, follow the instructions on the front-end application's [README](src/main/frontend/README.md) file.
+To do this, follow the instructions in the front-end application's [README](src/main/frontend/README.md) file.
 
 ## Contact
 
