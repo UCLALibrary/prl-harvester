@@ -34,8 +34,8 @@
 
   <entry key="PRL_030">Database initialized</entry>
   <entry key="PRL_031">Service instantiated</entry>
-  <entry key="PRL_032">This test may take over a minute to complete, please wait...</entry>
-  <entry key="PRL_033">Cron expression that will trigger an event in {} minute(s) or less: {}</entry>
+  <entry key="PRL_032">This test may take several seconds to complete, please wait...</entry>
+  <entry key="PRL_033">Cron expression that will trigger an event in {} seconds(s) or less: {}</entry>
   <entry key="PRL_034">At {}, we can be reasonably certain the job has been removed</entry>
   <entry key="PRL_035">JobResult received, but the Job should have been unscheduled</entry>
   <entry key="PRL_036">The static asset {} could not be resolved: HTTP {} {}</entry>

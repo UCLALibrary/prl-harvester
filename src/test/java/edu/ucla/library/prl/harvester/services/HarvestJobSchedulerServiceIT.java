@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import javax.mail.internet.AddressException;
 
 import org.apache.solr.common.SolrDocumentList;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,10 +24,8 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.quartz.CronExpression;
-import org.quartz.CronScheduleBuilder;
-import org.quartz.CronTrigger;
-import org.quartz.TriggerBuilder;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 
@@ -164,7 +163,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     public void testInstantiationExistingJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
@@ -224,7 +223,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     public void testAddJobAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSavedAndDbInitialized = aContext.checkpoint();
 
@@ -269,7 +268,7 @@ public class HarvestJobSchedulerServiceIT {
                 final Job job;
 
                 try {
-                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1), getFutureCronExpression(1),
+                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1), getFutureCronExpression(5),
                             null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
@@ -294,7 +293,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 90, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
     public void testUpdateJob(final Vertx aVertx, final VertxTestContext aContext) {
         // Make sure the job updates later, and uses a different record count
         final Checkpoint serviceSaved = aContext.checkpoint();
@@ -357,7 +356,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 120, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testRemoveJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
         final Checkpoint removedJobDidNotExecute = aContext.checkpoint();
@@ -365,16 +364,11 @@ public class HarvestJobSchedulerServiceIT {
         // Add jobs before instantiation of the service
         addInstitution().compose(institutionID -> addJob(institutionID, null)).compose(jobID -> {
             final OffsetDateTime now = OffsetDateTime.now().withNano(0);
-            // After this time, we can be reasonably certain that the job, previously scheduled for the next minute tick
-            // but since cancelled, won't run
-            final OffsetDateTime whenWeWillKnow = now.withSecond(0).plusSeconds(90);
+            // After this time, we can be reasonably certain that the canceled job won't run
+            final OffsetDateTime whenWeWillKnow = now.plusSeconds(10);
             final Duration reasonablySufficientWait = Duration.between(now, whenWeWillKnow);
 
             LOGGER.debug(MessageCodes.PRL_034, whenWeWillKnow);
-
-            assertTrue(reasonablySufficientWait.toSeconds() <= 90);
-            assertTrue(reasonablySufficientWait.toSeconds() > 30);
-
             LOGGER.debug(MessageCodes.PRL_030);
 
             aVertx.setTimer(reasonablySufficientWait.toMillis(), timerID -> {
@@ -407,19 +401,17 @@ public class HarvestJobSchedulerServiceIT {
     /**
      * Gets a Cron expression that will match some time in the future.
      *
-     * @param aMinutesLater The number of minutes in the future to create an hourly Cron expression for
+     * @param aSecondsLater The number of seconds in the future to create an hourly Cron expression for
      * @return The Cron expression
      * @throws ParseException
      */
-    private static CronExpression getFutureCronExpression(final int aMinutesLater) throws ParseException {
-        final OffsetDateTime futureTime = OffsetDateTime.now().plusMinutes(aMinutesLater);
-        final CronScheduleBuilder scheduleBuilder =
-                CronScheduleBuilder.dailyAtHourAndMinute(futureTime.getHour(), futureTime.getMinute());
-        final CronTrigger trigger = TriggerBuilder.newTrigger().withSchedule(scheduleBuilder).build();
+    private static CronExpression getFutureCronExpression(final long aSecondsLater) throws ParseException {
+        final OffsetDateTime futureTime = OffsetDateTime.now().plusSeconds(aSecondsLater);
+        final String cron = String.format("%d %d * * * ?", futureTime.getSecond(), futureTime.getMinute());
 
-        LOGGER.debug(MessageCodes.PRL_033, aMinutesLater, trigger.getCronExpression());
+        LOGGER.debug(MessageCodes.PRL_033, aSecondsLater, cron);
 
-        return new CronExpression(trigger.getCronExpression());
+        return new CronExpression(cron);
     }
 
     /**
@@ -446,7 +438,7 @@ public class HarvestJobSchedulerServiceIT {
         final Job job;
 
         try {
-            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, getFutureCronExpression(1), null);
+            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, getFutureCronExpression(5), null);
         } catch (final ParseException details) {
             return Future.failedFuture(details);
         }
