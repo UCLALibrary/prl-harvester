@@ -7,13 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
@@ -27,6 +31,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -61,16 +66,18 @@ public class FrontEndIT {
     /**
      * Tests that the admin interface is retrieved as expected.
      *
+     * @param aPath The path to send a GET request to
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
-    @Test
+    @ParameterizedTest
+    @MethodSource
     @SuppressWarnings("rawtypes")
-    public void testAdminInterfaceRetrieval(final Vertx aVertx, final VertxTestContext aContext) {
+    public void testAdminInterfaceRetrieval(final String aPath, final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint indexHtmlResolves = aContext.checkpoint();
         final Checkpoint linkedAssetsResolve = aContext.checkpoint();
 
-        myWebClient.get("/admin").send().onSuccess(response -> {
+        myWebClient.get(aPath).expect(ResponsePredicate.SC_OK).send().onSuccess(response -> {
             final Document html = Jsoup.parse(response.bodyAsString());
 
             final Stream<Future<Void>> checkLinkElements = html.getElementsByTag("link").stream().map(elt -> {
@@ -100,6 +107,14 @@ public class FrontEndIT {
                 linkedAssetsResolve.flag();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @return The arguments for the corresponding {@link ParameterizedTest}
+     */
+    static Stream<Arguments> testAdminInterfaceRetrieval() {
+        // The list of paths that should resolve to the admin interface, including via redirect
+        return Stream.of(Arguments.of("/admin/"), Arguments.of("/admin"), Arguments.of("/"));
     }
 
     /**

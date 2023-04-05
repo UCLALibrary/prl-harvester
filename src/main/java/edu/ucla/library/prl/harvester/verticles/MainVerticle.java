@@ -4,8 +4,11 @@ package edu.ucla.library.prl.harvester.verticles;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.http.HttpStatus;
 
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -20,6 +23,7 @@ import edu.ucla.library.prl.harvester.handlers.ListJobsHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.RemoveJobHandler;
 import edu.ucla.library.prl.harvester.handlers.ServiceExceptionHandler;
+import edu.ucla.library.prl.harvester.handlers.SimpleRedirectHandler;
 import edu.ucla.library.prl.harvester.handlers.StatusHandler;
 import edu.ucla.library.prl.harvester.handlers.UpdateInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.UpdateJobHandler;
@@ -152,6 +156,10 @@ public class MainVerticle extends AbstractVerticle {
             // Admin interface
             routeBuilder.operation(Op.getAdmin.name()).handler(StaticHandler.create());
 
+            // Redirects
+            routeBuilder.operation(Op.getRoot.name())
+                    .handler(new SimpleRedirectHandler(HttpStatus.SC_MOVED_PERMANENTLY, Path.of("/admin/")));
+
             router = routeBuilder.createRouter();
             router.route("/assets/*").handler(StaticHandler.create("webroot/assets"));
             router.route().handler(FaviconHandler.create(vertx, "webroot/favicon.ico"))
@@ -173,5 +181,4 @@ public class MainVerticle extends AbstractVerticle {
 
         return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
     }
-
 }
