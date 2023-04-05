@@ -31,6 +31,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -56,7 +57,8 @@ public class FrontEndIT {
             final String host = config.getString(Config.HTTP_HOST);
             final int port = config.getInteger(Config.HTTP_PORT);
 
-            myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
+            myWebClient = WebClient.create(aVertx,
+                    new WebClientOptions().setDefaultHost(host).setDefaultPort(port).setFollowRedirects(false));
 
             return Future.succeededFuture();
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
@@ -76,7 +78,7 @@ public class FrontEndIT {
         final Checkpoint indexHtmlResolves = aContext.checkpoint();
         final Checkpoint linkedAssetsResolve = aContext.checkpoint();
 
-        myWebClient.get(aPath).send().onSuccess(response -> {
+        myWebClient.get(aPath).expect(ResponsePredicate.SC_OK).send().onSuccess(response -> {
             final Document html = Jsoup.parse(response.bodyAsString());
 
             final Stream<Future<Void>> checkLinkElements = html.getElementsByTag("link").stream().map(elt -> {
@@ -112,7 +114,8 @@ public class FrontEndIT {
      * @return The arguments for the corresponding {@link ParameterizedTest}
      */
     static Stream<Arguments> testAdminInterfaceRetrieval() {
-        return Stream.of(Arguments.of("/admin/"));
+        // The list of paths that should resolve to the admin interface, including via redirect
+        return Stream.of(Arguments.of("/admin/"), Arguments.of("/admin"), Arguments.of("/"));
     }
 
     /**
