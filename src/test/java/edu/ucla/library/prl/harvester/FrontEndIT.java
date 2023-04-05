@@ -57,8 +57,7 @@ public class FrontEndIT {
             final String host = config.getString(Config.HTTP_HOST);
             final int port = config.getInteger(Config.HTTP_PORT);
 
-            myWebClient = WebClient.create(aVertx,
-                    new WebClientOptions().setDefaultHost(host).setDefaultPort(port).setFollowRedirects(false));
+            myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
 
             return Future.succeededFuture();
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
