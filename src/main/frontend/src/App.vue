@@ -17,22 +17,23 @@ import HarvesterAdmin from "./components/HarvesterAdmin.vue"
 const state = reactive({ institutions: {}, jobs: {} })
 
 /**
- * Sends an addInstitution request and, if successful, updates the state with the result.
+ * Sends an addInstitutions request with a single institution and, if successful, updates the state with the result.
  *
  * @param {Object} anInstitution The institution
  * @returns The HTTP response
  */
-async function sendAddInstitutionRequest(anInstitution) {
+async function sendAddInstitutionsRequest(anInstitution) {
     const response = await fetch("/institutions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(anInstitution),
+        body: JSON.stringify([anInstitution]),
     })
 
     if (response.status === StatusCodes.CREATED) {
         const responseBody = await response.json()
+        const institution = responseBody[0]
 
-        state.institutions[responseBody.id] = responseBody
+        state.institutions[institution.id] = institution
     }
 
     return response
@@ -78,26 +79,27 @@ async function sendRemoveInstitutionRequest(anInstitutionID) {
 }
 
 /**
- * Sends an addJob request and, if successful, updates the state with the result.
+ * Sends an addJobs request with a single job and, if successful, updates the state with the result.
  *
  * @param {Object} aJob A job
  * @returns The HTTP response
  */
-async function sendAddJobRequest(aJob) {
+async function sendAddJobsRequest(aJob) {
     const response = await fetch("/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(aJob),
+        body: JSON.stringify([aJob]),
     })
 
     if (response.status === StatusCodes.CREATED) {
         const responseBody = await response.json()
+        const job = responseBody[0]
 
-        if (state.jobs[responseBody.institutionID] === undefined) {
-            state.jobs[responseBody.institutionID] = {}
+        if (state.jobs[job.institutionID] === undefined) {
+            state.jobs[job.institutionID] = {}
         }
 
-        state.jobs[responseBody.institutionID][responseBody.id] = responseBody
+        state.jobs[job.institutionID][job.id] = job
     }
 
     return response
@@ -181,10 +183,10 @@ fetch("/jobs")
     <main>
         <HarvesterAdmin
             v-bind="state"
-            :sendAddInstitutionRequest="sendAddInstitutionRequest"
+            :sendAddInstitutionsRequest="sendAddInstitutionsRequest"
             :sendUpdateInstitutionRequest="sendUpdateInstitutionRequest"
             :sendRemoveInstitutionRequest="sendRemoveInstitutionRequest"
-            :sendAddJobRequest="sendAddJobRequest"
+            :sendAddJobsRequest="sendAddJobsRequest"
             :sendUpdateJobRequest="sendUpdateJobRequest"
             :sendRemoveJobRequest="sendRemoveJobRequest" />
     </main>

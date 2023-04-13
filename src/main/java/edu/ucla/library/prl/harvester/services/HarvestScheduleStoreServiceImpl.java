@@ -5,6 +5,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -21,9 +22,11 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Tuple;
+import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 
@@ -41,13 +44,23 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * A template parameter mapper for {@link Institution}.
      */
-    private static final TupleMapper<Institution> INST_MAPPER =
+    private static final TupleMapper<Institution> INST_TO_TUPLE =
             TupleMapper.mapper(Institution::toSqlTemplateParametersMap);
 
     /**
      * A template parameter mapper for {@link Job}.
      */
-    private static final TupleMapper<Job> JOB_MAPPER = TupleMapper.mapper(Job::toSqlTemplateParametersMap);
+    private static final TupleMapper<Job> JOB_TO_TUPLE = TupleMapper.mapper(Job::toSqlTemplateParametersMap);
+
+    /**
+     * A row mapper for {@link Institution}.
+     */
+    private static final RowMapper<Institution> INST_FROM_ROW = row -> new Institution(row.toJson());
+
+    /**
+     * A row mapper for {@link Job}.
+     */
+    private static final RowMapper<Job> JOB_FROM_ROW = row -> new Job(row.toJson());
 
     /**
      * The select-one query for institutions.
@@ -61,10 +74,10 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The insert query for institutions.
      */
-    private static final String ADD_INST = """
+    private static final String ADD_INSTS = """
         INSERT INTO public.institutions (name, description, location, email, phone, webContact, website)
         VALUES (#{name}, #{description}, #{location}, #{email}, #{phone}, #{webContact}, #{website})
-        RETURNING id
+        RETURNING id, name, description, location, email, phone, webContact AS "webContact", website
         """;
 
     /**
@@ -106,7 +119,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     /**
      * The insert query for jobs.
      */
-    private static final String ADD_JOB = """
+    private static final String ADD_JOBS = """
         INSERT INTO public.harvestjobs (
             institutionID, repositoryBaseURL, metadataPrefix, sets, lastSuccessfulRun, scheduleCronExpression
         )
@@ -114,7 +127,10 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             #{institutionID}, #{repositoryBaseURL}, #{metadataPrefix}, #{sets}, #{lastSuccessfulRun},
             #{scheduleCronExpression}
         )
-        RETURNING id
+        RETURNING
+            id, institutionID AS "institutionID", repositoryBaseURL AS "repositoryBaseURL",
+            metadataPrefix AS "metadataPrefix", sets, lastSuccessfulRun AS "lastSuccessfulRun",
+            scheduleCronExpression AS "scheduleCronExpression"
         """;
 
     /**
@@ -221,17 +237,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     @Override
-    public Future<Integer> addInstitution(final Institution anInstitution) {
+    public Future<List<Institution>> addInstitutions(final List<Institution> anInstitutions) {
         return myDbConnectionPool.withConnection(connection -> {
-            return SqlTemplate.forQuery(connection, ADD_INST).mapFrom(INST_MAPPER).execute(anInstitution);
+            return SqlTemplate.forQuery(connection, ADD_INSTS).mapFrom(INST_TO_TUPLE).mapTo(INST_FROM_ROW)
+                    .executeBatch(anInstitutions);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_006, error.getMessage());
 
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
-        }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(Institution.ID));
-        });
+        }).map(HarvestScheduleStoreServiceImpl::<Institution>mergeResults);
     }
 
     @Override
@@ -239,7 +254,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             final Institution institutionWithID = Institution.withID(anInstitution, anInstitutionId);
 
-            return SqlTemplate.forUpdate(connection, UPDATE_INST).mapFrom(INST_MAPPER).execute(institutionWithID);
+            return SqlTemplate.forUpdate(connection, UPDATE_INST).mapFrom(INST_TO_TUPLE).execute(institutionWithID);
         }).recover(error -> {
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
@@ -302,16 +317,15 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     }
 
     @Override
-    public Future<Integer> addJob(final Job aJob) {
+    public Future<List<Job>> addJobs(final List<Job> aJobs) {
         return myDbConnectionPool.withConnection(connection -> {
-            return SqlTemplate.forQuery(connection, ADD_JOB).mapFrom(JOB_MAPPER).execute(aJob);
+            return SqlTemplate.forQuery(connection, ADD_JOBS).mapFrom(JOB_TO_TUPLE).mapTo(JOB_FROM_ROW)
+                    .executeBatch(aJobs);
         }).recover(error -> {
             LOGGER.error(MessageCodes.PRL_009, error.getMessage());
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
-        }).compose(insert -> {
-            return Future.succeededFuture(insert.iterator().next().getInteger(Job.ID));
-        });
+        }).map(HarvestScheduleStoreServiceImpl::<Job>mergeResults);
     }
 
     @Override
@@ -319,7 +333,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         return myDbConnectionPool.withConnection(connection -> {
             final Job jobWithID = Job.withID(aJob, aJobId);
 
-            return SqlTemplate.forUpdate(connection, UPDATE_JOB).mapFrom(JOB_MAPPER).execute(jobWithID);
+            return SqlTemplate.forUpdate(connection, UPDATE_JOB).mapFrom(JOB_TO_TUPLE).execute(jobWithID);
         }).recover(error -> {
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
@@ -351,5 +365,25 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     @Override
     public Future<Void> close() {
         return myJobResultHandler.unregister();
+    }
+
+    /**
+     * @param <U> The type that each row was previously mapped to via {@link SqlTemplate#mapTo(RowMapper)}
+     * @param aRowSet The result of executing an SQL query (e.g., the first result obtained via
+     *        {@link SqlTemplate#executeBatch(List)}
+     * @return A list of objects represented by each row in each row set
+     */
+    private static <U> List<U> mergeResults(final RowSet<U> aRowSet) {
+        final List<U> merged = new LinkedList<>();
+
+        for (RowSet<U> rs = aRowSet; rs != null; rs = rs.next()) {
+            final RowIterator<U> it = rs.iterator();
+
+            while (it.hasNext()) {
+                merged.add(it.next());
+            }
+        }
+
+        return merged;
     }
 }

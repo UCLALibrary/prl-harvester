@@ -6,10 +6,10 @@ import InstitutionItem from "./InstitutionItem.vue"
 const props = defineProps({
     institutions: { type: Object, required: true },
     jobs: { type: Object, required: true },
-    sendAddInstitutionRequest: { type: Function },
+    sendAddInstitutionsRequest: { type: Function },
     sendUpdateInstitutionRequest: { type: Function },
     sendRemoveInstitutionRequest: { type: Function },
-    sendAddJobRequest: { type: Function },
+    sendAddJobsRequest: { type: Function },
     sendUpdateJobRequest: { type: Function },
     sendRemoveJobRequest: { type: Function },
 })
@@ -74,7 +74,7 @@ function setJobToAddOrUpdate(aJob) {
  * @param {Object} anInstitution The institution to add
  */
 async function addInstitution(anInstitution) {
-    const response = await props.sendAddInstitutionRequest(anInstitution)
+    const response = await props.sendAddInstitutionsRequest(anInstitution)
 
     if (response.status === StatusCodes.CREATED) {
         actionResultAlert.value = {
@@ -99,7 +99,7 @@ async function addInstitution(anInstitution) {
  * @param {Object} aJob A job with its sets represented as a CSV string
  */
 async function addJob(aJob) {
-    const response = await props.sendAddJobRequest(jobWithDeserializedSets(aJob))
+    const response = await props.sendAddJobsRequest(jobWithDeserializedSets(aJob))
 
     if (response.status === StatusCodes.CREATED) {
         actionResultAlert.value = {

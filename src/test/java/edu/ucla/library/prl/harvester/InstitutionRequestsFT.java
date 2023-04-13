@@ -34,6 +34,7 @@ import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -127,7 +128,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#listInstitutions} after {@link Op#addInstitution} retrieves a non-empty list.
+     * Tests that {@link Op#listInstitutions} after {@link Op#addInstitutions} retrieves a non-empty list.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -137,31 +138,37 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint solrVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
-        final Institution institution;
-        final Future<HttpResponse<Buffer>> addInstitution;
+        final Institution institution1;
+        final Institution institution2;
+        final Future<HttpResponse<Buffer>> addInstitutions;
 
         try {
-            institution = TestUtils.getRandomInstitution();
+            institution1 = TestUtils.getRandomInstitution();
+            institution2 = TestUtils.getRandomInstitution();
         } catch (final AddressException | MalformedURLException | NumberParseException details) {
             aContext.failNow(details);
             return;
         }
 
         // First request
-        addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
+        addInstitutions = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON)
+                .sendJson(new JsonArray().add(institution1.toJson()).add(institution2.toJson()));
 
-        addInstitution.compose(addInstitutionResponse -> {
-            final Institution responseInstitution = new Institution(addInstitutionResponse.bodyAsJsonObject());
+        addInstitutions.compose(addInstitutionsResponse -> {
+            final Set<Institution> firstResponseInstitutions =
+                    TestUtils.institutionsFromJsonArray(addInstitutionsResponse.bodyAsJsonArray());
             final Future<HttpResponse<Buffer>> listInstitutions;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addInstitutionResponse.statusCode());
-                assertTrue(responseInstitution.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addInstitutionsResponse.statusCode());
+                firstResponseInstitutions.forEach(responseInstitution -> {
+                    assertTrue(responseInstitution.getID().isPresent());
+                });
 
                 responseVerified.flag();
             });
 
-            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(firstResponseInstitutions))
                     .onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
@@ -170,8 +177,8 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                         });
                     }).onFailure(aContext::failNow);
 
-            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.of(Set.of(institution)))
-                    .onSuccess(assertions -> {
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool,
+                    Optional.of(Set.of(institution1, institution2))).onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
 
@@ -183,12 +190,12 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
             listInstitutions = myWebClient.get(INSTITUTIONS).expect(ResponsePredicate.JSON).send();
 
             return listInstitutions.compose(listInstitutionsResponse -> {
-                final Institution responseInstitution2 =
-                        new Institution(listInstitutionsResponse.bodyAsJsonArray().getJsonObject(0));
+                final Set<Institution> secondResponseInstitutions =
+                        TestUtils.institutionsFromJsonArray(listInstitutionsResponse.bodyAsJsonArray());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, listInstitutionsResponse.statusCode());
-                    assertEquals(responseInstitution.toJson(), responseInstitution2.toJson());
+                    assertEquals(firstResponseInstitutions, secondResponseInstitutions);
 
                     responseVerified.flag();
                 });
@@ -199,7 +206,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getInstitution} after {@link Op#addInstitution} retrieves the same data that was sent.
+     * Tests that {@link Op#getInstitution} after {@link Op#addInstitutions} retrieves the same data that was sent.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -210,7 +217,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         final Checkpoint solrVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
         final Institution institution;
-        final Future<HttpResponse<Buffer>> addInstitution;
+        final Future<HttpResponse<Buffer>> addInstitutions;
 
         try {
             institution = TestUtils.getRandomInstitution();
@@ -220,21 +227,23 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
+        addInstitutions = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON)
+                .sendJson(new JsonArray().add(institution.toJson()));
 
-        addInstitution.compose(addInstitutionResponse -> {
-            final Institution responseInstitution = new Institution(addInstitutionResponse.bodyAsJsonObject());
+        addInstitutions.compose(addInstitutionsResponse -> {
+            final Institution firstResponseInstitution =
+                    new Institution(addInstitutionsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables institutionID;
             final Future<HttpResponse<Buffer>> getInstitution;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addInstitutionResponse.statusCode());
-                assertTrue(responseInstitution.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addInstitutionsResponse.statusCode());
+                assertTrue(firstResponseInstitution.getID().isPresent());
 
                 responseVerified.flag();
             });
 
-            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(firstResponseInstitution)))
                     .onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
@@ -253,16 +262,17 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                     }).onFailure(aContext::failNow);
 
             // Second request
-            institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
+            institutionID = TestUtils.getUriTemplateVars(firstResponseInstitution.getID().get());
             getInstitution =
                     myWebClient.get(INSTITUTION.expandToString(institutionID)).expect(ResponsePredicate.JSON).send();
 
             return getInstitution.compose(getInstitutionResponse -> {
-                final Institution responseInstitution2 = new Institution(getInstitutionResponse.bodyAsJsonObject());
+                final Institution secondResponseInstitution =
+                        new Institution(getInstitutionResponse.bodyAsJsonObject());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, getInstitutionResponse.statusCode());
-                    assertEquals(responseInstitution.toJson(), responseInstitution2.toJson());
+                    assertEquals(firstResponseInstitution, secondResponseInstitution);
 
                     responseVerified.flag();
                 });
@@ -274,7 +284,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
 
     /**
      * Tests that {@link Op#getInstitution} after {@link Op#updateInstitution} retrieves different data than was sent in
-     * the initial {@link Op#addInstitution}.
+     * the initial {@link Op#addInstitutions}.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -286,7 +296,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution institution;
         final Institution updatedInstitution;
-        final Future<HttpResponse<Buffer>> addInstitution;
+        final Future<HttpResponse<Buffer>> addInstitutions;
 
         try {
             institution = TestUtils.getRandomInstitution();
@@ -297,21 +307,23 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
+        addInstitutions = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON)
+                .sendJson(new JsonArray().add(institution.toJson()));
 
-        addInstitution.compose(addInstitutionResponse -> {
-            final Institution responseInstitution = new Institution(addInstitutionResponse.bodyAsJsonObject());
+        addInstitutions.compose(addInstitutionsResponse -> {
+            final Institution firstResponseInstitution =
+                    new Institution(addInstitutionsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables institutionID;
             final Future<HttpResponse<Buffer>> updateInstitution;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addInstitutionResponse.statusCode());
-                assertTrue(responseInstitution.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addInstitutionsResponse.statusCode());
+                assertTrue(firstResponseInstitution.getID().isPresent());
 
                 responseVerified.flag();
             });
 
-            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(firstResponseInstitution)))
                     .onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
@@ -330,22 +342,23 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                     }).onFailure(aContext::failNow);
 
             // Second request
-            institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
+            institutionID = TestUtils.getUriTemplateVars(firstResponseInstitution.getID().get());
             updateInstitution = myWebClient.put(INSTITUTION.expandToString(institutionID))
                     .expect(ResponsePredicate.JSON).sendJson(updatedInstitution.toJson());
 
             return updateInstitution.compose(updateInstitutionResponse -> {
-                final Institution responseInstitution2 = new Institution(updateInstitutionResponse.bodyAsJsonObject());
+                final Institution secondResponseInstitution =
+                        new Institution(updateInstitutionResponse.bodyAsJsonObject());
                 final Future<HttpResponse<Buffer>> getInstitution;
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, updateInstitutionResponse.statusCode());
-                    assertNotEquals(responseInstitution.toJson(), responseInstitution2.toJson());
+                    assertNotEquals(firstResponseInstitution, secondResponseInstitution);
 
                     responseVerified.flag();
                 });
 
-                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution2)))
+                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(secondResponseInstitution)))
                         .onSuccess(assertions -> {
                             aContext.verify(() -> {
                                 assertions.run();
@@ -368,11 +381,12 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                         .expect(ResponsePredicate.JSON).send();
 
                 return getInstitution.compose(getInstitutionResponse -> {
-                    final Institution responseInstitution3 = new Institution(getInstitutionResponse.bodyAsJsonObject());
+                    final Institution thirdResponseInstitution =
+                            new Institution(getInstitutionResponse.bodyAsJsonObject());
 
                     aContext.verify(() -> {
                         assertEquals(HttpStatus.SC_OK, getInstitutionResponse.statusCode());
-                        assertEquals(responseInstitution2.toJson(), responseInstitution3.toJson());
+                        assertEquals(secondResponseInstitution, thirdResponseInstitution);
 
                         responseVerified.flag();
                     });
@@ -384,7 +398,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getInstitution} after {@link Op#removeInstitution} after {@link Op#addInstitution} results
+     * Tests that {@link Op#getInstitution} after {@link Op#removeInstitution} after {@link Op#addInstitutions} results
      * in HTTP 404.
      *
      * @param aVertx A Vert.x instance
@@ -396,7 +410,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         final Checkpoint solrVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution institution;
-        final Future<HttpResponse<Buffer>> addInstitution;
+        final Future<HttpResponse<Buffer>> addInstitutions;
 
         try {
             institution = TestUtils.getRandomInstitution();
@@ -406,21 +420,23 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addInstitution = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(institution.toJson());
+        addInstitutions = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON)
+                .sendJson(new JsonArray().add(institution.toJson()));
 
-        addInstitution.compose(addInstitutionResponse -> {
-            final Institution responseInstitution = new Institution(addInstitutionResponse.bodyAsJsonObject());
+        addInstitutions.compose(addInstitutionsResponse -> {
+            final Institution firstResponseInstitution =
+                    new Institution(addInstitutionsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables institutionID;
             final Future<HttpResponse<Buffer>> removeInstitution;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addInstitutionResponse.statusCode());
-                assertTrue(responseInstitution.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addInstitutionsResponse.statusCode());
+                assertTrue(firstResponseInstitution.getID().isPresent());
 
                 responseVerified.flag();
             });
 
-            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(firstResponseInstitution)))
                     .onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
@@ -439,7 +455,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                     }).onFailure(aContext::failNow);
 
             // Second request
-            institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
+            institutionID = TestUtils.getUriTemplateVars(firstResponseInstitution.getID().get());
             removeInstitution = myWebClient.delete(INSTITUTION.expandToString(institutionID)).send();
 
             return removeInstitution.compose(removeInstitutionResponse -> {
@@ -485,7 +501,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getInstitution} before {@link Op#addInstitution} results in HTTP 404.
+     * Tests that {@link Op#getInstitution} before {@link Op#addInstitutions} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -500,7 +516,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#updateInstitution} before {@link Op#addInstitution} results in HTTP 404.
+     * Tests that {@link Op#updateInstitution} before {@link Op#addInstitutions} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -549,7 +565,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#removeInstitution} before {@link Op#addInstitution} results in HTTP 404.
+     * Tests that {@link Op#removeInstitution} before {@link Op#addInstitutions} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -564,13 +580,13 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#addInstitution} with invalid JSON results in HTTP 400.
+     * Tests that {@link Op#addInstitutions} with invalid JSON results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    void testAddInstitutionInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
+    void testAddInstitutionsInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint();
         final Checkpoint solrVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
@@ -587,7 +603,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         invalidInstitutionJson = validInstitution.toJson();
         invalidInstitutionJson.remove(Institution.NAME);
 
-        myWebClient.post(INSTITUTIONS).sendJson(invalidInstitutionJson).onSuccess(response -> {
+        myWebClient.post(INSTITUTIONS).sendJson(new JsonArray().add(invalidInstitutionJson)).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
                 assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Institution.NAME), response.bodyAsString());
@@ -614,7 +630,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#updateInstitution} with invalid JSON, after a successful {@link Op#addInstitution}, results
+     * Tests that {@link Op#updateInstitution} with invalid JSON, after a successful {@link Op#addInstitutions}, results
      * in HTTP 400.
      *
      * @param aVertx A Vert.x instance
@@ -626,7 +642,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         final Checkpoint solrVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Institution validInstitution;
-        final Future<HttpResponse<Buffer>> addInstitution;
+        final Future<HttpResponse<Buffer>> addInstitutions;
 
         try {
             validInstitution = TestUtils.getRandomInstitution();
@@ -636,23 +652,24 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addInstitution =
-                myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON).sendJson(validInstitution.toJson());
+        addInstitutions = myWebClient.post(INSTITUTIONS).expect(ResponsePredicate.JSON)
+                .sendJson(new JsonArray().add(validInstitution.toJson()));
 
-        addInstitution.compose(addInstitutionResponse -> {
-            final Institution responseInstitution = new Institution(addInstitutionResponse.bodyAsJsonObject());
+        addInstitutions.compose(addInstitutionsResponse -> {
+            final Institution firstResponseInstitution =
+                    new Institution(addInstitutionsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables institutionID;
             final JsonObject invalidInstitutionJson;
             final Future<HttpResponse<Buffer>> updateInstitution;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addInstitutionResponse.statusCode());
-                assertTrue(responseInstitution.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addInstitutionsResponse.statusCode());
+                assertTrue(firstResponseInstitution.getID().isPresent());
 
                 responseVerified.flag();
             });
 
-            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(firstResponseInstitution)))
                     .onSuccess(assertions -> {
                         aContext.verify(() -> {
                             assertions.run();
@@ -671,7 +688,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                     }).onFailure(aContext::failNow);
 
             // Second request
-            institutionID = TestUtils.getUriTemplateVars(responseInstitution.getID().get());
+            institutionID = TestUtils.getUriTemplateVars(firstResponseInstitution.getID().get());
 
             invalidInstitutionJson = validInstitution.toJson();
             invalidInstitutionJson.remove(Institution.NAME);
@@ -689,7 +706,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
 
                 });
 
-                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(responseInstitution)))
+                TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.of(Set.of(firstResponseInstitution)))
                         .onSuccess(assertions -> {
                             aContext.verify(() -> {
                                 assertions.run();

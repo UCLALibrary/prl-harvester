@@ -24,10 +24,10 @@ public enum Op {
     /**
      * Institution operations.
      */
-    addInstitution, getInstitution, listInstitutions, removeInstitution, updateInstitution,
+    addInstitutions, getInstitution, listInstitutions, removeInstitution, updateInstitution,
 
     /**
      * Job operations.
      */
-    addJob, getJob, listJobs, removeJob, updateJob
+    addJobs, getJob, listJobs, removeJob, updateJob
 }

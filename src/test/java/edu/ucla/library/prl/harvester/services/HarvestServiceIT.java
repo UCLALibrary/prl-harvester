@@ -106,11 +106,12 @@ public class HarvestServiceIT {
                 return Future.failedFuture(details);
             }
 
-            return myHarvestScheduleStoreServiceProxy.addInstitution(testInstitution).compose(institutionID -> {
-                myTestInstitutionID = institutionID;
+            return myHarvestScheduleStoreServiceProxy.addInstitutions(List.of(testInstitution))
+                    .compose(institutions -> {
+                        myTestInstitutionID = TestUtils.unwrapInstitutionID(institutions.get(0));
 
-                return Future.succeededFuture();
-            });
+                        return Future.succeededFuture();
+                    });
         }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

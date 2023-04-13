@@ -89,12 +89,28 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Institution"
+    InstitutionList:
+      description: A list of institutions
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Institution"
     Job:
       description: A job
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Job"
+    JobList:
+      description: A list of jobs
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Job"
   requestBodies:
     Institution:
       description: An institution
@@ -102,12 +118,28 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Institution"
+    InstitutionList:
+      description: A list of institutions
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Institution"
     Job:
       description: A job
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Job"
+    JobList:
+      description: A list of jobs
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Job"
 paths:
   /:
     get:
@@ -153,21 +185,15 @@ paths:
       operationId: listInstitutions
       responses:
         '200':
-          description: A list of all institutions
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Institution"
+          $ref: "#/components/responses/InstitutionList"
     post:
-      description: The endpoint for adding a new institution
-      operationId: addInstitution
+      description: The endpoint for adding new institutions
+      operationId: addInstitutions
       requestBody:
-        $ref: "#/components/requestBodies/Institution"
+        $ref: "#/components/requestBodies/InstitutionList"
       responses:
         '201':
-          $ref: "#/components/responses/Institution"
+          $ref: "#/components/responses/InstitutionList"
   /institutions/{id}:
     parameters:
     - name: id
@@ -200,21 +226,15 @@ paths:
       operationId: listJobs
       responses:
         '200':
-          description: A list of all jobs
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Job"
+          $ref: "#/components/responses/JobList"
     post:
-      description: The endpoint for adding a new job
-      operationId: addJob
+      description: The endpoint for adding new jobs
+      operationId: addJobs
       requestBody:
-        $ref: "#/components/requestBodies/Job"
+        $ref: "#/components/requestBodies/JobList"
       responses:
         '201':
-          $ref: "#/components/responses/Job"
+          $ref: "#/components/responses/JobList"
   /jobs/{id}:
     parameters:
     - name: id

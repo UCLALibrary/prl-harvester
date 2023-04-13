@@ -71,12 +71,12 @@ public interface HarvestScheduleStoreService {
     Future<List<Institution>> listInstitutions();
 
     /**
-     * Adds an institution.
+     * Adds a list of institutions.
      *
-     * @param anInstitution The institution to add
-     * @return A Future that succeeds, with a unique local ID for the institution, if it was added
+     * @param anInstitutions The list of institutions to add
+     * @return A Future that succeeds, with a list of institutions bearing unique local IDs, if all were added
      */
-    Future<Integer> addInstitution(Institution anInstitution);
+    Future<List<Institution>> addInstitutions(List<Institution> anInstitutions);
 
     /**
      * Updates an institution.
@@ -112,12 +112,12 @@ public interface HarvestScheduleStoreService {
     Future<List<Job>> listJobs();
 
     /**
-     * Adds a harvest job.
+     * Adds a list of harvest jobs.
      *
-     * @param aJob The harvest job to add
-     * @return A Future that succeeds, with a unique local ID for the harvest job, if it was added
+     * @param aJobs The list of harvest jobs to add
+     * @return A Future that succeeds, with a list of harvest jobs bearing unique local IDs, if all were added
      */
-    Future<Integer> addJob(Job aJob);
+    Future<List<Job>> addJobs(List<Job> aJobs);
 
     /**
      * Updates a harvest job.

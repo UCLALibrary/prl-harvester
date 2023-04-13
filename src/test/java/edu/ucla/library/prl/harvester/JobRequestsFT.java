@@ -38,6 +38,7 @@ import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -117,8 +118,8 @@ public class JobRequestsFT extends AuthorizedFIT {
             return;
         }
 
-        myWebClient.post(INSTITUTIONS).sendJson(institution.toJson()).onSuccess(response -> {
-            myInstitutionID = new Institution(response.bodyAsJsonObject()).getID().get();
+        myWebClient.post(INSTITUTIONS).sendJson(new JsonArray().add(institution.toJson())).onSuccess(response -> {
+            myInstitutionID = new Institution(response.bodyAsJsonArray().getJsonObject(0)).getID().get();
 
             aContext.completeNow();
         }).onFailure(aContext::failNow);
@@ -166,7 +167,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#listJobs} after {@link Op#addJob} retrieves a non-empty list.
+     * Tests that {@link Op#listJobs} after {@link Op#addJobs} retrieves a non-empty list.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -175,47 +176,52 @@ public class JobRequestsFT extends AuthorizedFIT {
     void testListAfterAdd(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint();
-        final Job job;
-        final Future<HttpResponse<Buffer>> addJob;
+        final Job job1;
+        final Job job2;
+        final Future<HttpResponse<Buffer>> addJobs;
 
         try {
-            job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of());
+            job1 = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1));
+            job2 = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET2));
         } catch (final ParseException details) {
             aContext.failNow(details);
             return;
         }
 
         // First request
-        addJob = myWebClient.post(JOBS).sendJson(job.toJson());
+        addJobs = myWebClient.post(JOBS).sendJson(new JsonArray().add(job1.toJson()).add(job2.toJson()));
 
-        addJob.compose(addJobResponse -> {
-            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+        addJobs.compose(addJobsResponse -> {
+            final Set<Job> firstResponseJobs = TestUtils.jobsFromJsonArray(addJobsResponse.bodyAsJsonArray());
             final Future<HttpResponse<Buffer>> listJobs;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
-                assertTrue(responseJob.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addJobsResponse.statusCode());
+                firstResponseJobs.forEach(job -> {
+                    assertTrue(job.getID().isPresent());
+                });
 
                 responseVerified.flag();
             });
 
-            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job))).onSuccess(assertions -> {
-                aContext.verify(() -> {
-                    assertions.run();
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.of(Set.of(job1, job2)))
+                    .onSuccess(assertions -> {
+                        aContext.verify(() -> {
+                            assertions.run();
 
-                    dbVerified.flag();
-                });
-            }).onFailure(aContext::failNow);
+                            dbVerified.flag();
+                        });
+                    }).onFailure(aContext::failNow);
 
             // Second request
             listJobs = myWebClient.get(JOBS).expect(ResponsePredicate.JSON).send();
 
             return listJobs.compose(listJobsResponse -> {
-                final Job responseJob2 = new Job(listJobsResponse.bodyAsJsonArray().getJsonObject(0));
+                final Set<Job> secondResponseJobs = TestUtils.jobsFromJsonArray(listJobsResponse.bodyAsJsonArray());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, listJobsResponse.statusCode());
-                    assertEquals(responseJob.toJson(), responseJob2.toJson());
+                    assertEquals(firstResponseJobs, secondResponseJobs);
 
                     responseVerified.flag();
                 });
@@ -226,7 +232,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getJob} after {@link Op#addJob} retrieves the same data that was sent.
+     * Tests that {@link Op#getJob} after {@link Op#addJobs} retrieves the same data that was sent.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -236,7 +242,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint();
         final Job job;
-        final Future<HttpResponse<Buffer>> addJob;
+        final Future<HttpResponse<Buffer>> addJobs;
 
         try {
             job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1));
@@ -246,16 +252,16 @@ public class JobRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addJob = myWebClient.post(JOBS).sendJson(job.toJson());
+        addJobs = myWebClient.post(JOBS).sendJson(new JsonArray().add(job.toJson()));
 
-        addJob.compose(addJobResponse -> {
-            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+        addJobs.compose(addJobsResponse -> {
+            final Job firstResponseJob = new Job(addJobsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables jobID;
             final Future<HttpResponse<Buffer>> getJob;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
-                assertTrue(responseJob.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addJobsResponse.statusCode());
+                assertTrue(firstResponseJob.getID().isPresent());
 
                 responseVerified.flag();
             });
@@ -269,15 +275,15 @@ public class JobRequestsFT extends AuthorizedFIT {
             }).onFailure(aContext::failNow);
 
             // Second request
-            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            jobID = TestUtils.getUriTemplateVars(firstResponseJob.getID().get());
             getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
 
             return getJob.compose(getJobResponse -> {
-                final Job responseJob2 = new Job(getJobResponse.bodyAsJsonObject());
+                final Job secondResponseJob = new Job(getJobResponse.bodyAsJsonObject());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, getJobResponse.statusCode());
-                    assertEquals(responseJob.toJson(), responseJob2.toJson());
+                    assertEquals(firstResponseJob, secondResponseJob);
 
                     responseVerified.flag();
                 });
@@ -289,7 +295,7 @@ public class JobRequestsFT extends AuthorizedFIT {
 
     /**
      * Tests that {@link Op#getJob} after {@link Op#updateJob} retrieves different data than was sent in the initial
-     * {@link Op#addJob}.
+     * {@link Op#addJobs}.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -300,7 +306,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job job;
         final Job updatedJob;
-        final Future<HttpResponse<Buffer>> addJob;
+        final Future<HttpResponse<Buffer>> addJobs;
 
         try {
             job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET2));
@@ -312,16 +318,16 @@ public class JobRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addJob = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(job.toJson());
+        addJobs = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(new JsonArray().add(job.toJson()));
 
-        addJob.compose(addJobResponse -> {
-            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+        addJobs.compose(addJobsResponse -> {
+            final Job firstResponseJob = new Job(addJobsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables jobID;
             final Future<HttpResponse<Buffer>> updateJob;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
-                assertTrue(responseJob.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addJobsResponse.statusCode());
+                assertTrue(firstResponseJob.getID().isPresent());
 
                 responseVerified.flag();
             });
@@ -335,17 +341,17 @@ public class JobRequestsFT extends AuthorizedFIT {
             }).onFailure(aContext::failNow);
 
             // Second request
-            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            jobID = TestUtils.getUriTemplateVars(firstResponseJob.getID().get());
             updateJob = myWebClient.put(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON)
                     .sendJson(updatedJob.toJson());
 
             return updateJob.compose(updateJobResponse -> {
-                final Job responseJob2 = new Job(updateJobResponse.bodyAsJsonObject());
+                final Job secondResponseJob = new Job(updateJobResponse.bodyAsJsonObject());
                 final Future<HttpResponse<Buffer>> getJob;
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, updateJobResponse.statusCode());
-                    assertNotEquals(responseJob.toJson(), responseJob2.toJson());
+                    assertNotEquals(firstResponseJob, secondResponseJob);
 
                     responseVerified.flag();
                 });
@@ -363,11 +369,11 @@ public class JobRequestsFT extends AuthorizedFIT {
                 getJob = myWebClient.get(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON).send();
 
                 return getJob.compose(getJobResponse -> {
-                    final Job responseJob3 = new Job(getJobResponse.bodyAsJsonObject());
+                    final Job thirdResponseJob = new Job(getJobResponse.bodyAsJsonObject());
 
                     aContext.verify(() -> {
                         assertEquals(HttpStatus.SC_OK, getJobResponse.statusCode());
-                        assertEquals(responseJob2.toJson(), responseJob3.toJson());
+                        assertEquals(secondResponseJob, thirdResponseJob);
 
                         responseVerified.flag();
                     });
@@ -379,7 +385,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getJob} after {@link Op#removeJob} after {@link Op#addJob} results in HTTP 404.
+     * Tests that {@link Op#getJob} after {@link Op#removeJob} after {@link Op#addJobs} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -389,7 +395,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         final Checkpoint responseVerified = aContext.checkpoint(3);
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job job;
-        final Future<HttpResponse<Buffer>> addJob;
+        final Future<HttpResponse<Buffer>> addJobs;
 
         try {
             job = TestUtils.getJob(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1));
@@ -399,16 +405,16 @@ public class JobRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addJob = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(job.toJson());
+        addJobs = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(new JsonArray().add(job.toJson()));
 
-        addJob.compose(addJobResponse -> {
-            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+        addJobs.compose(addJobsResponse -> {
+            final Job firstResponseJob = new Job(addJobsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables jobID;
             final Future<HttpResponse<Buffer>> removeJob;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
-                assertTrue(responseJob.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addJobsResponse.statusCode());
+                assertTrue(firstResponseJob.getID().isPresent());
 
                 responseVerified.flag();
             });
@@ -422,7 +428,7 @@ public class JobRequestsFT extends AuthorizedFIT {
             }).onFailure(aContext::failNow);
 
             // Second request
-            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            jobID = TestUtils.getUriTemplateVars(firstResponseJob.getID().get());
             removeJob = myWebClient.delete(JOB.expandToString(jobID)).send();
 
             return removeJob.compose(removeJobResponse -> {
@@ -459,7 +465,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#getJob} before {@link Op#addJob} results in HTTP 404.
+     * Tests that {@link Op#getJob} before {@link Op#addJobs} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -474,7 +480,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#updateJob} before {@link Op#addJob} results in HTTP 404.
+     * Tests that {@link Op#updateJob} before {@link Op#addJobs} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -513,7 +519,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#removeJob} before {@link Op#addJob} results in HTTP 404.
+     * Tests that {@link Op#removeJob} before {@link Op#addJobs} results in HTTP 404.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -528,13 +534,13 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#addJob} with invalid JSON results in HTTP 400.
+     * Tests that {@link Op#addJobs} with invalid JSON results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    void testAddJobInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
+    void testAddJobsInvalidJSON(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint responseVerified = aContext.checkpoint();
         final Checkpoint dbVerified = aContext.checkpoint();
         final Job validJob;
@@ -550,7 +556,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         invalidJobJson = validJob.toJson();
         invalidJobJson.remove(Job.INSTITUTION_ID);
 
-        myWebClient.post(JOBS).sendJson(invalidJobJson).onSuccess(response -> {
+        myWebClient.post(JOBS).sendJson(new JsonArray().add(invalidJobJson)).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
                 assertEquals(LOGGER.getMessage(MessageCodes.PRL_039, Job.INSTITUTION_ID), response.bodyAsString());
@@ -570,7 +576,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#updateJob} with invalid JSON, after a successful {@link Op#addJob}, results in HTTP 400.
+     * Tests that {@link Op#updateJob} with invalid JSON, after a successful {@link Op#addJobs}, results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -580,7 +586,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         final Checkpoint responseVerified = aContext.checkpoint(2);
         final Checkpoint dbVerified = aContext.checkpoint(2);
         final Job validJob;
-        final Future<HttpResponse<Buffer>> addJob;
+        final Future<HttpResponse<Buffer>> addJobs;
 
         try {
             validJob =
@@ -591,17 +597,18 @@ public class JobRequestsFT extends AuthorizedFIT {
         }
 
         // First request
-        addJob = myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(validJob.toJson());
+        addJobs =
+                myWebClient.post(JOBS).expect(ResponsePredicate.JSON).sendJson(new JsonArray().add(validJob.toJson()));
 
-        addJob.compose(addJobResponse -> {
-            final Job responseJob = new Job(addJobResponse.bodyAsJsonObject());
+        addJobs.compose(addJobsResponse -> {
+            final Job firstResponseJob = new Job(addJobsResponse.bodyAsJsonArray().getJsonObject(0));
             final Variables jobID;
             final JsonObject invalidJobJson;
             final Future<HttpResponse<Buffer>> updateJob;
 
             aContext.verify(() -> {
-                assertEquals(HttpStatus.SC_CREATED, addJobResponse.statusCode());
-                assertTrue(responseJob.getID().isPresent());
+                assertEquals(HttpStatus.SC_CREATED, addJobsResponse.statusCode());
+                assertTrue(firstResponseJob.getID().isPresent());
 
                 responseVerified.flag();
 
@@ -617,7 +624,7 @@ public class JobRequestsFT extends AuthorizedFIT {
                     }).onFailure(aContext::failNow);
 
             // Second request
-            jobID = TestUtils.getUriTemplateVars(responseJob.getID().get());
+            jobID = TestUtils.getUriTemplateVars(firstResponseJob.getID().get());
 
             invalidJobJson = validJob.toJson();
             invalidJobJson.remove(Job.INSTITUTION_ID);
@@ -649,7 +656,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#addJob} with an invalid OAI-PMH base URL results in HTTP 400.
+     * Tests that {@link Op#addJobs} with an invalid OAI-PMH base URL results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -667,7 +674,7 @@ public class JobRequestsFT extends AuthorizedFIT {
             return;
         }
 
-        myWebClient.post(JOBS).sendJson(invalidJob.toJson()).onSuccess(response -> {
+        myWebClient.post(JOBS).sendJson(new JsonArray().add(invalidJob.toJson())).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
 
@@ -686,7 +693,7 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
-     * Tests that {@link Op#addJob} with one or more undefined OAI-PMH sets results in HTTP 400.
+     * Tests that {@link Op#addJobs} with one or more undefined OAI-PMH sets results in HTTP 400.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -704,7 +711,7 @@ public class JobRequestsFT extends AuthorizedFIT {
             return;
         }
 
-        myWebClient.post(JOBS).sendJson(invalidJob.toJson()).onSuccess(response -> {
+        myWebClient.post(JOBS).sendJson(new JsonArray().add(invalidJob.toJson())).onSuccess(response -> {
             aContext.verify(() -> {
                 assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
 

@@ -64,7 +64,7 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * Removes all item records that were harvested by the job.
      *
-     * @param aData A Tuple of the ID of the job to remove, and its JSON representation
+     * @param aData A 2-tuple of the ID of the job to remove, and its JSON representation
      */
     @Override
     Future<UpdateResponse> updateSolr(final Tuple aData) {

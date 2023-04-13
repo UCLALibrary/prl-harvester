@@ -18,6 +18,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
@@ -53,6 +54,7 @@ import edu.ucla.library.prl.harvester.Param;
 import io.ino.solrs.JavaAsyncSolrClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
@@ -249,8 +251,8 @@ public final class TestUtils {
      */
     public static Future<Void> resetApplication(final WebClient aWebClient) {
         return aWebClient.get(JOBS).send().compose(response -> {
-            final Stream<Integer> jobIDs = response.bodyAsJsonArray().stream().map(job -> new Job((JsonObject) job)
-                    .getID().orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023))));
+            final Stream<Integer> jobIDs =
+                    response.bodyAsJsonArray().stream().map(job -> unwrapJobID(new Job((JsonObject) job)));
             @SuppressWarnings("rawtypes")
             final Function<Integer, Future> deleteJob = id -> {
                 final String uri = JOB.expandToString(getUriTemplateVars(id));
@@ -262,8 +264,7 @@ public final class TestUtils {
         }).compose(result -> {
             return aWebClient.get(INSTITUTIONS).send().compose(response -> {
                 final Stream<Integer> instIDs = response.bodyAsJsonArray().stream()
-                        .map(inst -> new Institution((JsonObject) inst).getID().orElseThrow(
-                                () -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022))));
+                        .map(inst -> unwrapInstitutionID(new Institution((JsonObject) inst)));
                 @SuppressWarnings("rawtypes")
                 final Function<Integer, Future> deleteInst = id -> {
                     final String uri = INSTITUTION.expandToString(getUriTemplateVars(id));
@@ -419,5 +420,43 @@ public final class TestUtils {
         }
 
         return true;
+    }
+
+    /**
+     * @param anArray A JSON array
+     * @return The set of {@link Institution}s represented by the array
+     */
+    public static Set<Institution> institutionsFromJsonArray(final JsonArray anArray) {
+        return anArray.stream().map(entry -> new Institution(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
+    }
+
+    /**
+     * @param anArray A JSON array
+     * @return The set of {@link Job}s represented by the array
+     */
+    public static Set<Job> jobsFromJsonArray(final JsonArray anArray) {
+        return anArray.stream().map(entry -> new Job(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
+    }
+
+    /**
+     * @param anInstitution An institution
+     * @return The institution's ID
+     * @throws NoSuchElementException If the institution doesn't have an ID
+     */
+    public static int unwrapInstitutionID(final Institution anInstitution) {
+        return anInstitution.getID().orElseThrow(() -> {
+            return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022));
+        });
+    }
+
+    /**
+     * @param aJob A job
+     * @return The job's ID
+     * @throws NoSuchElementException If the job doesn't have an ID
+     */
+    public static int unwrapJobID(final Job aJob) {
+        return aJob.getID().orElseThrow(() -> {
+            return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023));
+        });
     }
 }

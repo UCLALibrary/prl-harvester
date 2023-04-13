@@ -1,6 +1,8 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.util.List;
+
 import org.apache.http.HttpStatus;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 
@@ -56,13 +58,13 @@ public final class UpdateInstitutionHandler extends AbstractSolrAwareWriteOperat
     /**
      * Updates the institution doc in Solr.
      *
-     * @param aData A Tuple of the ID of the institution to update, and its JSON representation
+     * @param aData A 2-tuple of the ID of the institution to update, and its JSON representation
      */
     @Override
     Future<UpdateResponse> updateSolr(final Tuple aData) {
         final Institution institution =
                 Institution.withID(new Institution(aData.getJsonObject(1)), aData.getInteger(0));
 
-        return AddInstitutionHandler.updateInstitutionDoc(mySolrClient, institution);
+        return AddInstitutionHandler.updateInstitutionDoc(mySolrClient, List.of(institution));
     }
 }
