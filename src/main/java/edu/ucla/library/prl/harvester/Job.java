@@ -258,4 +258,41 @@ public final class Job {
     public static Job withID(final Job aJob, final Integer aJobID) {
         return new Job(aJob.toJson().put(ID, aJobID));
     }
+
+    @Override
+    public boolean equals(final Object anOther) {
+        if (anOther instanceof Job) {
+            final Job other = (Job) anOther;
+            if (getID().equals(other.getID()) && getInstitutionID() == other.getInstitutionID() &&
+                    getRepositoryBaseURL().equals(other.getRepositoryBaseURL()) &&
+                    getMetadataPrefix().equals(other.getMetadataPrefix()) && getSets().equals(other.getSets()) &&
+                    getScheduleCronExpression().getCronExpression()
+                            .equals(other.getScheduleCronExpression().getCronExpression()) &&
+                    getLastSuccessfulRun().equals(other.getLastSuccessfulRun())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+
+        result = prime * result + myID.map(id -> id.hashCode()).orElse(0);
+        result = prime * result + myInstitutionID;
+        result = prime * result + myRepositoryBaseURL.hashCode();
+        result = prime * result + mySets.map(sets -> sets.hashCode()).orElse(0);
+        result = prime * result + myScheduleCronExpression.getCronExpression().hashCode();
+        result = prime * result + myLastSuccessfulRun.map(timestamp -> timestamp.hashCode()).orElse(0);
+
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().encode();
+    }
 }

@@ -74,6 +74,9 @@ public class JobTest {
         assertEquals(job.getMetadataPrefix(), jobFromJson.getMetadataPrefix());
         assertEquals(job.getScheduleCronExpression().toString(), jobFromJson.getScheduleCronExpression().toString());
         assertEquals(job.getLastSuccessfulRun(), jobFromJson.getLastSuccessfulRun());
+
+        assertEquals(job, jobFromJson);
+        assertEquals(job.hashCode(), jobFromJson.hashCode());
     }
 
     /**
@@ -112,9 +115,19 @@ public class JobTest {
                 new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
         final int jobID = 1;
         final Job jobWithID = Job.withID(job, jobID);
+        final Job jobFromJsonWithID = new Job(job.toJson().put(Job.ID, jobID));
 
+        assertNotEquals(job, jobWithID);
         assertNotEquals(job.toJson(), jobWithID.toJson());
-        assertEquals(job.toJson().put("id", jobID), jobWithID.toJson());
+
+        if (job.hashCode() == jobWithID.hashCode()) {
+            LOGGER.warn(MessageCodes.PRL_044, Job.class.getName(), job, jobWithID);
+        }
+
+        // Adding id makes them equal
+        assertEquals(jobWithID, jobFromJsonWithID);
+        assertEquals(jobWithID.toJson(), jobFromJsonWithID.toJson());
+        assertEquals(jobWithID.hashCode(), jobFromJsonWithID.hashCode());
     }
 
     /**

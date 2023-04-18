@@ -90,6 +90,9 @@ public class InstitutionTest {
         assertEquals(institution.getPhone(), institutionFromJson.getPhone());
         assertEquals(institution.getWebContact(), institutionFromJson.getWebContact());
         assertEquals(institution.getWebsite(), institutionFromJson.getWebsite());
+
+        assertEquals(institution, institutionFromJson);
+        assertEquals(institution.hashCode(), institutionFromJson.hashCode());
     }
 
     /**
@@ -145,9 +148,20 @@ public class InstitutionTest {
                 new Institution(aName, aDescription, aLocation, anEmail, aPhone, aWebContact, aWebsite);
         final int institutionID = 1;
         final Institution institutionWithID = Institution.withID(institution, institutionID);
+        final Institution institutionFromJsonWithID =
+                new Institution(institution.toJson().put(Institution.ID, institutionID));
 
+        assertNotEquals(institution, institutionWithID);
         assertNotEquals(institution.toJson(), institutionWithID.toJson());
-        assertEquals(institution.toJson().put("id", institutionID), institutionWithID.toJson());
+
+        if (institution.hashCode() == institutionWithID.hashCode()) {
+            LOGGER.warn(MessageCodes.PRL_044, Job.class.getName(), institution, institutionWithID);
+        }
+
+        // Adding id makes them equal
+        assertEquals(institutionWithID, institutionFromJsonWithID);
+        assertEquals(institutionWithID.toJson(), institutionFromJsonWithID.toJson());
+        assertEquals(institutionWithID.hashCode(), institutionFromJsonWithID.hashCode());
     }
 
     /**
