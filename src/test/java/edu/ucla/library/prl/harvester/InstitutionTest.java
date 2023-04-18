@@ -206,7 +206,7 @@ public class InstitutionTest {
             assertEquals(anErrorClass, error.getCause().getClass());
         }
 
-        LOGGER.debug(LOGGER.getMessage(MessageCodes.PRL_000, error));
+        LOGGER.debug(MessageCodes.PRL_000, error);
     }
 
     /**
