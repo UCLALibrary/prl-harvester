@@ -24,12 +24,12 @@ import io.vertx.ext.web.RoutingContext;
 /**
  * A handler for adding jobs.
  */
-public final class AddJobHandler extends AbstractRequestHandler {
+public final class AddJobsHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
      */
-    public AddJobHandler(final Vertx aVertx) {
+    public AddJobsHandler(final Vertx aVertx) {
         super(aVertx);
     }
 

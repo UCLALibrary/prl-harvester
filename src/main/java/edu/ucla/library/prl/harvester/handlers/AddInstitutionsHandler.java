@@ -28,13 +28,13 @@ import io.vertx.sqlclient.Tuple;
 /**
  * A handler for adding institutions.
  */
-public final class AddInstitutionHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperationHandler {
 
     /**
      * @param aVertx A Vert.x instance
      * @param aConfig A configuration
      */
-    public AddInstitutionHandler(final Vertx aVertx, final JsonObject aConfig) {
+    public AddInstitutionsHandler(final Vertx aVertx, final JsonObject aConfig) {
         super(aVertx, aConfig);
     }
 

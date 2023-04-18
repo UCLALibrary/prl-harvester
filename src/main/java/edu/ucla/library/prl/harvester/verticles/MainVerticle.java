@@ -15,8 +15,8 @@ import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
 import edu.ucla.library.prl.harvester.Paths;
-import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
-import edu.ucla.library.prl.harvester.handlers.AddJobHandler;
+import edu.ucla.library.prl.harvester.handlers.AddInstitutionsHandler;
+import edu.ucla.library.prl.harvester.handlers.AddJobsHandler;
 import edu.ucla.library.prl.harvester.handlers.AuthHandler;
 import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.GetJobHandler;
@@ -147,14 +147,14 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.getStatus.name()).handler(new StatusHandler());
 
             // Institution operations
-            routeBuilder.operation(Op.addInstitutions.name()).handler(new AddInstitutionHandler(vertx, aConfig));
+            routeBuilder.operation(Op.addInstitutions.name()).handler(new AddInstitutionsHandler(vertx, aConfig));
             routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
             routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
             routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx, aConfig));
 
             // Job operations
-            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobHandler(vertx));
+            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobsHandler(vertx));
             routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
             routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx, aConfig));

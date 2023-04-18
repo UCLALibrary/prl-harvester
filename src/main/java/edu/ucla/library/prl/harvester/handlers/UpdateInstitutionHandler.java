@@ -65,6 +65,6 @@ public final class UpdateInstitutionHandler extends AbstractSolrAwareWriteOperat
         final Institution institution =
                 Institution.withID(new Institution(aData.getJsonObject(1)), aData.getInteger(0));
 
-        return AddInstitutionHandler.updateInstitutionDoc(mySolrClient, List.of(institution));
+        return AddInstitutionsHandler.updateInstitutionDoc(mySolrClient, List.of(institution));
     }
 }
