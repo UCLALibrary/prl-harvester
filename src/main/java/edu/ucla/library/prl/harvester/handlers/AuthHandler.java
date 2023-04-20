@@ -3,7 +3,6 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import static info.freelibrary.util.Constants.QUESTION_MARK;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -20,7 +19,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
@@ -44,9 +42,6 @@ public class AuthHandler implements Handler<RoutingContext> {
 
     /** The AuthHandler's logger. */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthHandler.class, MessageCodes.BUNDLE);
-
-    /** Possible {@link User} username keys. The 'cn' username is an LDAP default. */
-    private static final String[] USERNAMES = { FORM_USERNAME, "cn" };
 
     /** The handler's authentication provider. */
     private final AuthenticationProvider myAuthProvider;
@@ -84,7 +79,7 @@ public class AuthHandler implements Handler<RoutingContext> {
 
             // If the user is visiting the logout link, log them out
             if (Paths.LOGOUT.equals(path) && user != null) {
-                LOGGER.debug(MessageCodes.PRL_026, getUsername(user));
+                LOGGER.debug(MessageCodes.PRL_026, user.principal());
                 aContext.clearUser();
             }
 
@@ -119,7 +114,7 @@ public class AuthHandler implements Handler<RoutingContext> {
                 if (isAuthorized(user)) {
                     promise.complete(user);
                 } else {
-                    promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, getUsername(user)));
+                    promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
                 }
             });
         });
@@ -128,24 +123,12 @@ public class AuthHandler implements Handler<RoutingContext> {
     }
 
     /**
-     * Gets a username for the user by checking a couple of likely key possibilities.
-     *
-     * @param aUser An application user
-     * @return The supplied user's username
-     */
-    private String getUsername(final User aUser) {
-        final JsonObject principal = aUser.principal();
-        return Arrays.stream(USERNAMES).filter(principal::containsKey).map(principal::getString).findFirst()
-                .orElse(principal.encode());
-    }
-
-    /**
      * Checks whether the supplied user is authorized.
      *
      * @param aUser A site user
      * @return True if the user is authorized for access; else, false
      */
-    private boolean isAuthorized(final User aUser) {
+    private static boolean isAuthorized(final User aUser) {
         return aUser != null && aUser.authorizations().getProviderIds().contains(LdapAuthzProvider.DEFAULT_ID);
     }
 
@@ -154,7 +137,7 @@ public class AuthHandler implements Handler<RoutingContext> {
      *
      * @return An LDAP role
      */
-    private LdapRole getLdapRole() {
+    private static LdapRole getLdapRole() {
         return new LdapRole(System.getenv(Config.LDAP_ATTRIBUTE_KEY), System.getenv(Config.LDAP_ATTRIBUTE_VALUE));
     }
 
@@ -163,7 +146,7 @@ public class AuthHandler implements Handler<RoutingContext> {
      *
      * @return An LDAP configuration
      */
-    private LdapAuthnOptions getLdapConfig() {
+    private static LdapAuthnOptions getLdapConfig() {
         final LdapAuthnOptions ldapConfig = new LdapAuthnOptions();
         final Map<String, String> envs = System.getenv();
 
