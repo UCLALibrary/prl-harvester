@@ -165,7 +165,7 @@ public class MainVerticle extends AbstractVerticle {
 
             // Redirects
             routeBuilder.operation(Op.getRoot.name())
-                    .handler(new SimpleRedirectHandler(HttpStatus.SC_MOVED_PERMANENTLY, Path.of("/admin/")));
+                    .handler(new SimpleRedirectHandler(HttpStatus.SC_MOVED_PERMANENTLY, Path.of(Paths.ADMIN)));
 
             router = routeBuilder.createRouter();
 
