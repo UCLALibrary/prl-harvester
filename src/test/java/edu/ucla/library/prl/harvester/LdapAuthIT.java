@@ -66,7 +66,7 @@ public class LdapAuthIT {
     @Test
     public void testLdapUser(final Vertx aVertx, final VertxTestContext aContext) {
         final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
-                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_AUTH_QUERY), new ArrayList<>()));
+                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_USER_QUERY), new ArrayList<>()));
 
         auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
             final JsonObject principal = user.principal();
@@ -87,7 +87,7 @@ public class LdapAuthIT {
     @Test
     public void testLdapAuthentication(final Vertx aVertx, final VertxTestContext aContext) {
         final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
-                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_AUTH_QUERY), new ArrayList<>()));
+                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_USER_QUERY), new ArrayList<>()));
 
         auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
             final LdapAuthzProvider authorization = LdapAuthzProvider.create(new LdapRole(FORM_USERNAME, USERNAME));

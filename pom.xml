@@ -493,9 +493,7 @@
             <TEST_PROVIDER_BASE_URL>http://172.17.0.1:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
             <LDAP_URL>ldap://0.0.0.0:${test.auth.ldap}</LDAP_URL>
             <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
-            <!--<LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
-            <LDAP_ATTRIBUTE_KEY>cn</LDAP_ATTRIBUTE_KEY>
-            <LDAP_ATTRIBUTE_VALUE>prl</LDAP_ATTRIBUTE_VALUE>-->
+            <LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
             <LDAP_USERNAME>prl</LDAP_USERNAME>
             <LDAP_PASSWORD>pearl</LDAP_PASSWORD>
           </environmentVariables>
