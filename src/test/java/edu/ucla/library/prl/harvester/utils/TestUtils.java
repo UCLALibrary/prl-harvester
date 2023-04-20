@@ -18,7 +18,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
@@ -54,7 +53,6 @@ import edu.ucla.library.prl.harvester.Param;
 import io.ino.solrs.JavaAsyncSolrClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
@@ -420,22 +418,6 @@ public final class TestUtils {
         }
 
         return true;
-    }
-
-    /**
-     * @param anArray A JSON array
-     * @return The set of {@link Institution}s represented by the array
-     */
-    public static Set<Institution> institutionsFromJsonArray(final JsonArray anArray) {
-        return anArray.stream().map(entry -> new Institution(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
-    }
-
-    /**
-     * @param anArray A JSON array
-     * @return The set of {@link Job}s represented by the array
-     */
-    public static Set<Job> jobsFromJsonArray(final JsonArray anArray) {
-        return anArray.stream().map(entry -> new Job(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
     }
 
     /**

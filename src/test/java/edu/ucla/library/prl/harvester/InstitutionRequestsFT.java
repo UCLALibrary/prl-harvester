@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.net.MalformedURLException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.mail.internet.AddressException;
 
@@ -156,7 +157,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
 
         addInstitutions.compose(addInstitutionsResponse -> {
             final Set<Institution> firstResponseInstitutions =
-                    TestUtils.institutionsFromJsonArray(addInstitutionsResponse.bodyAsJsonArray());
+                    institutionsFromJsonArray(addInstitutionsResponse.bodyAsJsonArray());
             final Future<HttpResponse<Buffer>> listInstitutions;
 
             aContext.verify(() -> {
@@ -191,7 +192,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
 
             return listInstitutions.compose(listInstitutionsResponse -> {
                 final Set<Institution> secondResponseInstitutions =
-                        TestUtils.institutionsFromJsonArray(listInstitutionsResponse.bodyAsJsonArray());
+                        institutionsFromJsonArray(listInstitutionsResponse.bodyAsJsonArray());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, listInstitutionsResponse.statusCode());
@@ -727,5 +728,13 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
                 return Future.succeededFuture();
             });
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @param anArray A JSON array
+     * @return The set of {@link Institution}s represented by the array
+     */
+    private static Set<Institution> institutionsFromJsonArray(final JsonArray anArray) {
+        return anArray.stream().map(entry -> new Institution(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
     }
 }

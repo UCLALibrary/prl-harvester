@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.mail.internet.AddressException;
 
@@ -192,7 +193,7 @@ public class JobRequestsFT extends AuthorizedFIT {
         addJobs = myWebClient.post(JOBS).sendJson(new JsonArray().add(job1.toJson()).add(job2.toJson()));
 
         addJobs.compose(addJobsResponse -> {
-            final Set<Job> firstResponseJobs = TestUtils.jobsFromJsonArray(addJobsResponse.bodyAsJsonArray());
+            final Set<Job> firstResponseJobs = jobsFromJsonArray(addJobsResponse.bodyAsJsonArray());
             final Future<HttpResponse<Buffer>> listJobs;
 
             aContext.verify(() -> {
@@ -217,7 +218,7 @@ public class JobRequestsFT extends AuthorizedFIT {
             listJobs = myWebClient.get(JOBS).expect(ResponsePredicate.JSON).send();
 
             return listJobs.compose(listJobsResponse -> {
-                final Set<Job> secondResponseJobs = TestUtils.jobsFromJsonArray(listJobsResponse.bodyAsJsonArray());
+                final Set<Job> secondResponseJobs = jobsFromJsonArray(listJobsResponse.bodyAsJsonArray());
 
                 aContext.verify(() -> {
                     assertEquals(HttpStatus.SC_OK, listJobsResponse.statusCode());
@@ -727,5 +728,13 @@ public class JobRequestsFT extends AuthorizedFIT {
                 });
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * @param anArray A JSON array
+     * @return The set of {@link Job}s represented by the array
+     */
+    private static Set<Job> jobsFromJsonArray(final JsonArray anArray) {
+        return anArray.stream().map(entry -> new Job(JsonObject.mapFrom(entry))).collect(Collectors.toSet());
     }
 }
