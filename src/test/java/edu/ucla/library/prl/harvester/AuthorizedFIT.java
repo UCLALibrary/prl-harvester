@@ -10,6 +10,8 @@ import info.freelibrary.util.HTTP;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
+import edu.ucla.library.prl.harvester.utils.TestUtils;
+
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
@@ -42,8 +44,8 @@ class AuthorizedFIT {
      */
     protected Future<WebClient> authorize(final WebClient aWebClient) {
         final Promise<WebClient> promise = Promise.promise();
-        final String username = System.getenv(Config.LDAP_USERNAME);
-        final String password = System.getenv(Config.LDAP_PASSWORD);
+        final String username = System.getenv(TestUtils.LDAP_USERNAME);
+        final String password = System.getenv(TestUtils.LDAP_PASSWORD);
         final HttpRequest<Buffer> request = aWebClient.post(LOGIN_URL);
 
         // Mimic our login form's user information

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import info.freelibrary.util.StringUtils;
 
+import edu.ucla.library.prl.harvester.utils.TestUtils;
+
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
@@ -36,10 +38,10 @@ public class LdapAuthIT {
             .setAuthenticationQuery(System.getenv(Config.LDAP_AUTH_QUERY));
 
     /** The test user's username. */
-    private static final String USERNAME = System.getenv(Config.LDAP_USERNAME);
+    private static final String USERNAME = System.getenv(TestUtils.LDAP_USERNAME);
 
     /** The test user's password. */
-    private static final String PASSWORD = System.getenv(Config.LDAP_PASSWORD);
+    private static final String PASSWORD = System.getenv(TestUtils.LDAP_PASSWORD);
 
     /**
      * A test that confirms the Vert.x LDAP client can connect to the LDAP container.
