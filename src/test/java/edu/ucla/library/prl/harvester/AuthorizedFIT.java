@@ -42,7 +42,7 @@ class AuthorizedFIT {
      * @param aWebClient An unauthorized Web client
      * @return A successful future with an authorized Web client or a failed future if the authorization failed
      */
-    protected Future<WebClient> authorize(final WebClient aWebClient) {
+    protected static Future<WebClient> authorize(final WebClient aWebClient) {
         final Promise<WebClient> promise = Promise.promise();
         final String username = System.getenv(TestUtils.LDAP_USERNAME);
         final String password = System.getenv(TestUtils.LDAP_PASSWORD);
@@ -74,7 +74,7 @@ class AuthorizedFIT {
      * @param aCookieList A list of cookie strings
      * @return True if the client is authorized; else, false
      */
-    private boolean authorized(final int aStatusCode, final String aLocation, final List<String> aCookieList) {
+    private static boolean authorized(final int aStatusCode, final String aLocation, final List<String> aCookieList) {
         return aStatusCode == HTTP.FOUND && Paths.ADMIN.equals(aLocation) &&
                 aCookieList.stream().filter(cookie -> cookie.startsWith(COOKIE_NAME)).findFirst().isPresent();
     }
