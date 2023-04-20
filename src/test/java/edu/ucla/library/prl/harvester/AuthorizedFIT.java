@@ -24,7 +24,7 @@ import io.vertx.uritemplate.UriTemplate;
 /**
  * A base test class that adds authorization support to the functional tests that extend it.
  */
-class AuthorizedFIT {
+abstract class AuthorizedFIT {
 
     /** A test logger. */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizedFIT.class, MessageCodes.BUNDLE);
