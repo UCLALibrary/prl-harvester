@@ -226,7 +226,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     @Override
     public Future<List<Institution>> listInstitutions() {
         return myDbConnectionPool.withConnection(connection -> {
-            return SqlTemplate.forQuery(connection, LIST_INSTS).mapTo(INST_FROM_ROW).execute(null);
+            return SqlTemplate.forQuery(connection, LIST_INSTS).mapTo(INST_FROM_ROW).execute(Map.of());
         }).recover(error -> {
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
@@ -299,7 +299,7 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
     @Override
     public Future<List<Job>> listJobs() {
         return myDbConnectionPool.withConnection(connection -> {
-            return SqlTemplate.forQuery(connection, LIST_JOBS).mapTo(JOB_FROM_ROW).execute(null);
+            return SqlTemplate.forQuery(connection, LIST_JOBS).mapTo(JOB_FROM_ROW).execute(Map.of());
         }).recover(error -> {
             return Future
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
