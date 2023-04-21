@@ -289,7 +289,7 @@ public class HarvestScheduleStoreServiceIT {
      * @param aContext A test context
      */
     @Test
-    public final void testListInstitution(final Vertx aVertx, final VertxTestContext aContext)
+    public final void testListInstitutions(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         myScheduleStoreProxy.listInstitutions().onSuccess(instList -> {
             aContext.verify(() -> {
@@ -404,13 +404,13 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
-     * Tests inserting job record in db.
+     * Tests inserting job records in db.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
+    public final void testAddJobs(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
         final Job toAdd = TestUtils.getRandomJob(myTestInstitutionIDs.get(0));
 
