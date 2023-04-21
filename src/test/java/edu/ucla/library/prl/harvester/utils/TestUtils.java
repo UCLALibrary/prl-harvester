@@ -1,31 +1,6 @@
 
 package edu.ucla.library.prl.harvester.utils;
 
-import edu.ucla.library.prl.harvester.Institution;
-import edu.ucla.library.prl.harvester.Job;
-import edu.ucla.library.prl.harvester.MessageCodes;
-import edu.ucla.library.prl.harvester.Param;
-
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
-import info.freelibrary.util.StringUtils;
-
-import io.ino.solrs.JavaAsyncSolrClient;
-
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
-import io.vertx.sqlclient.Pool;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowIterator;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.SqlResult;
-import io.vertx.sqlclient.templates.SqlTemplate;
-import io.vertx.uritemplate.UriTemplate;
-import io.vertx.uritemplate.Variables;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,10 +23,6 @@ import java.util.stream.Stream;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
-import com.google.i18n.phonenumbers.NumberParseException;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
-
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrDocument;
@@ -59,19 +30,55 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
-
 import org.jeasy.random.randomizers.EmailRandomizer;
 import org.jeasy.random.randomizers.Ipv4AddressRandomizer;
 import org.jeasy.random.randomizers.RegularExpressionRandomizer;
 import org.jeasy.random.randomizers.SentenceRandomizer;
 import org.jeasy.random.randomizers.time.OffsetDateTimeRandomizer;
-
 import org.quartz.CronExpression;
+
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
+
+import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.MessageCodes;
+import edu.ucla.library.prl.harvester.Param;
+
+import io.ino.solrs.JavaAsyncSolrClient;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlResult;
+import io.vertx.sqlclient.templates.SqlTemplate;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 
 /**
  * Utilities related to working with test objects.
  */
 public final class TestUtils {
+
+    /**
+     * The ENV property for the test user's LDAP username.
+     */
+    public static final String LDAP_USERNAME = "LDAP_USERNAME";
+
+    /**
+     * The ENV property for the test user's LDAP password.
+     */
+    public static final String LDAP_PASSWORD = "LDAP_PASSWORD";
 
     public static final UriTemplate INSTITUTION = UriTemplate.of("/institutions/{id}");
 
@@ -92,8 +99,6 @@ public final class TestUtils {
     private static final String URL_PREFIX = "http://";
 
     private static final String CONTACT_POSTFIX = "/contact";
-
-    private static final String QUESTION = "?";
 
     private static final EmailRandomizer RAND_EMAIL = new EmailRandomizer();
 

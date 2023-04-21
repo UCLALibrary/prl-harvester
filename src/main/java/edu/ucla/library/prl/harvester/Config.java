@@ -71,6 +71,26 @@ public final class Config {
      */
     public static final String LDAP_URL = "LDAP_URL";
 
+    /**
+     * The ENV property for the LDAP authentication query.
+     */
+    public static final String LDAP_AUTH_QUERY = "LDAP_AUTH_QUERY";
+
+    /**
+     * The ENV property for the LDAP user query.
+     */
+    public static final String LDAP_USER_QUERY = "LDAP_USER_QUERY";
+
+    /**
+     * The ENV property for the attribute name used to authorize the user.
+     */
+    public static final String LDAP_ATTRIBUTE_KEY = "LDAP_ATTRIBUTE_KEY";
+
+    /**
+     * The ENV property for the attribute value used to authorize the user.
+     */
+    public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
+
     // Below are additional configuration options required by test classes (i.e., not the application).
 
     /**

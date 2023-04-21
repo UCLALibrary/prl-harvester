@@ -15,7 +15,6 @@ import java.util.Set;
 import javax.mail.internet.AddressException;
 
 import org.apache.http.HttpStatus;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,14 +27,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.google.i18n.phonenumbers.NumberParseException;
 
-import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
-import edu.ucla.library.prl.harvester.utils.TestUtils;
-
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
-import io.ino.solrs.JavaAsyncSolrClient;
+import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 
+import io.ino.solrs.JavaAsyncSolrClient;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -44,6 +42,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.WebClientSession;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.junit5.Checkpoint;
 import io.vertx.junit5.VertxExtension;
@@ -57,7 +56,7 @@ import io.vertx.uritemplate.Variables;
  */
 @ExtendWith(VertxExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
-public class JobRequestsFT {
+public class JobRequestsFT extends AuthorizedFIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JobRequestsFT.class, MessageCodes.BUNDLE);
 
@@ -86,6 +85,7 @@ public class JobRequestsFT {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
             final String host = config.getString(Config.HTTP_HOST);
             final int port = config.getInteger(Config.HTTP_PORT);
+            final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
             myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
@@ -96,9 +96,9 @@ public class JobRequestsFT {
                 return Future.failedFuture(details);
             }
 
-            myWebClient = WebClient.create(aVertx, new WebClientOptions().setDefaultHost(host).setDefaultPort(port));
+            myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return Future.succeededFuture();
+            return authorize(myWebClient);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

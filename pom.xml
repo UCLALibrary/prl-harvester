@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>edu.ucla.library</groupId>
   <artifactId>prl-harvester</artifactId>
   <version>${revision}</version>
+
   <name>PRL Harvester</name>
   <description></description>
   <url>https://github.com/UCLALibrary/prl-harvester</url>
@@ -27,8 +30,23 @@
     <url>https://github.com/UCLALibrary/prl-harvester/issues</url>
   </issueManagement>
 
+  <developers>
+    <developer>
+      <id>markmatney</id>
+      <name>Mark A. Matney, Jr.</name>
+      <email>mmatney@library.ucla.edu</email>
+      <organization>UCLA Library</organization>
+      <organizationUrl>http://github.com/uclalibrary</organizationUrl>
+      <timezone>America/Los_Angeles</timezone>
+      <roles>
+        <role>Lead Developer</role>
+      </roles>
+    </developer>
+    <!-- Also https://github.com/UCLALibrary/prl-harvester/graphs/contributors -->
+  </developers>
+
   <properties>
-    <vertx.version>4.3.3</vertx.version>
+    <vertx.version>4.4.1</vertx.version>
     <freelib.utils.version>3.2.0</freelib.utils.version>
     <freelib.maven.version>0.3.3</freelib.maven.version>
     <quartz.version>2.3.2</quartz.version>
@@ -37,10 +55,8 @@
     <solrs.version>2.6.0</solrs.version>
     <xoai.version>4.2.0</xoai.version>
     <guava.version>31.1-jre</guava.version>
-    <jackson.version>2.14.1</jackson.version>
-
-    <!-- Security update overrides -->
-    <snakeyaml.version>1.32</snakeyaml.version>
+    <jackson.version>2.14.2</jackson.version>
+    <ldap.auth.version>4.4.0</ldap.auth.version>
 
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
@@ -58,7 +74,7 @@
     <jsoup.version>1.15.4</jsoup.version>
 
     <!-- Docker component versions -->
-    <docker.alpine.version>3.16.2</docker.alpine.version>
+    <docker.alpine.version>3.17.3</docker.alpine.version>
     <postgres.version>12.12-alpine</postgres.version>
     <solr.version>9</solr.version>
     <docker.localstack.version>1.1.0</docker.localstack.version>
@@ -77,6 +93,7 @@
     <!-- The Docker registry user and password used for publishing images -->
     <docker.registry.username />
     <docker.registry.password />
+
     <!-- The Docker registry account, if supplied, must end with a slash (e.g. "account/") -->
     <docker.registry.account />
 
@@ -98,7 +115,7 @@
 
     <!-- Parameterized user since we'll use for other harvesting applications too -->
     <test.db.user>prl</test.db.user>
-    
+
     <!-- Specific types of skips -->
     <skipUTs>false</skipUTs>
     <skipITs>false</skipITs>
@@ -187,10 +204,6 @@
       <artifactId>vertx-jdbc-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-auth-ldap</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.quartz-scheduler</groupId>
       <artifactId>quartz</artifactId>
       <version>${quartz.version}</version>
@@ -250,11 +263,11 @@
       <version>${jackson.version}</version>
     </dependency>
 
-    <!-- Security update overrides -->
+    <!-- Local repo dependencies -->
     <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>${snakeyaml.version}</version>
+      <groupId>edu.ucla.library</groupId>
+      <artifactId>vertx-auth-ldap</artifactId>
+      <version>${ldap.auth.version}</version>
     </dependency>
 
     <!-- Below dependencies only used for testing -->
@@ -286,7 +299,6 @@
       <version>${jsoup.version}</version>
       <scope>test</scope>
     </dependency>
-
   </dependencies>
 
   <build>
@@ -337,6 +349,7 @@
           <workingDirectory>${project.basedir}/src/main/frontend</workingDirectory>
         </configuration>
         <executions>
+
           <!-- Installs front-end application dependencies -->
           <execution>
             <id>front-end-dependencies</id>
@@ -350,6 +363,7 @@
               </arguments>
             </configuration>
           </execution>
+
           <!-- Runs front-end application build -->
           <execution>
             <id>front-end-build</id>
@@ -366,6 +380,7 @@
               </arguments>
             </configuration>
           </execution>
+
           <!-- Runs front-end application tests -->
           <execution>
             <id>front-end-test</id>
@@ -381,6 +396,7 @@
               </arguments>
             </configuration>
           </execution>
+
           <!-- Runs the front-end application source code format checker -->
           <execution>
             <id>front-end-format-check</id>
@@ -493,7 +509,9 @@
           <argLine>${jacoco.agent.arg}</argLine>
           <parallel>all</parallel>
           <systemPropertyVariables>
-            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
+            <vertx.logger-delegate-factory-class-name>
+              io.vertx.core.logging.SLF4JLogDelegateFactory
+            </vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
           <environmentVariables>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
@@ -507,10 +525,11 @@
         <configuration>
           <skip>${skipITs}</skip>
           <argLine>${jacoco.agent.arg}</argLine>
+
           <!-- Allows tests to use shared database/HTTP connection pools w/o throwing IllegalStateException(s) -->
           <parallel>none</parallel>
           <environmentVariables>
-            <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT><!-- 1 day -->
+            <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT> <!-- 1 day -->
             <HTTP_HOST>localhost</HTTP_HOST>
             <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
             <PGHOSTADDR>localhost</PGHOSTADDR>
@@ -521,10 +540,16 @@
             <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
             <TEST_PROVIDER_BASE_URL>http://172.17.0.1:${test.provider.port}/provider</TEST_PROVIDER_BASE_URL>
             <LDAP_URL>ldap://0.0.0.0:${test.auth.ldap}</LDAP_URL>
+            <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
+            <LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
+            <LDAP_USERNAME>prl</LDAP_USERNAME>
+            <LDAP_PASSWORD>pearl</LDAP_PASSWORD>
           </environmentVariables>
           <excludedGroups>real-provider</excludedGroups>
           <systemPropertyVariables>
-            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
+            <vertx.logger-delegate-factory-class-name>
+              io.vertx.core.logging.SLF4JLogDelegateFactory
+            </vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -612,6 +637,7 @@
                 </wait>
               </run>
             </pgsql>
+
             <harvester>
               <!-- Registry account, if supplied, must end in a slash (e.g. "account/") -->
               <!-- The %l at the end translates to "latest" if version ends in "-SNAPSHOT" -->
@@ -652,11 +678,17 @@
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
                   <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
+                  <LDAP_URL>ldap://172.17.0.1:${test.auth.ldap}</LDAP_URL>
+                  <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
+                  <LDAP_USER_QUERY>cn={0}</LDAP_USER_QUERY>
+                  <LDAP_ATTRIBUTE_KEY>cn</LDAP_ATTRIBUTE_KEY>
+                  <LDAP_ATTRIBUTE_VALUE>prl</LDAP_ATTRIBUTE_VALUE>
                 </env>
                 <links>
                   <link>pgsql:pgsql</link>
                   <link>solr:solr</link>
                 </links>
+
                 <!-- Test to make sure the server started as expected -->
                 <wait>
                   <http>
@@ -667,6 +699,7 @@
                 </wait>
               </run>
             </harvester>
+
             <solr>
               <name>solr:${solr.version}</name>
               <run>
@@ -690,6 +723,7 @@
                 </wait>
               </run>
             </solr>
+
             <s3>
               <name>localstack/localstack:${docker.localstack.version}</name>
               <run>
@@ -704,6 +738,7 @@
                 </wait>
               </run>
             </s3>
+
             <s3-initializer>
               <name>s3-initializer</name>
               <build>
@@ -735,6 +770,7 @@
                 </wait>
               </run>
             </s3-initializer>
+
             <provider>
               <name>ncar/joai-project:${joai.version}</name>
               <build>
@@ -761,6 +797,7 @@
                 </wait>
               </run>
             </provider>
+
             <provider-initializer>
               <name>provider-initializer</name>
               <build>
@@ -786,6 +823,7 @@
                 </wait>
               </run>
             </provider-initializer>
+
             <auth-ldap>
               <name>glauth/glauth:${glauth.version}</name>
               <run>
@@ -803,8 +841,8 @@
             </auth-ldap>
           </imagesMap>
         </configuration>
-        <executions>
 
+        <executions>
           <!-- Builds the Docker image -->
           <execution>
             <id>docker-build</id>
@@ -1014,6 +1052,7 @@
           <plugin>
             <groupId>io.snyk</groupId>
             <artifactId>snyk-maven-plugin</artifactId>
+
             <!-- Configurations have to be overridden in the executions' configuration elements -->
             <executions>
               <execution>
@@ -1121,7 +1160,6 @@
         </plugins>
       </build>
     </profile>
-
     <profile>
       <id>test-real-providers</id>
       <build>
@@ -1137,6 +1175,14 @@
       </build>
     </profile>
   </profiles>
+
+  <repositories>
+    <repository>
+      <id>${project.artifactId}</id>
+      <name>${project.name}</name>
+      <url>file://${project.basedir}/libs</url>
+    </repository>
+  </repositories>
 
   <!-- The parent project still uses the older repo locations; new projects use the below -->
   <distributionManagement>

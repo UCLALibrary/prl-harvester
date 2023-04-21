@@ -1,20 +1,23 @@
 
 package edu.ucla.library.prl.harvester.verticles;
 
-import info.freelibrary.util.Logger;
-import info.freelibrary.util.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.http.HttpStatus;
 
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
+
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.Op;
+import edu.ucla.library.prl.harvester.Paths;
 import edu.ucla.library.prl.harvester.handlers.AddInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.AddJobHandler;
+import edu.ucla.library.prl.harvester.handlers.AuthHandler;
 import edu.ucla.library.prl.harvester.handlers.GetInstitutionHandler;
 import edu.ucla.library.prl.harvester.handlers.GetJobHandler;
 import edu.ucla.library.prl.harvester.handlers.InformativeBadRequestHandler;
@@ -41,9 +44,13 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.FaviconHandler;
+import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.openapi.RouterBuilder;
+import io.vertx.ext.web.sstore.LocalSessionStore;
+import io.vertx.ext.web.sstore.SessionStore;
 import io.vertx.serviceproxy.ServiceBinder;
 import io.vertx.sqlclient.Pool;
 
@@ -153,15 +160,32 @@ public class MainVerticle extends AbstractVerticle {
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx, aConfig));
 
-            // Admin interface
+            // Administrative interface
             routeBuilder.operation(Op.getAdmin.name()).handler(StaticHandler.create());
 
             // Redirects
             routeBuilder.operation(Op.getRoot.name())
-                    .handler(new SimpleRedirectHandler(HttpStatus.SC_MOVED_PERMANENTLY, Path.of("/admin/")));
+                    .handler(new SimpleRedirectHandler(HttpStatus.SC_MOVED_PERMANENTLY, Path.of(Paths.ADMIN)));
 
             router = routeBuilder.createRouter();
-            router.route("/assets/*").handler(StaticHandler.create("webroot/assets"));
+
+            // If LDAP server is configured, configure our router to check for authorized login
+            if (StringUtils.trimToNull(System.getenv(Config.LDAP_URL)) != null) {
+                final SessionStore sessionStore = LocalSessionStore.create(vertx);
+                final AuthHandler authHandler = new AuthHandler(vertx);
+
+                // Support maintaining state and processing forms
+                router.route().order(0).handler(BodyHandler.create());
+                router.route().order(0).handler(SessionHandler.create(sessionStore).setCookieHttpOnlyFlag(true));
+
+                // Add our authentication/authorization handler
+                router.getWithRegex(Paths.AUTH_CHECKED).order(1).handler(authHandler);
+                router.post(Paths.LOGIN).handler(authHandler);
+                router.get(Paths.LOGOUT).handler(authHandler);
+            }
+
+            // Add assets handler
+            router.route(Paths.ASSETS).handler(StaticHandler.create("webroot/assets"));
             router.route().handler(FaviconHandler.create(vertx, "webroot/favicon.ico"))
                     .failureHandler(new InformativeBadRequestHandler()).failureHandler(new ServiceExceptionHandler());
 

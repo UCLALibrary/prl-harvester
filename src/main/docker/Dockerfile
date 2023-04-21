@@ -17,6 +17,7 @@ RUN apk add openjdk17 --quiet --no-cache \
 
 # Copy files from our build environment into the container
 COPY maven/"${project.artifactId}-${project.version}.jar" "/opt/${project.artifactId}/"
+COPY configs/logback.xml "/etc/${project.artifactId}/logback.xml"
 
 # The user that runs the application
 USER "${project.artifactId}"
@@ -29,4 +30,5 @@ EXPOSE ${HTTP_PORT}
 
 # Run the service
 ENV JAR_PATH="/opt/${project.artifactId}/${project.artifactId}-${project.version}.jar"
-CMD ["sh", "-c", "exec java ${JAVA_OPTS} -jar ${JAR_PATH}"]
+ENV LOGGING_CONFIG="-Dlogback.configurationFile=/etc/${project.artifactId}/logback.xml"
+CMD ["sh", "-c", "exec java ${JAVA_OPTS} ${LOGGING_CONFIG} -jar ${JAR_PATH}"]
