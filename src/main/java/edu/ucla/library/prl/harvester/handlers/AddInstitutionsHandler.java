@@ -42,7 +42,7 @@ public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperatio
     public void handle(final RoutingContext aContext) {
         final HttpServerResponse response = aContext.response();
         final Stream<Future<Institution>> semanticValidations =
-                aContext.body().asJsonArray().stream().map(this::validateJob);
+                aContext.body().asJsonArray().stream().map(AddInstitutionsHandler::validateJob);
 
         CompositeFuture.all(semanticValidations.collect(Collectors.toList())).onSuccess(result -> {
             final List<Institution> institutions = result.list();
@@ -93,7 +93,7 @@ public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperatio
      * @param anInstitution An entry in the request body array
      * @return A Future that succeeds if the entry is a valid {@link Institution}
      */
-    private Future<Institution> validateJob(final Object anInstitution) {
+    private static Future<Institution> validateJob(final Object anInstitution) {
         try {
             return Future.succeededFuture(new Institution(JsonObject.mapFrom(anInstitution)));
         } catch (final IllegalArgumentException | InvalidInstitutionJsonException details) {
