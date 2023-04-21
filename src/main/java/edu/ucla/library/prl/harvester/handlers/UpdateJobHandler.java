@@ -74,8 +74,8 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * Removes all item records that belong to the sets removed from the job (if any).
      *
-     * @param aData A Tuple of the old JSON representation of the job, its new JSON representation, and the institution
-     *        name
+     * @param aData A 3-tuple of the old JSON representation of the job, its new JSON representation, and the
+     *        institution name
      */
     @Override
     Future<UpdateResponse> updateSolr(final Tuple aData) {

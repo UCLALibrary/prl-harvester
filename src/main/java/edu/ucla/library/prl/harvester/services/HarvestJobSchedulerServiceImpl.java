@@ -1,7 +1,11 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
@@ -87,8 +91,14 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
     }
 
     @Override
-    public Future<Void> addJob(final int aJobId, final Job aJob) {
-        return scheduleJob(aJobId, aJob, false);
+    public Future<Void> addJobs(final List<Job> aJobs) {
+        final Stream<Future<Void>> jobsScheduling = aJobs.stream().map(job -> {
+            return scheduleJob(job.getID().orElseThrow(() -> {
+                return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023));
+            }), job, false);
+        });
+
+        return CompositeFuture.all(jobsScheduling.collect(Collectors.toList())).mapEmpty();
     }
 
     @Override

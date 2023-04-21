@@ -352,4 +352,43 @@ public final class Institution {
     public static Institution withID(final Institution anInstitution, final Integer anInstitutionID) {
         return new Institution(anInstitution.toJson().put(ID, anInstitutionID));
     }
+
+    @Override
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    public boolean equals(final Object anOther) {
+        if (anOther instanceof Institution) {
+            final Institution other = (Institution) anOther;
+
+            if (getID().equals(other.getID()) && getName().equals(other.getName()) &&
+                    getDescription().equals(other.getDescription()) && getLocation().equals(other.getLocation()) &&
+                    getEmail().equals(other.getEmail()) && getPhone().equals(other.getPhone()) &&
+                    getWebContact().equals(other.getWebContact()) && getWebsite().equals(other.getWebsite())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+
+        result = prime * result + myID.map(id -> id.hashCode()).orElse(0);
+        result = prime * result + myName.hashCode();
+        result = prime * result + myDescription.hashCode();
+        result = prime * result + myLocation.hashCode();
+        result = prime * result + myEmail.map(email -> email.hashCode()).orElse(0);
+        result = prime * result + myPhone.map(phone -> phone.hashCode()).orElse(0);
+        result = prime * result + myWebContact.map(webContact -> webContact.hashCode()).orElse(0);
+        result = prime * result + myWebsite.hashCode();
+
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().encode();
+    }
 }

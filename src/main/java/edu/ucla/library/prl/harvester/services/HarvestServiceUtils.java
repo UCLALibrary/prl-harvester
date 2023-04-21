@@ -109,6 +109,7 @@ final class HarvestServiceUtils {
         final List<String> setNames = new LinkedList<>();
 
         final String recordIdentifier = aRecord.getHeader().getIdentifier();
+        // PRL requires data providers to define sets in order to participate, so at least one setSpec must be present
         final List<String> setSpecs = aRecord.getHeader().getSetSpecs();
 
         // Get an iterator over the elements inside the top-level "dc" element

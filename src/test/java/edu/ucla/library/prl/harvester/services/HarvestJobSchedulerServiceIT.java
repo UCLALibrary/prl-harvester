@@ -224,7 +224,7 @@ public class HarvestJobSchedulerServiceIT {
      */
     @Test
     @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
-    public void testAddJobAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
+    public void testAddJobsAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSavedAndDbInitialized = aContext.checkpoint();
 
         HarvestJobSchedulerService.create(aVertx, myConfig).compose(service -> {
@@ -274,8 +274,8 @@ public class HarvestJobSchedulerServiceIT {
                     return Future.failedFuture(details);
                 }
 
-                return myHarvestScheduleStoreServiceProxy.addJob(job).compose(jobID -> {
-                    return service.addJob(jobID, job);
+                return myHarvestScheduleStoreServiceProxy.addJobs(List.of(job)).compose(jobsWithIDs -> {
+                    return service.addJobs(jobsWithIDs);
                 });
             });
         }).onSuccess(initialJob -> {
@@ -426,7 +426,8 @@ public class HarvestJobSchedulerServiceIT {
             return Future.failedFuture(details);
         }
 
-        return myHarvestScheduleStoreServiceProxy.addInstitution(institution);
+        return myHarvestScheduleStoreServiceProxy.addInstitutions(List.of(institution))
+                .map(institutions -> institutions.get(0).getID().get());
     }
 
     /**
@@ -443,7 +444,7 @@ public class HarvestJobSchedulerServiceIT {
             return Future.failedFuture(details);
         }
 
-        return myHarvestScheduleStoreServiceProxy.addJob(job);
+        return myHarvestScheduleStoreServiceProxy.addJobs(List.of(job)).map(jobs -> jobs.get(0).getID().get());
     }
 
     /**

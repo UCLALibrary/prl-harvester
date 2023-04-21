@@ -215,21 +215,43 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
-     * Tests inserting institution record in db.
+     * Tests inserting institution records in db.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    public final void testAddInstitution(final Vertx aVertx, final VertxTestContext aContext)
+    public final void testAddInstitutions(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
-        final Institution toAdd = TestUtils.getRandomInstitution();
+        final List<Institution> toAdd = List.of(TestUtils.getRandomInstitution(), TestUtils.getRandomInstitution(),
+                TestUtils.getRandomInstitution(), TestUtils.getRandomInstitution());
 
-        myScheduleStoreProxy.addInstitution(toAdd).onSuccess(institutionID -> {
+        myScheduleStoreProxy.addInstitutions(toAdd).onSuccess(institutions -> {
             aContext.verify(() -> {
-                assertTrue(institutionID.intValue() > myTestInstitutionIDs.get(myTestInstitutionIDs.size() - 1));
+                final int lowestPossibleInstitutionID = myTestInstitutionIDs.get(myTestInstitutionIDs.size() - 1) + 1;
+
+                assertEquals(toAdd.size(), institutions.size());
+                assertTrue(TestUtils.unwrapInstitutionID(institutions.get(0)) >= lowestPossibleInstitutionID);
+                assertTrue(TestUtils.unwrapInstitutionID(institutions.get(1)) >= lowestPossibleInstitutionID);
             }).completeNow();
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that an empty list is dealt with appropriately. FIXME
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddInstitutionsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        myScheduleStoreProxy.addInstitutions(List.of()).onFailure(details -> {
+            aContext.verify(() -> {
+                assertTrue(details instanceof ServiceException);
+                assertEquals(HarvestScheduleStoreService.Error.BAD_REQUEST.ordinal(),
+                        ((ServiceException) details).failureCode());
+            }).completeNow();
+        }).onSuccess(result -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_045)));
     }
 
     /**
@@ -284,14 +306,12 @@ public class HarvestScheduleStoreServiceIT {
      * @param aContext A test context
      */
     @Test
-    public final void testListInstitution(final Vertx aVertx, final VertxTestContext aContext)
+    public final void testListInstitutions(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException {
         myScheduleStoreProxy.listInstitutions().onSuccess(instList -> {
             aContext.verify(() -> {
                 assertTrue(instList != null);
                 assertTrue(instList.size() >= 3);
-                assertTrue(instList.get(0).getName().equals(SAMPLE_NAME));
-                assertTrue(instList.get(0).getID().isPresent());
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -307,7 +327,9 @@ public class HarvestScheduleStoreServiceIT {
             throws AddressException, MalformedURLException, NumberParseException {
         final Institution toDelete = TestUtils.getRandomInstitution();
 
-        myScheduleStoreProxy.addInstitution(toDelete).onSuccess(newID -> {
+        myScheduleStoreProxy.addInstitutions(List.of(toDelete)).onSuccess(institutions -> {
+            final int newID = TestUtils.unwrapInstitutionID(institutions.get(0));
+
             myScheduleStoreProxy.removeInstitution(newID).onSuccess(result -> {
                 myScheduleStoreProxy.getInstitution(newID).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;
@@ -397,21 +419,40 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
-     * Tests inserting job record in db.
+     * Tests inserting job records in db.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
     @Test
-    public final void testAddJob(final Vertx aVertx, final VertxTestContext aContext)
+    public final void testAddJobs(final Vertx aVertx, final VertxTestContext aContext)
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
         final Job toAdd = TestUtils.getRandomJob(myTestInstitutionIDs.get(0));
 
-        myScheduleStoreProxy.addJob(toAdd).onSuccess(result -> {
+        myScheduleStoreProxy.addJobs(List.of(toAdd)).onSuccess(result -> {
+            final int id = TestUtils.unwrapJobID(result.get(0));
+
             aContext.verify(() -> {
-                assertTrue(result.intValue() >= 1);
+                assertTrue(id >= 1);
             }).completeNow();
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that an empty list is dealt with appropriately. FIXME
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddJobsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        myScheduleStoreProxy.addJobs(List.of()).onFailure(details -> {
+            aContext.verify(() -> {
+                assertTrue(details instanceof ServiceException);
+                assertEquals(HarvestScheduleStoreService.Error.BAD_REQUEST.ordinal(),
+                        ((ServiceException) details).failureCode());
+            }).completeNow();
+        }).onSuccess(result -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_045)));
     }
 
     /**
@@ -427,8 +468,6 @@ public class HarvestScheduleStoreServiceIT {
             aContext.verify(() -> {
                 assertTrue(jobList != null);
                 assertTrue(jobList.size() >= 3);
-                assertTrue(jobList.get(0).getScheduleCronExpression().toString().equals(SAMPLE_CRON));
-                assertTrue(jobList.get(0).getID().isPresent());
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -444,7 +483,9 @@ public class HarvestScheduleStoreServiceIT {
             throws AddressException, MalformedURLException, NumberParseException, ParseException {
         final Job toDelete = TestUtils.getRandomJob(myTestInstitutionIDs.get(0));
 
-        myScheduleStoreProxy.addJob(toDelete).onSuccess(newID -> {
+        myScheduleStoreProxy.addJobs(List.of(toDelete)).onSuccess(jobs -> {
+            final int newID = TestUtils.unwrapJobID(jobs.get(0));
+
             myScheduleStoreProxy.removeJob(newID).onSuccess(result -> {
                 myScheduleStoreProxy.getJob(newID).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;

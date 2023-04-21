@@ -249,8 +249,8 @@ public final class TestUtils {
      */
     public static Future<Void> resetApplication(final WebClient aWebClient) {
         return aWebClient.get(JOBS).send().compose(response -> {
-            final Stream<Integer> jobIDs = response.bodyAsJsonArray().stream().map(job -> new Job((JsonObject) job)
-                    .getID().orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023))));
+            final Stream<Integer> jobIDs =
+                    response.bodyAsJsonArray().stream().map(job -> unwrapJobID(new Job((JsonObject) job)));
             @SuppressWarnings("rawtypes")
             final Function<Integer, Future> deleteJob = id -> {
                 final String uri = JOB.expandToString(getUriTemplateVars(id));
@@ -262,8 +262,7 @@ public final class TestUtils {
         }).compose(result -> {
             return aWebClient.get(INSTITUTIONS).send().compose(response -> {
                 final Stream<Integer> instIDs = response.bodyAsJsonArray().stream()
-                        .map(inst -> new Institution((JsonObject) inst).getID().orElseThrow(
-                                () -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022))));
+                        .map(inst -> unwrapInstitutionID(new Institution((JsonObject) inst)));
                 @SuppressWarnings("rawtypes")
                 final Function<Integer, Future> deleteInst = id -> {
                     final String uri = INSTITUTION.expandToString(getUriTemplateVars(id));
@@ -419,5 +418,27 @@ public final class TestUtils {
         }
 
         return true;
+    }
+
+    /**
+     * @param anInstitution An institution
+     * @return The institution's ID
+     * @throws NoSuchElementException If the institution doesn't have an ID
+     */
+    public static int unwrapInstitutionID(final Institution anInstitution) {
+        return anInstitution.getID().orElseThrow(() -> {
+            return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022));
+        });
+    }
+
+    /**
+     * @param aJob A job
+     * @return The job's ID
+     * @throws NoSuchElementException If the job doesn't have an ID
+     */
+    public static int unwrapJobID(final Job aJob) {
+        return aJob.getID().orElseThrow(() -> {
+            return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023));
+        });
     }
 }

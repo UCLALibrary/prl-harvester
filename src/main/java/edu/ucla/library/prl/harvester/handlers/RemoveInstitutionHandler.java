@@ -76,7 +76,7 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
      * Removes the institution doc, and all item record docs that were harvested by jobs associated with the
      * institution.
      *
-     * @param aData A Tuple of the institution as JSON
+     * @param aData A 1-tuple of the institution as JSON
      */
     @Override
     Future<UpdateResponse> updateSolr(final Tuple aData) {

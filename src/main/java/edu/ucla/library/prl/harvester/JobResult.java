@@ -133,4 +133,35 @@ public class JobResult {
     public int getRecordCount() {
         return myRecordCount;
     }
+
+    @Override
+    public boolean equals(final Object anOther) {
+        if (anOther instanceof JobResult) {
+            final JobResult other = (JobResult) anOther;
+
+            if (getJobID() == other.getJobID() && getStartTime().equals(other.getStartTime()) &&
+                    getRecordCount() == other.getRecordCount()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+
+        result = prime * result + myJobID;
+        result = prime * result + myStartTime.hashCode();
+        result = prime * result + myRecordCount;
+
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return toJson().encode();
+    }
 }

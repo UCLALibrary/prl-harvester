@@ -55,6 +55,9 @@ public class JobResultTest {
         // If the objects are equal, then deserialization works
         assertEquals(jobResult.getStartTime(), jobResultFromJson.getStartTime());
         assertEquals(jobResult.getRecordCount(), jobResultFromJson.getRecordCount());
+
+        assertEquals(jobResult, jobResultFromJson);
+        assertEquals(jobResult.hashCode(), jobResultFromJson.hashCode());
     }
 
     /**
@@ -79,7 +82,7 @@ public class JobResultTest {
             assertEquals(anErrorClass, error.getCause().getClass());
         }
 
-        LOGGER.debug(LOGGER.getMessage(MessageCodes.PRL_000, error));
+        LOGGER.debug(MessageCodes.PRL_000, error);
     }
 
     /**

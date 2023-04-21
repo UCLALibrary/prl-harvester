@@ -1,6 +1,8 @@
 
 package edu.ucla.library.prl.harvester.services;
 
+import java.util.List;
+
 import org.quartz.SchedulerException;
 
 import edu.ucla.library.prl.harvester.Job;
@@ -69,13 +71,12 @@ public interface HarvestJobSchedulerService {
     }
 
     /**
-     * Adds a harvest job.
+     * Adds a list of harvest jobs.
      *
-     * @param aJobId The unique local ID for the harvest job
-     * @param aJob The harvest job to add
-     * @return A Future that succeeds if the harvest job was added
+     * @param aJobs The list of harvest jobs to add, each bearing a unique local ID assigned by the database
+     * @return A Future that succeeds if all the harvest jobs were added
      */
-    Future<Void> addJob(int aJobId, Job aJob);
+    Future<Void> addJobs(List<Job> aJobs);
 
     /**
      * Updates a harvest job.

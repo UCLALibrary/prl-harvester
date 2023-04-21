@@ -49,5 +49,9 @@
   <entry key="PRL_041">User is trying to login: {}</entry>
   <entry key="PRL_042">User successfully authorized: {}</entry>
   <entry key="PRL_043">Failed to authorize test WebClient</entry>
+  <entry key="PRL_044">{} instances {} and {} are not equal but have the same hash code</entry>
+  <entry key="PRL_045">Operation succeeded, but it should have failed</entry>
+  <entry key="PRL_046">Must provide non-empty list</entry>
+  <entry key="PRL_047">[Bad Request] Validation error for body application/json: provided array should have size &gt;= 1</entry>
 
 </properties>
