@@ -34,6 +34,7 @@ public final class ServiceExceptionHandler implements ErrorHandler {
             final HarvestScheduleStoreServiceException serviceException = (HarvestScheduleStoreServiceException) error;
 
             statusCode = switch (Error.values()[serviceException.failureCode()]) {
+                case BAD_REQUEST -> HttpStatus.SC_BAD_REQUEST;
                 case NOT_FOUND -> HttpStatus.SC_NOT_FOUND;
                 case INTERNAL_ERROR -> HttpStatus.SC_INTERNAL_SERVER_ERROR;
             };

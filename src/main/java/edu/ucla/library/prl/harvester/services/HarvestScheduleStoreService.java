@@ -169,6 +169,11 @@ public interface HarvestScheduleStoreService {
     enum Error {
 
         /**
+         * Indicates that there was a problem with the provided query parameters.
+         */
+        BAD_REQUEST,
+
+        /**
          * Indicates that the requested item was not found in the store.
          */
         NOT_FOUND,

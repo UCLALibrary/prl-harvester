@@ -535,6 +535,36 @@ public class JobRequestsFT extends AuthorizedFIT {
     }
 
     /**
+     * Tests that {@link Op#addJobs} with an empty JSON array results in HTTP 400.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    void testAddJobsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
+
+        myWebClient.post(JOBS).sendJson(new JsonArray()).onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_047), response.bodyAsString());
+
+                responseVerified.flag();
+
+            });
+
+            TestUtils.getDatabaseJobAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
      * Tests that {@link Op#addJobs} with invalid JSON results in HTTP 400.
      *
      * @param aVertx A Vert.x instance

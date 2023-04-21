@@ -581,6 +581,44 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     }
 
     /**
+     * Tests that {@link Op#addInstitutions} with an empty JSON array results in HTTP 400.
+     *
+     * @param aVertx
+     * @param aContext
+     */
+    @Test
+    void testAddInstitutionsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint responseVerified = aContext.checkpoint();
+        final Checkpoint solrVerified = aContext.checkpoint();
+        final Checkpoint dbVerified = aContext.checkpoint();
+
+        myWebClient.post(INSTITUTIONS).sendJson(new JsonArray()).onSuccess(response -> {
+            aContext.verify(() -> {
+                assertEquals(HttpStatus.SC_BAD_REQUEST, response.statusCode());
+                assertEquals(LOGGER.getMessage(MessageCodes.PRL_047), response.bodyAsString());
+
+                responseVerified.flag();
+            });
+
+            TestUtils.getSolrInstitutionAssertions(mySolrClient, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    solrVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+
+            TestUtils.getDatabaseInstitutionAssertions(myDbConnectionPool, Optional.empty()).onSuccess(assertions -> {
+                aContext.verify(() -> {
+                    assertions.run();
+
+                    dbVerified.flag();
+                });
+            }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
      * Tests that {@link Op#addInstitutions} with invalid JSON results in HTTP 400.
      *
      * @param aVertx A Vert.x instance

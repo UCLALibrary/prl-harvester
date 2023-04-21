@@ -238,6 +238,23 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
+     * Tests that an empty list is dealt with appropriately. FIXME
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddInstitutionsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        myScheduleStoreProxy.addInstitutions(List.of()).onFailure(details -> {
+            aContext.verify(() -> {
+                assertTrue(details instanceof ServiceException);
+                assertEquals(HarvestScheduleStoreService.Error.BAD_REQUEST.ordinal(),
+                        ((ServiceException) details).failureCode());
+            }).completeNow();
+        }).onSuccess(result -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_045)));
+    }
+
+    /**
      * Tests getting institution by ID from db.
      *
      * @param aVertx A Vert.x instance
@@ -419,6 +436,23 @@ public class HarvestScheduleStoreServiceIT {
                 assertTrue(id >= 1);
             }).completeNow();
         }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Tests that an empty list is dealt with appropriately. FIXME
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testAddJobsEmptyList(final Vertx aVertx, final VertxTestContext aContext) {
+        myScheduleStoreProxy.addJobs(List.of()).onFailure(details -> {
+            aContext.verify(() -> {
+                assertTrue(details instanceof ServiceException);
+                assertEquals(HarvestScheduleStoreService.Error.BAD_REQUEST.ordinal(),
+                        ((ServiceException) details).failureCode());
+            }).completeNow();
+        }).onSuccess(result -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_045)));
     }
 
     /**
