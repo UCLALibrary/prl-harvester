@@ -126,6 +126,7 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/Institution"
+            minItems: 1
     Job:
       description: A job
       content:
@@ -140,6 +141,7 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/Job"
+            minItems: 1
 paths:
   /:
     get:

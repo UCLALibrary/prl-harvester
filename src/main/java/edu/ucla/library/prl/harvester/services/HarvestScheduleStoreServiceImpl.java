@@ -235,6 +235,12 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<List<Institution>> addInstitutions(final List<Institution> anInstitutions) {
+        if (anInstitutions.isEmpty()) {
+            final String errorMsg = LOGGER.getMessage(MessageCodes.PRL_046);
+
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.BAD_REQUEST, errorMsg));
+        }
+
         return myDbConnectionPool.withConnection(connection -> {
             return SqlTemplate.forQuery(connection, ADD_INSTS).mapFrom(INST_TO_TUPLE).mapTo(INST_FROM_ROW)
                     .executeBatch(anInstitutions);
@@ -308,6 +314,12 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
 
     @Override
     public Future<List<Job>> addJobs(final List<Job> aJobs) {
+        if (aJobs.isEmpty()) {
+            final String errorMsg = LOGGER.getMessage(MessageCodes.PRL_046);
+
+            return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.BAD_REQUEST, errorMsg));
+        }
+
         return myDbConnectionPool.withConnection(connection -> {
             return SqlTemplate.forQuery(connection, ADD_JOBS).mapFrom(JOB_TO_TUPLE).mapTo(JOB_FROM_ROW)
                     .executeBatch(aJobs);
