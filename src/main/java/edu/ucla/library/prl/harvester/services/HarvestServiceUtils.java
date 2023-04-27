@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -92,9 +93,8 @@ final class HarvestServiceUtils {
     /**
      * A Collector that partitions a list of URLs by whether or not they have the filetype extension for an image.
      */
-    @SuppressWarnings("PMD.UseLocaleWithCaseConversions")
-    private static final Collector<URL, ?, Map<Boolean, List<URL>>> IMAGE_URL_PARTITIONER =
-            Collectors.partitioningBy(url -> url.getPath().toLowerCase().matches(IMAGE_FILETYPE_EXTENSION));
+    private static final Collector<URL, ?, Map<Boolean, List<URL>>> IMAGE_URL_PARTITIONER = Collectors
+            .partitioningBy(url -> url.getPath().toLowerCase(Locale.ENGLISH).matches(IMAGE_FILETYPE_EXTENSION));
 
     /**
      * Private constructor for utility class to prohibit instantiation.
