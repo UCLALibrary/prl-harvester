@@ -83,7 +83,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
             myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return authorize(myWebClient);
+            return authorize(myWebClient, config);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

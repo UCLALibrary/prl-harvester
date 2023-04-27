@@ -100,7 +100,7 @@ public class JobRequestsFT extends AuthorizedFIT {
 
             myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return authorize(myWebClient);
+            return authorize(myWebClient, config);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

@@ -170,9 +170,9 @@ public class MainVerticle extends AbstractVerticle {
             router = routeBuilder.createRouter();
 
             // If LDAP server is configured, configure our router to check for authorized login
-            if (StringUtils.trimToNull(System.getenv(Config.LDAP_URL)) != null) {
+            if (StringUtils.trimToNull(aConfig.getString(Config.LDAP_URL)) != null) {
                 final SessionStore sessionStore = LocalSessionStore.create(vertx);
-                final AuthHandler authHandler = new AuthHandler(vertx);
+                final AuthHandler authHandler = new AuthHandler(vertx, aConfig);
 
                 // Support maintaining state and processing forms
                 router.route().order(0).handler(BodyHandler.create());
