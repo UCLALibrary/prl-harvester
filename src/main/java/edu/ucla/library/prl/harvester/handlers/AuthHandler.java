@@ -44,12 +44,10 @@ public class AuthHandler implements Handler<RoutingContext> {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthHandler.class, MessageCodes.BUNDLE);
 
     /** The handler's authentication provider. */
-    private final AuthenticationProvider myAuthProvider;
+    private final AuthenticationProvider myAuthnProvider;
 
-    /**
-     * The application configuration.
-     */
-    private final JsonObject myConfig;
+    /** The handler's authorization provider. */
+    private final AuthorizationProvider myAuthzProvider;
 
     /**
      * Creates an authentication and authorization handler for the application.
@@ -58,8 +56,8 @@ public class AuthHandler implements Handler<RoutingContext> {
      * @param aConfig A configuration
      */
     public AuthHandler(final Vertx aVertx, final JsonObject aConfig) {
-        myAuthProvider = LdapAuthnProvider.create(aVertx, getLdapConfig(aConfig));
-        myConfig = aConfig;
+        myAuthnProvider = LdapAuthnProvider.create(aVertx, getLdapConfig(aConfig));
+        myAuthzProvider = LdapAuthzProvider.create(getLdapRole(aConfig));
     }
 
     @Override
@@ -76,7 +74,7 @@ public class AuthHandler implements Handler<RoutingContext> {
 
             LOGGER.debug(MessageCodes.PRL_041, username);
 
-            login(username, password, myConfig).onFailure(aContext::fail).onSuccess(user -> {
+            login(username, password).onFailure(aContext::fail).onSuccess(user -> {
                 LOGGER.debug(MessageCodes.PRL_042, username);
                 aContext.setUser(user);
                 aContext.redirect(Paths.ADMIN);
@@ -106,19 +104,16 @@ public class AuthHandler implements Handler<RoutingContext> {
      *
      * @param aUsername A username
      * @param aPassword A password
-     * @param aConfig A configuration
      * @return A future with a possible {@link User} result
      */
-    private Future<User> login(final String aUsername, final String aPassword, final JsonObject aConfig) {
+    private Future<User> login(final String aUsername, final String aPassword) {
         final UsernamePasswordCredentials creds = new UsernamePasswordCredentials(aUsername, aPassword);
         final Promise<User> promise = Promise.promise();
 
         creds.checkValid(true); // Make sure there are no nulls (username or password) set
 
-        myAuthProvider.authenticate(creds).onFailure(promise::fail).onSuccess(user -> {
-            final AuthorizationProvider provider = LdapAuthzProvider.create(getLdapRole(aConfig));
-
-            provider.getAuthorizations(user).onFailure(promise::fail).onSuccess(result -> {
+        myAuthnProvider.authenticate(creds).onFailure(promise::fail).onSuccess(user -> {
+            myAuthzProvider.getAuthorizations(user).onFailure(promise::fail).onSuccess(result -> {
                 if (isAuthorized(user)) {
                     promise.complete(user);
                 } else {
