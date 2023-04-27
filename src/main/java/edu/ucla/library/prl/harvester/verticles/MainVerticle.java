@@ -201,7 +201,7 @@ public class MainVerticle extends AbstractVerticle {
      * @return A Future that resolves to the HTTP server
      */
     public Future<HttpServer> createHttpServer(final JsonObject aConfig, final Router aRouter) {
-        final int port = aConfig.getInteger(Config.HTTP_PORT, 8888);
+        final int port = Config.getHttpPort(aConfig);
 
         return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
     }

@@ -114,4 +114,14 @@ public final class Config {
     public static String getHarvesterUserAgent(final JsonObject aConfig) {
         return aConfig.getString(Config.HARVESTER_USER_AGENT, Constants.DEFAULT_HARVESTER_USER_AGENT);
     }
+
+    /**
+     * Gets the application's port.
+     *
+     * @param aConfig A configuration
+     * @return The port
+     */
+    public static int getHttpPort(final JsonObject aConfig) {
+        return aConfig.getInteger(Config.HTTP_PORT, Constants.DEFAULT_HTTP_PORT);
+    }
 }

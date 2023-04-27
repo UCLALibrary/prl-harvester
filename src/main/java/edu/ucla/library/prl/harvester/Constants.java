@@ -17,6 +17,11 @@ public final class Constants {
     public static final String DEFAULT_HARVESTER_USER_AGENT = "PRL Harvester";
 
     /**
+     * The default value for the HTTP port.
+     */
+    public static final int DEFAULT_HTTP_PORT = 8888;
+
+    /**
      * Constant classes should have private constructors.
      */
     private Constants() {

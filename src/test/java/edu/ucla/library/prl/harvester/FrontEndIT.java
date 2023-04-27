@@ -54,7 +54,7 @@ public class FrontEndIT extends AuthorizedFIT {
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
             final String host = config.getString(Config.HTTP_HOST);
-            final int port = config.getInteger(Config.HTTP_PORT);
+            final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
             myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
