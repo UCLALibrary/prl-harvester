@@ -112,17 +112,16 @@ public class AuthHandler implements Handler<RoutingContext> {
 
         creds.checkValid(true); // Make sure there are no nulls (username or password) set
 
-        myAuthnProvider.authenticate(creds).onFailure(promise::fail).onSuccess(user -> {
-            myAuthzProvider.getAuthorizations(user).onFailure(promise::fail).onSuccess(result -> {
-                if (isAuthorized(user)) {
-                    promise.complete(user);
-                } else {
-                    promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
-                }
-            });
-        });
-
-        return promise.future();
+        // Attempt to authorize a user
+        myAuthnProvider.authenticate(creds).compose(user -> {
+            return myAuthzProvider.getAuthorizations(user).map(user);
+        }).onSuccess(user -> {
+            if (isAuthorized(user)) {
+                promise.complete(user);
+            } else {
+                promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
+            }
+        }).onFailure(promise::fail);
     }
 
     /**
