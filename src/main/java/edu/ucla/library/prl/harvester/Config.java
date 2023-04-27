@@ -98,13 +98,6 @@ public final class Config {
      */
     public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
 
-    // Below are additional configuration options required by test classes (i.e., not the application).
-
-    /**
-     * The test configuration property for the data provider's base URL.
-     */
-    public static final String TEST_PROVIDER_BASE_URL = "TEST_PROVIDER_BASE_URL";
-
     /**
      * Constant classes should have private constructors.
      */

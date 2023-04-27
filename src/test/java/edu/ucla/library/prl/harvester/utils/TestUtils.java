@@ -80,6 +80,11 @@ public final class TestUtils {
      */
     public static final String LDAP_PASSWORD = "LDAP_PASSWORD";
 
+    /**
+     * The ENV property property for the data provider's base URL.
+     */
+    public static final String TEST_PROVIDER_BASE_URL = "TEST_PROVIDER_BASE_URL";
+
     public static final UriTemplate INSTITUTION = UriTemplate.of("/institutions/{id}");
 
     public static final UriTemplate INSTITUTIONS = UriTemplate.of("/institutions");

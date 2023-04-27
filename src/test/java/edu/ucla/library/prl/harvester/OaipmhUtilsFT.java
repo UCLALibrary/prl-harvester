@@ -21,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class OaipmhUtilsFT {
             myHarvesterUserAgent = Config.getHarvesterUserAgent(config);
 
             try {
-                myTestDataProviderURL = new URL(config.getString(Config.TEST_PROVIDER_BASE_URL));
+                myTestDataProviderURL = new URL(config.getString(TestUtils.TEST_PROVIDER_BASE_URL));
             } catch (final MalformedURLException details) {
                 aContext.failNow(details);
                 return;
