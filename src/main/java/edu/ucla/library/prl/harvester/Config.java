@@ -14,11 +14,6 @@ public final class Config {
     public static final String HTTP_PORT = "HTTP_PORT";
 
     /**
-     * The configuration property for the application's host.
-     */
-    public static final String HTTP_HOST = "HTTP_HOST";
-
-    /**
      * The configuration property for the database username.
      */
     public static final String DB_USERNAME = "PGUSER";

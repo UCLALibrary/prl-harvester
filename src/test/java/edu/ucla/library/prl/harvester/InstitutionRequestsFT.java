@@ -75,7 +75,7 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
-            final String host = config.getString(Config.HTTP_HOST);
+            final String host = config.getString(TestUtils.HTTP_HOST);
             final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
