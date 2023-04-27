@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -122,6 +123,27 @@ public class HarvestServiceUtilsTest {
         return Stream.of( //
                 Arguments.of(List.of(new URL("http://example.com"), imageURL), Optional.of(imageURL)), //
                 Arguments.of(List.of(new URL("http://example.edu")), Optional.empty()));
+    }
+
+    /**
+     * Tests {@link HarvestServiceUtils#findImageURL(List, WebClient)} with URLs that don't require checking with a
+     * WebClient, since they have a filetype extension for an image.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     * @throws MalformedURLException
+     */
+    @Test
+    public void testFindImageUrlWithImageExt(final Vertx aVertx, final VertxTestContext aContext)
+            throws MalformedURLException {
+        final URL possibleImageURL = new URL("http://example.com/image.jpg");
+
+        // The method runs to completion even though a WebClient isn't provided
+        HarvestServiceUtils.findImageURL(List.of(possibleImageURL), null).onSuccess(url -> {
+            aContext.verify(() -> {
+                assertEquals(Optional.of(possibleImageURL), url);
+            }).completeNow();
+        }).onFailure(aContext::failNow);
     }
 
     /**

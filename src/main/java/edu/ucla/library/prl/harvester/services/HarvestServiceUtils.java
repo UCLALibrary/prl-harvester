@@ -11,11 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.apache.solr.common.SolrInputDocument;
@@ -82,6 +84,17 @@ final class HarvestServiceUtils {
      * The pattern for Dublin Core elements that we expect may contain an item URL.
      */
     private static final Pattern ITEM_URL_FIELD_PATTERN = Pattern.compile("identifier(?:\\..+)?");
+
+    /**
+     * The pattern for URL paths that have the filetype extension for an image.
+     */
+    private static final String IMAGE_FILETYPE_EXTENSION = ".+\\.(?:(?:avif)|(?:gif)|(?:jpe?g)|(?:png)|(?:webp))$";
+
+    /**
+     * A Collector that partitions a list of URLs by whether or not they have the filetype extension for an image.
+     */
+    private static final Collector<URL, ?, Map<Boolean, List<URL>>> IMAGE_URL_PARTITIONER = Collectors
+            .partitioningBy(url -> url.getPath().toLowerCase(Locale.ENGLISH).matches(IMAGE_FILETYPE_EXTENSION));
 
     /**
      * Private constructor for utility class to prohibit instantiation.
@@ -300,34 +313,43 @@ final class HarvestServiceUtils {
      * @return The optional image URL
      */
     static Future<Optional<URL>> findImageURL(final List<URL> aPossibleImageUrls, final WebClient aWebClient) {
-        @SuppressWarnings("rawtypes")
-        final List<Future> contentTypeChecks = aPossibleImageUrls.stream().map(url -> {
-            final HttpRequest<?> headRequest = aWebClient.headAbs(url.toString());
+        final Map<Boolean, List<URL>> partitionedUrls = aPossibleImageUrls.stream().collect(IMAGE_URL_PARTITIONER);
+        final List<URL> urlsWithImageFiletypeExtension = partitionedUrls.get(true);
 
-            return headRequest.send().compose(response -> {
-                final String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
+        if (!urlsWithImageFiletypeExtension.isEmpty()) {
+            // No need to send HEAD request if any of the URLs have an image filetype extension
+            return Future.succeededFuture(Optional.of(urlsWithImageFiletypeExtension.get(0)));
+        } else {
+            // None of the URLs have an image filetype extension, so check Content-Type of HEAD response
+            @SuppressWarnings("rawtypes")
+            final List<Future> contentTypeChecks = partitionedUrls.get(false).stream().map(url -> {
+                final HttpRequest<?> headRequest = aWebClient.headAbs(url.toString());
 
-                LOGGER.trace(MessageCodes.PRL_017, headRequest.method(), url, response.statusCode(), contentType);
+                return headRequest.send().compose(response -> {
+                    final String contentType = response.getHeader(HttpHeaders.CONTENT_TYPE.toString());
 
-                if (contentType.contains("image")) {
-                    return Future.succeededFuture(url);
-                } else {
-                    return Future.failedFuture("not an image URL");
+                    LOGGER.trace(MessageCodes.PRL_017, headRequest.method(), url, response.statusCode(), contentType);
+
+                    if (contentType.contains("image")) {
+                        return Future.succeededFuture(url);
+                    } else {
+                        return Future.failedFuture("not an image URL");
+                    }
+                }, Future::failedFuture);
+            }).collect(Collectors.toUnmodifiableList());
+
+            return CompositeFuture.any(contentTypeChecks).map(result -> {
+                // Scan the list for the first image URL
+                for (final URL url : result.<URL>list()) {
+                    if (url != null) {
+                        return Optional.of(url);
+                    }
                 }
-            }, Future::failedFuture);
-        }).collect(Collectors.toUnmodifiableList());
-
-        return CompositeFuture.any(contentTypeChecks).map(result -> {
-            // Scan the list for the first image URL
-            for (final URL url : result.<URL>list()) {
-                if (url != null) {
-                    return Optional.of(url);
-                }
-            }
-            return Optional.<URL>empty(); // By the semantics of CompositeFuture, this will never be reached
-        }).recover(details -> {
-            // It's okay if there is no thumbnail
-            return Future.succeededFuture(Optional.<URL>empty());
-        });
+                return Optional.<URL>empty(); // By the semantics of CompositeFuture, this will never be reached
+            }).recover(details -> {
+                // It's okay if there is no thumbnail
+                return Future.succeededFuture(Optional.<URL>empty());
+            });
+        }
     }
 }
