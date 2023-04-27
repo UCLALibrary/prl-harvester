@@ -238,7 +238,7 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
-     * Tests that an empty list is dealt with appropriately. FIXME
+     * Tests that providing an empty list of institutions results in an error.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
@@ -439,7 +439,7 @@ public class HarvestScheduleStoreServiceIT {
     }
 
     /**
-     * Tests that an empty list is dealt with appropriately. FIXME
+     * Tests that providing an empty list of jobs results in an error.
      *
      * @param aVertx A Vert.x instance
      * @param aContext A test context
