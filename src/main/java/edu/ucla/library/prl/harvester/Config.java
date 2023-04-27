@@ -1,8 +1,10 @@
 
 package edu.ucla.library.prl.harvester;
 
+import io.vertx.core.json.JsonObject;
+
 /**
- * Properties that are used to configure the application.
+ * Properties that are used to configure the application, and helper methods for accessing them.
  */
 public final class Config {
 
@@ -62,6 +64,11 @@ public final class Config {
     public static final String HARVEST_TIMEOUT = "HARVEST_TIMEOUT";
 
     /**
+     * The ENV property for the User-Agent HTTP request header to use for outgoing requests.
+     */
+    public static final String HARVESTER_USER_AGENT = "HARVESTER_USER_AGENT";
+
+    /**
      * The ENV property for the Solr core URL.
      */
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
@@ -105,4 +112,13 @@ public final class Config {
         // This is intentionally left empty.
     }
 
+    /**
+     * Gets the User-Agent HTTP request header to use for outgoing requests.
+     *
+     * @param aConfig A configuration
+     * @return The user agent
+     */
+    public static String getHarvesterUserAgent(final JsonObject aConfig) {
+        return aConfig.getString(Config.HARVESTER_USER_AGENT, Constants.DEFAULT_HARVESTER_USER_AGENT);
+    }
 }

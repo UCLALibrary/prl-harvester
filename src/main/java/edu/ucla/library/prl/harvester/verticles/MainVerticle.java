@@ -148,15 +148,15 @@ public class MainVerticle extends AbstractVerticle {
 
             // Institution operations
             routeBuilder.operation(Op.addInstitutions.name()).handler(new AddInstitutionsHandler(vertx, aConfig));
-            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
-            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
+            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx, aConfig));
+            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx, aConfig));
             routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx, aConfig));
 
             // Job operations
-            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobsHandler(vertx));
-            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
-            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
+            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobsHandler(vertx, aConfig));
+            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx, aConfig));
+            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx, aConfig));
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx, aConfig));
 

@@ -27,7 +27,7 @@ public abstract class AbstractSolrAwareWriteOperationHandler extends AbstractReq
      * @param aConfig A configuration
      */
     protected AbstractSolrAwareWriteOperationHandler(final Vertx aVertx, final JsonObject aConfig) {
-        super(aVertx);
+        super(aVertx, aConfig);
 
         mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
     }

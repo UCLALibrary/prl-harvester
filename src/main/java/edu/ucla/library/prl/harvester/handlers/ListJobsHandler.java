@@ -9,6 +9,7 @@ import edu.ucla.library.prl.harvester.MediaType;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -18,9 +19,10 @@ public final class ListJobsHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
      */
-    public ListJobsHandler(final Vertx aVertx) {
-        super(aVertx);
+    public ListJobsHandler(final Vertx aVertx, final JsonObject aConfig) {
+        super(aVertx, aConfig);
     }
 
     @Override

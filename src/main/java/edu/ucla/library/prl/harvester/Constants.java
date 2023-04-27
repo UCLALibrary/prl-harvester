@@ -12,6 +12,11 @@ public final class Constants {
     public static final String OAI_DC = "oai_dc";
 
     /**
+     * The default value for the User-Agent HTTP request header.
+     */
+    public static final String DEFAULT_HARVESTER_USER_AGENT = "PRL Harvester";
+
+    /**
      * Constant classes should have private constructors.
      */
     private Constants() {
