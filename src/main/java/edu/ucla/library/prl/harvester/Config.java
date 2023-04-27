@@ -69,14 +69,14 @@ public final class Config {
     public static final String HARVESTER_USER_AGENT = "HARVESTER_USER_AGENT";
 
     /**
-     * The ENV property for the Solr core URL.
+     * The ENV property for the attribute name used to authorize the user.
      */
-    public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
+    public static final String LDAP_ATTRIBUTE_KEY = "LDAP_ATTRIBUTE_KEY";
 
     /**
-     * The ENV property for the LDAP URL.
+     * The ENV property for the attribute value used to authorize the user.
      */
-    public static final String LDAP_URL = "LDAP_URL";
+    public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
 
     /**
      * The ENV property for the LDAP authentication query.
@@ -89,14 +89,14 @@ public final class Config {
     public static final String LDAP_USER_QUERY = "LDAP_USER_QUERY";
 
     /**
-     * The ENV property for the attribute name used to authorize the user.
+     * The ENV property for the LDAP URL.
      */
-    public static final String LDAP_ATTRIBUTE_KEY = "LDAP_ATTRIBUTE_KEY";
+    public static final String LDAP_URL = "LDAP_URL";
 
     /**
-     * The ENV property for the attribute value used to authorize the user.
+     * The ENV property for the Solr core URL.
      */
-    public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
+    public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
 
     /**
      * Constant classes should have private constructors.

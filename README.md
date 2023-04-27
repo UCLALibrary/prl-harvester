@@ -22,17 +22,17 @@ DB_RECONNECT_INTERVAL|The length of the database reconnect interval (in millisec
 HARVEST_TIMEOUT|The max amount of time that a harvest may take to complete (in milliseconds)|No|30000
 HARVESTER_USER_AGENT|The User-Agent HTTP request header to use for outgoing requests|No|PRL Harvester
 HTTP_PORT|The application's port|No|8888
+LDAP_ATTRIBUTE_KEY|The LDAP attribute key used to authorize user|Yes|
+LDAP_ATTRIBUTE_VALUE|The LDAP attribute value used to authorize user|Yes|
+LDAP_AUTH_QUERY|The LDAP query to authenticate user|Yes|
+LDAP_USER_QUERY|The LDAP query to retrieve user info|Yes|
+LDAP_URL|The LDAP server URL|Yes|
 PGDATABASE|The database name|No|db
 PGHOSTADDR|The database host|No|localhost
 PGPASSWORD|The database password|No|pass
 PGPORT|The database port|No|5432
 PGUSER|The database username|No|user
 SOLR_CORE_URL|The Solr core URL|Yes|
-LDAP_URL|The LDAP server URL|Yes|
-LDAP_AUTH_QUERY|The LDAP query to authenticate user|Yes|
-LDAP_USER_QUERY|The LDAP query to retrieve user info|Yes|
-LDAP_ATTRIBUTE_KEY|The LDAP attribute key used to authorize user|Yes|
-LDAP_ATTRIBUTE_VALUE|The LDAP attribute value used to authorize user|Yes|
 
 ## Running
 
