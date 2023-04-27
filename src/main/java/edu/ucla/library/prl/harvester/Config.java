@@ -14,31 +14,6 @@ public final class Config {
     public static final String HTTP_PORT = "HTTP_PORT";
 
     /**
-     * The configuration property for the database username.
-     */
-    public static final String DB_USERNAME = "PGUSER";
-
-    /**
-     * The configuration property for the database password.
-     */
-    public static final String DB_PASSWORD = "PGPASSWORD";
-
-    /**
-     * The configuration property for the database port.
-     */
-    public static final String DB_PORT = "PGPORT";
-
-    /**
-     * The ENV property for the database host.
-     */
-    public static final String DB_HOST = "PGHOSTADDR";
-
-    /**
-     * The ENV property for the database name.
-     */
-    public static final String DB_NAME = "PGDATABASE";
-
-    /**
      * The ENV property for the max size of the database connection pool.
      */
     public static final String DB_CONNECTION_POOL_MAX_SIZE = "DB_CONNECTION_POOL_MAX_SIZE";
