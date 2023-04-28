@@ -122,6 +122,8 @@ public class AuthHandler implements Handler<RoutingContext> {
                 promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
             }
         }).onFailure(promise::fail);
+
+        return promise.future();
     }
 
     /**
