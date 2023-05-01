@@ -7,15 +7,18 @@ import edu.ucla.library.prl.harvester.Config;
 
 import io.ino.solrs.JavaAsyncSolrClient;
 
+import io.vavr.Tuple;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * An abstract base class for write operation request handlers that need to update Solr.
+ *
+ * @param <T> The specific type of tuple parameter that {@link #updateSolr} should accept
  */
-public abstract class AbstractSolrAwareWriteOperationHandler extends AbstractRequestHandler {
+public abstract class AbstractSolrAwareWriteOperationHandler<T extends Tuple> extends AbstractRequestHandler {
 
     /**
      * A client for sending institution records to Solr.
@@ -35,9 +38,8 @@ public abstract class AbstractSolrAwareWriteOperationHandler extends AbstractReq
     /**
      * Performs a Solr update appropriate for the type of incoming request.
      *
-     * @param aData The relevant data for the Solr operation; implementers may use as needed and are responsible for
-     *        reading it carefully
+     * @param aData The relevant data for the Solr operation
      * @return The result of performing the Solr update
      */
-    abstract Future<UpdateResponse> updateSolr(Tuple aData);
+    abstract Future<UpdateResponse> updateSolr(T aData);
 }

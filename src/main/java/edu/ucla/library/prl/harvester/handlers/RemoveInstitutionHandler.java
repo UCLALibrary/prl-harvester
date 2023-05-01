@@ -12,18 +12,20 @@ import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple1;
+
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for removing institutions.
  */
-public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperationHandler<Tuple1<Institution>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -62,7 +64,7 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
                 return removeAssociatedJobs.compose(nil -> {
                     return myHarvestScheduleStoreService.removeInstitution(id);
                 }).compose(nil -> {
-                    return updateSolr(Tuple.of(institution.toJson()));
+                    return updateSolr(Tuple.of(institution));
                 });
             }).onSuccess(solrResponse -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
@@ -76,11 +78,11 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
      * Removes the institution doc, and all item record docs that were harvested by jobs associated with the
      * institution.
      *
-     * @param aData A 1-tuple of the institution as JSON
+     * @param aData A 1-tuple of the institution
      */
     @Override
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        final Institution institution = new Institution(aData.getJsonObject(0));
+    Future<UpdateResponse> updateSolr(final Tuple1<Institution> aData) {
+        final Institution institution = aData._1();
 
         final String itemRecordDocsQuery = StringUtils.format("institutionName:\"{}\"", institution.getName());
         final String institutionDocQuery =

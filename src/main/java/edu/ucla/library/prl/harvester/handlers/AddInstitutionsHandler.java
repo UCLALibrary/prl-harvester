@@ -15,6 +15,9 @@ import edu.ucla.library.prl.harvester.MediaType;
 
 import io.ino.solrs.JavaAsyncSolrClient;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple1;
+
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -23,12 +26,11 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for adding institutions.
  */
-public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperationHandler<Tuple1<List<Institution>>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -68,9 +70,8 @@ public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperatio
      * @param aData A 1-tuple of the list of institutions (each bearing a unique local ID) to update
      */
     @Override
-    @SuppressWarnings("unchecked")
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        return updateInstitutionDoc(mySolrClient, (List<Institution>) aData.get(List.class, 0));
+    Future<UpdateResponse> updateSolr(final Tuple1<List<Institution>> aData) {
+        return updateInstitutionDoc(mySolrClient, aData._1());
     }
 
     /**

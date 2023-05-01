@@ -16,17 +16,19 @@ import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for removing jobs.
  */
-public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandler<Tuple2<Job, Institution>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -50,7 +52,7 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
                     return myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
                         return myHarvestJobSchedulerService.removeJob(id);
                     }).compose(nil -> {
-                        return updateSolr(Tuple.of(job.toJson(), institution.toJson()));
+                        return updateSolr(Tuple.of(job, institution));
                     });
                 });
             }).onSuccess(solrResponse -> {
@@ -64,12 +66,12 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * Removes all item records that were harvested by the job.
      *
-     * @param aData A 2-tuple of the ID of the job to remove, and its JSON representation
+     * @param aData A 2-tuple of the job to remove and its associated institution
      */
     @Override
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        final Job job = new Job(aData.getJsonObject(0));
-        final Institution institution = new Institution(aData.getJsonObject(1));
+    Future<UpdateResponse> updateSolr(final Tuple2<Job, Institution> aData) {
+        final Job job = aData._1();
+        final Institution institution = aData._2();
         final Future<String> futureRecordRemovalQuery = getRecordRemovalQuery(myVertx, institution.getName(),
                 job.getRepositoryBaseURL(), job.getSets(), myHarvesterUserAgent);
 
