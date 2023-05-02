@@ -70,8 +70,8 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
     Future<UpdateResponse> updateSolr(final Tuple aData) {
         final Job job = new Job(aData.getJsonObject(0));
         final Institution institution = new Institution(aData.getJsonObject(1));
-        final Future<String> futureRecordRemovalQuery =
-                getRecordRemovalQuery(myVertx, institution.getName(), job.getRepositoryBaseURL(), job.getSets());
+        final Future<String> futureRecordRemovalQuery = getRecordRemovalQuery(myVertx, institution.getName(),
+                job.getRepositoryBaseURL(), job.getSets(), myHarvesterUserAgent);
 
         return futureRecordRemovalQuery.compose(solrQuery -> {
             final CompletionStage<UpdateResponse> removal =
@@ -86,17 +86,18 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @param anInstitutionName An institution name
      * @param aBaseURL An OAI-PMH repository base URL
      * @param aSets A list of sets
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Solr query that can be used to remove records from the given sets associated with the given institution
      */
     static Future<String> getRecordRemovalQuery(final Vertx aVertx, final String anInstitutionName, final URL aBaseURL,
-            final Optional<List<String>> aSets) {
+            final Optional<List<String>> aSets, final String aUserAgent) {
         final Future<List<String>> getSetsToRemove;
 
         if (aSets.isPresent() && !aSets.get().isEmpty()) {
             getSetsToRemove = Future.succeededFuture(aSets.get());
         } else {
             // Missing or empty list means all sets in the repository
-            getSetsToRemove = OaipmhUtils.listSets(aVertx, aBaseURL).map(OaipmhUtils::getSetSpecs);
+            getSetsToRemove = OaipmhUtils.listSets(aVertx, aBaseURL, aUserAgent).map(OaipmhUtils::getSetSpecs);
         }
 
         return getSetsToRemove.map(sets -> {

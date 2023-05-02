@@ -16,6 +16,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientSession;
@@ -40,12 +41,13 @@ abstract class AuthorizedFIT {
      * {@link WebClientSession}.
      *
      * @param aWebClient An unauthorized Web client
+     * @param aConfig A configuration
      * @return A successful future with an authorized Web client or a failed future if the authorization failed
      */
-    protected static Future<WebClient> authorize(final WebClient aWebClient) {
+    protected static Future<WebClient> authorize(final WebClient aWebClient, final JsonObject aConfig) {
         final Promise<WebClient> promise = Promise.promise();
-        final String username = System.getenv(TestUtils.LDAP_USERNAME);
-        final String password = System.getenv(TestUtils.LDAP_PASSWORD);
+        final String username = aConfig.getString(TestUtils.LDAP_USERNAME);
+        final String password = aConfig.getString(TestUtils.LDAP_PASSWORD);
         final HttpRequest<Buffer> request = aWebClient.post(LOGIN_URL);
 
         // Mimic our login form's user information

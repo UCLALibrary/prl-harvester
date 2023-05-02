@@ -51,7 +51,7 @@ public class StatusHandlerIT {
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
             myWebClient = WebClient.create(aVertx);
-            myPort = config.getInteger(Config.HTTP_PORT, 8888);
+            myPort = Config.getHttpPort(config);
 
             aContext.completeNow();
         }).onFailure(aContext::failNow);

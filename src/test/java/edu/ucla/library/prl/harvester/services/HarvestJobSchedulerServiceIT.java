@@ -115,7 +115,7 @@ public class HarvestJobSchedulerServiceIT {
             myHarvestService = binder.setAddress(HarvestService.ADDRESS).register(HarvestService.class, harvestService);
 
             try {
-                myTestProviderBaseURL = new URL(config.getString(Config.TEST_PROVIDER_BASE_URL));
+                myTestProviderBaseURL = new URL(config.getString(TestUtils.TEST_PROVIDER_BASE_URL));
             } catch (final MalformedURLException details) {
                 return Future.failedFuture(details);
             }

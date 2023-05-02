@@ -12,17 +12,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.vertx.config.ConfigRetriever;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -34,6 +37,7 @@ import io.vertx.junit5.VertxTestContext;
  * OAI-PMH data provider container is running.
  */
 @ExtendWith(VertxExtension.class)
+@TestInstance(Lifecycle.PER_CLASS)
 public class OaipmhUtilsFT {
 
     /**
@@ -45,6 +49,30 @@ public class OaipmhUtilsFT {
 
     private static final String SET2 = "set2";
 
+    private String myHarvesterUserAgent;
+
+    private URL myTestDataProviderURL;
+
+    /**
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @BeforeAll
+    public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
+        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+            myHarvesterUserAgent = Config.getHarvesterUserAgent(config);
+
+            try {
+                myTestDataProviderURL = new URL(config.getString(TestUtils.TEST_PROVIDER_BASE_URL));
+            } catch (final MalformedURLException details) {
+                aContext.failNow(details);
+                return;
+            }
+
+            aContext.completeNow();
+        });
+    }
+
     /**
      * Tests {@link OaipmhUtils#listSets}.
      *
@@ -53,9 +81,7 @@ public class OaipmhUtilsFT {
      */
     @Test
     public final void testListSets(final Vertx aVertx, final VertxTestContext aContext) {
-        getTestDataProviderURL(aVertx).compose(url -> {
-            return OaipmhUtils.listSets(aVertx, url);
-        }).onSuccess(sets -> {
+        OaipmhUtils.listSets(aVertx, myTestDataProviderURL, myHarvesterUserAgent).onSuccess(sets -> {
             aContext.verify(() -> {
                 assertEquals(2, sets.size());
                 assertTrue(OaipmhUtils.getSetSpecs(sets).containsAll(java.util.Set.of(SET1, SET2)));
@@ -75,13 +101,12 @@ public class OaipmhUtilsFT {
     @MethodSource
     public final void testListRecords(final List<String> aSets, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
-        getTestDataProviderURL(aVertx).compose(url -> {
-            return OaipmhUtils.listRecords(aVertx, url, aSets, OAI_DC, Optional.empty());
-        }).onSuccess(records -> {
-            aContext.verify(() -> {
-                assertEquals(anExpectedRecordCount, records.size());
-            }).completeNow();
-        });
+        OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(), myHarvesterUserAgent)
+                .onSuccess(records -> {
+                    aContext.verify(() -> {
+                        assertEquals(anExpectedRecordCount, records.size());
+                    }).completeNow();
+                });
     }
 
     /**
@@ -102,9 +127,8 @@ public class OaipmhUtilsFT {
      */
     @Test
     public final void testValidateIdentifiers(final Vertx aVertx, final VertxTestContext aContext) {
-        getTestDataProviderURL(aVertx).compose(url -> {
-            return OaipmhUtils.validateIdentifiers(aVertx, url, List.of(SET1, SET2));
-        }).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(SET1, SET2), myHarvesterUserAgent)
+                .onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -124,11 +148,13 @@ public class OaipmhUtilsFT {
             return;
         }
 
-        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2)).onFailure(details -> {
-            aContext.verify(() -> {
-                assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL), details.getMessage());
-            }).completeNow();
-        }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
+        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2), myHarvesterUserAgent)
+                .onFailure(details -> {
+                    aContext.verify(() -> {
+                        assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL),
+                                details.getMessage());
+                    }).completeNow();
+                }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
     }
 
     /**
@@ -141,26 +167,12 @@ public class OaipmhUtilsFT {
     public final void testValidateIdentifiersInvalidSetSpec(final Vertx aVertx, final VertxTestContext aContext) {
         final String undefinedSet = "set3";
 
-        getTestDataProviderURL(aVertx).compose(url -> {
-            return OaipmhUtils.validateIdentifiers(aVertx, url, List.of(undefinedSet)).onFailure(details -> {
-                aContext.verify(() -> {
-                    assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, url, undefinedSet), details.getMessage());
-                }).completeNow();
-            }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
-        });
-    }
-
-    /**
-     * @param aVertx A Vert.x instance
-     * @return The base URL of the test OAI-PMH data provider
-     */
-    private static Future<URL> getTestDataProviderURL(final Vertx aVertx) {
-        return ConfigRetriever.create(aVertx).getConfig().compose(config -> {
-            try {
-                return Future.succeededFuture(new URL(config.getString(Config.TEST_PROVIDER_BASE_URL)));
-            } catch (final MalformedURLException details) {
-                return Future.failedFuture(details);
-            }
-        });
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(undefinedSet), myHarvesterUserAgent)
+                .onFailure(details -> {
+                    aContext.verify(() -> {
+                        assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, myTestDataProviderURL, undefinedSet),
+                                details.getMessage());
+                    }).completeNow();
+                }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
     }
 }

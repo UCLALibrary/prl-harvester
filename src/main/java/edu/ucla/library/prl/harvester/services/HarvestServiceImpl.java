@@ -32,6 +32,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.serviceproxy.ServiceException;
 
 /**
@@ -49,6 +50,11 @@ public class HarvestServiceImpl implements HarvestService {
      * A Vert.x instance.
      */
     private final Vertx myVertx;
+
+    /**
+     * The User-Agent HTTP request header to use for outgoing requests.
+     */
+    private final String myHarvesterUserAgent;
 
     /**
      * An HTTP client for verifying thumbnail image URLs.
@@ -72,8 +78,11 @@ public class HarvestServiceImpl implements HarvestService {
      * @param aConfig A configuration
      */
     protected HarvestServiceImpl(final Vertx aVertx, final JsonObject aConfig) {
+        final String userAgent = Config.getHarvesterUserAgent(aConfig);
+
         myVertx = aVertx;
-        myWebClient = WebClient.create(aVertx);
+        myHarvesterUserAgent = userAgent;
+        myWebClient = WebClient.create(aVertx, new WebClientOptions().setUserAgent(userAgent));
         mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
     }
@@ -82,7 +91,7 @@ public class HarvestServiceImpl implements HarvestService {
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
         final int institutionID = aJob.getInstitutionID();
-        final Future<List<Set>> listSets = OaipmhUtils.listSets(myVertx, baseURL);
+        final Future<List<Set>> listSets = OaipmhUtils.listSets(myVertx, baseURL, myHarvesterUserAgent);
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
         if (aJob.getID().isEmpty()) {
@@ -115,7 +124,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
             harvest = OaipmhUtils.listRecords(myVertx, baseURL, targetSets, aJob.getMetadataPrefix(),
-                    aJob.getLastSuccessfulRun());
+                    aJob.getLastSuccessfulRun(), myHarvesterUserAgent);
 
             return harvest.compose(records -> {
                 final Future<Void> solrResult;

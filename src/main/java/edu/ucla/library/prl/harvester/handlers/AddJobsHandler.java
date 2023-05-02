@@ -28,9 +28,10 @@ public final class AddJobsHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
      */
-    public AddJobsHandler(final Vertx aVertx) {
-        super(aVertx);
+    public AddJobsHandler(final Vertx aVertx, final JsonObject aConfig) {
+        super(aVertx, aConfig);
     }
 
     @Override
@@ -71,7 +72,7 @@ public final class AddJobsHandler extends AbstractRequestHandler {
 
         return deserializationResult.compose(job -> {
             final Future<Void> oaipmhIdentifierValidationResult = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()));
+                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
 
             return oaipmhIdentifierValidationResult.map(job);
         });

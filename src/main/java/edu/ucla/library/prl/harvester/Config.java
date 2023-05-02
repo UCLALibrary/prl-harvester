@@ -1,8 +1,10 @@
 
 package edu.ucla.library.prl.harvester;
 
+import io.vertx.core.json.JsonObject;
+
 /**
- * Properties that are used to configure the application.
+ * Properties that are used to configure the application, and helper methods for accessing them.
  */
 public final class Config {
 
@@ -10,36 +12,6 @@ public final class Config {
      * The configuration property for the application's port.
      */
     public static final String HTTP_PORT = "HTTP_PORT";
-
-    /**
-     * The configuration property for the application's host.
-     */
-    public static final String HTTP_HOST = "HTTP_HOST";
-
-    /**
-     * The configuration property for the database username.
-     */
-    public static final String DB_USERNAME = "PGUSER";
-
-    /**
-     * The configuration property for the database password.
-     */
-    public static final String DB_PASSWORD = "PGPASSWORD";
-
-    /**
-     * The configuration property for the database port.
-     */
-    public static final String DB_PORT = "PGPORT";
-
-    /**
-     * The ENV property for the database host.
-     */
-    public static final String DB_HOST = "PGHOSTADDR";
-
-    /**
-     * The ENV property for the database name.
-     */
-    public static final String DB_NAME = "PGDATABASE";
 
     /**
      * The ENV property for the max size of the database connection pool.
@@ -62,14 +34,19 @@ public final class Config {
     public static final String HARVEST_TIMEOUT = "HARVEST_TIMEOUT";
 
     /**
-     * The ENV property for the Solr core URL.
+     * The ENV property for the User-Agent HTTP request header to use for outgoing requests.
      */
-    public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
+    public static final String HARVESTER_USER_AGENT = "HARVESTER_USER_AGENT";
 
     /**
-     * The ENV property for the LDAP URL.
+     * The ENV property for the attribute name used to authorize the user.
      */
-    public static final String LDAP_URL = "LDAP_URL";
+    public static final String LDAP_ATTRIBUTE_KEY = "LDAP_ATTRIBUTE_KEY";
+
+    /**
+     * The ENV property for the attribute value used to authorize the user.
+     */
+    public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
 
     /**
      * The ENV property for the LDAP authentication query.
@@ -82,21 +59,14 @@ public final class Config {
     public static final String LDAP_USER_QUERY = "LDAP_USER_QUERY";
 
     /**
-     * The ENV property for the attribute name used to authorize the user.
+     * The ENV property for the LDAP URL.
      */
-    public static final String LDAP_ATTRIBUTE_KEY = "LDAP_ATTRIBUTE_KEY";
+    public static final String LDAP_URL = "LDAP_URL";
 
     /**
-     * The ENV property for the attribute value used to authorize the user.
+     * The ENV property for the Solr core URL.
      */
-    public static final String LDAP_ATTRIBUTE_VALUE = "LDAP_ATTRIBUTE_VALUE";
-
-    // Below are additional configuration options required by test classes (i.e., not the application).
-
-    /**
-     * The test configuration property for the data provider's base URL.
-     */
-    public static final String TEST_PROVIDER_BASE_URL = "TEST_PROVIDER_BASE_URL";
+    public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
 
     /**
      * Constant classes should have private constructors.
@@ -105,4 +75,23 @@ public final class Config {
         // This is intentionally left empty.
     }
 
+    /**
+     * Gets the User-Agent HTTP request header to use for outgoing requests.
+     *
+     * @param aConfig A configuration
+     * @return The user agent
+     */
+    public static String getHarvesterUserAgent(final JsonObject aConfig) {
+        return aConfig.getString(Config.HARVESTER_USER_AGENT, Constants.DEFAULT_HARVESTER_USER_AGENT);
+    }
+
+    /**
+     * Gets the application's port.
+     *
+     * @param aConfig A configuration
+     * @return The port
+     */
+    public static int getHttpPort(final JsonObject aConfig) {
+        return aConfig.getInteger(Config.HTTP_PORT, Constants.DEFAULT_HTTP_PORT);
+    }
 }

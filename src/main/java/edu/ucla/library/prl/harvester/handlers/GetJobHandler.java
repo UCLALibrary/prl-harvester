@@ -9,6 +9,7 @@ import edu.ucla.library.prl.harvester.Param;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -18,9 +19,10 @@ public final class GetJobHandler extends AbstractRequestHandler {
 
     /**
      * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
      */
-    public GetJobHandler(final Vertx aVertx) {
-        super(aVertx);
+    public GetJobHandler(final Vertx aVertx, final JsonObject aConfig) {
+        super(aVertx, aConfig);
     }
 
     @Override

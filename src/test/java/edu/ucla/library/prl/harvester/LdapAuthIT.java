@@ -8,13 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import info.freelibrary.util.StringUtils;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
+import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
@@ -31,17 +35,37 @@ import io.vertx.junit5.VertxTestContext;
  * Tests of the LDAP configuration.
  */
 @ExtendWith(VertxExtension.class)
+@TestInstance(Lifecycle.PER_CLASS)
 public class LdapAuthIT {
 
     /** Authentication options for our testing environment. */
-    private static final LdapAuthnOptions AUTH_OPTS = new LdapAuthnOptions().setURL(System.getenv(Config.LDAP_URL))
-            .setAuthenticationQuery(System.getenv(Config.LDAP_AUTH_QUERY));
+    private LdapAuthnOptions myAuthOpts;
 
     /** The test user's username. */
-    private static final String USERNAME = System.getenv(TestUtils.LDAP_USERNAME);
+    private String myUsername;
 
     /** The test user's password. */
-    private static final String PASSWORD = System.getenv(TestUtils.LDAP_PASSWORD);
+    private String myPassword;
+
+    /** The test user query. */
+    private String myUserQuery;
+
+    /**
+     * @param aVertx A Vert.x instance
+     * @param aContext A testing context
+     */
+    @BeforeAll
+    public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
+        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+            myAuthOpts = new LdapAuthnOptions().setURL(config.getString(Config.LDAP_URL))
+                    .setAuthenticationQuery(config.getString(Config.LDAP_AUTH_QUERY));
+            myUsername = config.getString(TestUtils.LDAP_USERNAME);
+            myPassword = config.getString(TestUtils.LDAP_PASSWORD);
+            myUserQuery = config.getString(Config.LDAP_USER_QUERY);
+
+            aContext.completeNow();
+        }).onFailure(aContext::failNow);
+    }
 
     /**
      * A test that confirms the Vert.x LDAP client can connect to the LDAP container.
@@ -51,10 +75,10 @@ public class LdapAuthIT {
      */
     @Test
     public void testLdapConnection(final Vertx aVertx, final VertxTestContext aContext) {
-        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx, AUTH_OPTS);
+        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx, myAuthOpts);
 
         // Testing password, used during container-tested build, is hard-coded (for now?)
-        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
+        auth.authenticate(new UsernamePasswordCredentials(myUsername, myPassword)).onSuccess(user -> {
             aContext.completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -67,14 +91,14 @@ public class LdapAuthIT {
      */
     @Test
     public void testLdapUser(final Vertx aVertx, final VertxTestContext aContext) {
-        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
-                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_USER_QUERY), new ArrayList<>()));
+        final AuthenticationProvider auth =
+                LdapAuthnProvider.create(aVertx, myAuthOpts.setUserQuery(myUserQuery, new ArrayList<>()));
 
-        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
+        auth.authenticate(new UsernamePasswordCredentials(myUsername, myPassword)).onSuccess(user -> {
             final JsonObject principal = user.principal();
 
             aContext.verify(() -> {
-                assertEquals(principal.getString(FORM_USERNAME), USERNAME);
+                assertEquals(principal.getString(FORM_USERNAME), myUsername);
                 assertEquals(principal.getJsonArray("amr").getString(0), "pwd");
             }).completeNow();
         }).onFailure(aContext::failNow);
@@ -88,15 +112,15 @@ public class LdapAuthIT {
      */
     @Test
     public void testLdapAuthentication(final Vertx aVertx, final VertxTestContext aContext) {
-        final AuthenticationProvider auth = LdapAuthnProvider.create(aVertx,
-                AUTH_OPTS.setUserQuery(System.getenv(Config.LDAP_USER_QUERY), new ArrayList<>()));
+        final AuthenticationProvider auth =
+                LdapAuthnProvider.create(aVertx, myAuthOpts.setUserQuery(myUserQuery, new ArrayList<>()));
 
-        auth.authenticate(new UsernamePasswordCredentials(USERNAME, PASSWORD)).onSuccess(user -> {
-            final LdapAuthzProvider authorization = LdapAuthzProvider.create(new LdapRole(FORM_USERNAME, USERNAME));
+        auth.authenticate(new UsernamePasswordCredentials(myUsername, myPassword)).onSuccess(user -> {
+            final LdapAuthzProvider authorization = LdapAuthzProvider.create(new LdapRole(FORM_USERNAME, myUsername));
 
             authorization.getAuthorizations(user).onFailure(aContext::failNow).onSuccess(check -> {
                 final Set<String> providerIDs = user.authorizations().getProviderIds();
-                final String role = StringUtils.format("{}:{}", FORM_USERNAME, USERNAME);
+                final String role = StringUtils.format("{}:{}", FORM_USERNAME, myUsername);
 
                 aContext.verify(() -> {
                     assertEquals(1, providerIDs.size());

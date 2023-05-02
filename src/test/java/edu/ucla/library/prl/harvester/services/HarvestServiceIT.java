@@ -100,7 +100,7 @@ public class HarvestServiceIT {
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
 
             try {
-                myTestProviderBaseURL = new URL(config.getString(Config.TEST_PROVIDER_BASE_URL));
+                myTestProviderBaseURL = new URL(config.getString(TestUtils.TEST_PROVIDER_BASE_URL));
                 testInstitution = TestUtils.getRandomInstitution();
             } catch (final AddressException | MalformedURLException | NumberParseException details) {
                 return Future.failedFuture(details);

@@ -17,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
@@ -53,13 +54,13 @@ public class FrontEndIT extends AuthorizedFIT {
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
-            final String host = config.getString(Config.HTTP_HOST);
-            final int port = config.getInteger(Config.HTTP_PORT);
+            final String host = config.getString(TestUtils.HTTP_HOST);
+            final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
             myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return authorize(myWebClient);
+            return authorize(myWebClient, config);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

@@ -44,7 +44,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             final JsonObject jobJSON = aContext.body().asJsonObject();
             final Job job = new Job(jobJSON);
             final Future<Void> validateOaipmhIdentifiers = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()));
+                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
 
             validateOaipmhIdentifiers.onSuccess(none -> {
                 myHarvestScheduleStoreService.getJob(id).compose(oldJob -> {
@@ -93,8 +93,8 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         } else if (oldJobSets.isEmpty() && newJobSets.isPresent()) {
             // From non-selective harvesting to selective, so it's very likely that there are sets to remove
             // Must query OAI-PMH repository in order to get the sets belonging to the old job
-            getActualOldJobSets =
-                    OaipmhUtils.listSets(myVertx, oldJob.getRepositoryBaseURL()).map(OaipmhUtils::getSetSpecs);
+            getActualOldJobSets = OaipmhUtils.listSets(myVertx, oldJob.getRepositoryBaseURL(), myHarvesterUserAgent)
+                    .map(OaipmhUtils::getSetSpecs);
             // TODO: make it impossible to change the base URL
         } else if (oldJobSets.isPresent() && newJobSets.isEmpty()) {
             // From selective harvesting to non-selective, so nothing to remove
@@ -108,7 +108,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         return getActualOldJobSets.compose(sets -> {
             final Optional<List<String>> setsToRemove = Optional.of(getDifference(sets, newJobSets.get()));
             final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institutionName,
-                    oldJob.getRepositoryBaseURL(), setsToRemove);
+                    oldJob.getRepositoryBaseURL(), setsToRemove, myHarvesterUserAgent);
 
             return getSolrQuery.compose(solrQuery -> {
                 final CompletionStage<UpdateResponse> removal =

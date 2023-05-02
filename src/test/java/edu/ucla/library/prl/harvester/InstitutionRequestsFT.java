@@ -75,15 +75,15 @@ public class InstitutionRequestsFT extends AuthorizedFIT {
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().compose(config -> {
-            final String host = config.getString(Config.HTTP_HOST);
-            final int port = config.getInteger(Config.HTTP_PORT);
+            final String host = config.getString(TestUtils.HTTP_HOST);
+            final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);
 
             myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             mySolrClient = JavaAsyncSolrClient.create(config.getString(Config.SOLR_CORE_URL));
             myWebClient = WebClientSession.create(WebClient.create(aVertx, webClientOpts));
 
-            return authorize(myWebClient);
+            return authorize(myWebClient, config);
         }).onSuccess(result -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 

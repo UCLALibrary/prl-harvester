@@ -3,7 +3,6 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import static info.freelibrary.util.Constants.QUESTION_MARK;
 
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import info.freelibrary.util.HTTP;
@@ -19,6 +18,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
@@ -44,15 +44,20 @@ public class AuthHandler implements Handler<RoutingContext> {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthHandler.class, MessageCodes.BUNDLE);
 
     /** The handler's authentication provider. */
-    private final AuthenticationProvider myAuthProvider;
+    private final AuthenticationProvider myAuthnProvider;
+
+    /** The handler's authorization provider. */
+    private final AuthorizationProvider myAuthzProvider;
 
     /**
      * Creates an authentication and authorization handler for the application.
      *
      * @param aVertx A Vert.x instance
+     * @param aConfig A configuration
      */
-    public AuthHandler(final Vertx aVertx) {
-        myAuthProvider = LdapAuthnProvider.create(aVertx, getLdapConfig());
+    public AuthHandler(final Vertx aVertx, final JsonObject aConfig) {
+        myAuthnProvider = LdapAuthnProvider.create(aVertx, getLdapConfig(aConfig));
+        myAuthzProvider = LdapAuthzProvider.create(getLdapRole(aConfig));
     }
 
     @Override
@@ -107,17 +112,16 @@ public class AuthHandler implements Handler<RoutingContext> {
 
         creds.checkValid(true); // Make sure there are no nulls (username or password) set
 
-        myAuthProvider.authenticate(creds).onFailure(promise::fail).onSuccess(user -> {
-            final AuthorizationProvider provider = LdapAuthzProvider.create(getLdapRole());
-
-            provider.getAuthorizations(user).onFailure(promise::fail).onSuccess(result -> {
-                if (isAuthorized(user)) {
-                    promise.complete(user);
-                } else {
-                    promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
-                }
-            });
-        });
+        // Attempt to authorize a user
+        myAuthnProvider.authenticate(creds).compose(user -> {
+            return myAuthzProvider.getAuthorizations(user).map(user);
+        }).onSuccess(user -> {
+            if (isAuthorized(user)) {
+                promise.complete(user);
+            } else {
+                promise.fail(LOGGER.getMessage(MessageCodes.PRL_029, user.principal().encode()));
+            }
+        }).onFailure(promise::fail);
 
         return promise.future();
     }
@@ -135,24 +139,27 @@ public class AuthHandler implements Handler<RoutingContext> {
     /**
      * Gets a configured LDAP role.
      *
+     * @param aConfig A configuration
      * @return An LDAP role
      */
-    private static LdapRole getLdapRole() {
-        return new LdapRole(System.getenv(Config.LDAP_ATTRIBUTE_KEY), System.getenv(Config.LDAP_ATTRIBUTE_VALUE));
+    private static LdapRole getLdapRole(final JsonObject aConfig) {
+        return new LdapRole(aConfig.getString(Config.LDAP_ATTRIBUTE_KEY),
+                aConfig.getString(Config.LDAP_ATTRIBUTE_VALUE));
     }
 
     /**
      * Gets the application's LDAP configuration.
      *
+     * @param aConfig A configuration
      * @return An LDAP configuration
      */
-    private static LdapAuthnOptions getLdapConfig() {
+    private static LdapAuthnOptions getLdapConfig(final JsonObject aConfig) {
         final LdapAuthnOptions ldapConfig = new LdapAuthnOptions();
-        final Map<String, String> envs = System.getenv();
 
-        ldapConfig.setURL(envs.get(Config.LDAP_URL));
-        ldapConfig.setAuthenticationQuery(envs.get(Config.LDAP_AUTH_QUERY));
-        ldapConfig.setUserQuery(envs.get(Config.LDAP_USER_QUERY), envs.get(Config.LDAP_ATTRIBUTE_KEY));
+        ldapConfig.setURL(aConfig.getString(Config.LDAP_URL));
+        ldapConfig.setAuthenticationQuery(aConfig.getString(Config.LDAP_AUTH_QUERY));
+        ldapConfig.setUserQuery(aConfig.getString(Config.LDAP_USER_QUERY),
+                aConfig.getString(Config.LDAP_ATTRIBUTE_KEY));
 
         return ldapConfig;
     }

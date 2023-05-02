@@ -148,15 +148,15 @@ public class MainVerticle extends AbstractVerticle {
 
             // Institution operations
             routeBuilder.operation(Op.addInstitutions.name()).handler(new AddInstitutionsHandler(vertx, aConfig));
-            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx));
-            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx));
+            routeBuilder.operation(Op.getInstitution.name()).handler(new GetInstitutionHandler(vertx, aConfig));
+            routeBuilder.operation(Op.listInstitutions.name()).handler(new ListInstitutionsHandler(vertx, aConfig));
             routeBuilder.operation(Op.removeInstitution.name()).handler(new RemoveInstitutionHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateInstitution.name()).handler(new UpdateInstitutionHandler(vertx, aConfig));
 
             // Job operations
-            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobsHandler(vertx));
-            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx));
-            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx));
+            routeBuilder.operation(Op.addJobs.name()).handler(new AddJobsHandler(vertx, aConfig));
+            routeBuilder.operation(Op.getJob.name()).handler(new GetJobHandler(vertx, aConfig));
+            routeBuilder.operation(Op.listJobs.name()).handler(new ListJobsHandler(vertx, aConfig));
             routeBuilder.operation(Op.removeJob.name()).handler(new RemoveJobHandler(vertx, aConfig));
             routeBuilder.operation(Op.updateJob.name()).handler(new UpdateJobHandler(vertx, aConfig));
 
@@ -170,9 +170,9 @@ public class MainVerticle extends AbstractVerticle {
             router = routeBuilder.createRouter();
 
             // If LDAP server is configured, configure our router to check for authorized login
-            if (StringUtils.trimToNull(System.getenv(Config.LDAP_URL)) != null) {
+            if (StringUtils.trimToNull(aConfig.getString(Config.LDAP_URL)) != null) {
                 final SessionStore sessionStore = LocalSessionStore.create(vertx);
-                final AuthHandler authHandler = new AuthHandler(vertx);
+                final AuthHandler authHandler = new AuthHandler(vertx, aConfig);
 
                 // Support maintaining state and processing forms
                 router.route().order(0).handler(BodyHandler.create());
@@ -201,7 +201,7 @@ public class MainVerticle extends AbstractVerticle {
      * @return A Future that resolves to the HTTP server
      */
     public Future<HttpServer> createHttpServer(final JsonObject aConfig, final Router aRouter) {
-        final int port = aConfig.getInteger(Config.HTTP_PORT, 8888);
+        final int port = Config.getHttpPort(aConfig);
 
         return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
     }

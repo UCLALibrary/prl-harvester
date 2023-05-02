@@ -34,6 +34,21 @@ public class DatabaseIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseIT.class, MessageCodes.BUNDLE);
 
     /**
+     * The standard Postgres environment variable for configuring the database username.
+     */
+    private static final String PGUSER = "PGUSER";
+
+    /**
+     * The standard Postgres environment variable for configuring the database password.
+     */
+    private static final String PGPASSWORD = "PGPASSWORD";
+
+    /**
+     * The standard Postgres environment variable for configuring the database port.
+     */
+    private static final String PGPORT = "PGPORT";
+
+    /**
      * Expected column names from the institutions table.
      */
     @SuppressWarnings("PMD.MultipleStringLiterals")
@@ -65,12 +80,10 @@ public class DatabaseIT {
     public static final void setUp() {
         // Note: TRACE level logging should NEVER be used on a public server.
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(MessageCodes.PRL_005, System.getenv(Config.DB_USERNAME), System.getenv(Config.DB_PORT),
-                    System.getenv(Config.DB_PASSWORD));
+            LOGGER.trace(MessageCodes.PRL_005, System.getenv(PGUSER), System.getenv(PGPORT), System.getenv(PGPASSWORD));
         } else {
             // The below still only triggers if DEBUG level requirement is met.
-            LOGGER.debug(MessageCodes.PRL_005, System.getenv(Config.DB_USERNAME), System.getenv(Config.DB_PORT),
-                    "****");
+            LOGGER.debug(MessageCodes.PRL_005, System.getenv(PGUSER), System.getenv(PGPORT), "****");
         }
 
         myDatabase = PgPool.pool();

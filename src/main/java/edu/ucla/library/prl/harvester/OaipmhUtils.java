@@ -13,7 +13,9 @@ import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
 import org.dspace.xoai.serviceprovider.ServiceProvider;
 import org.dspace.xoai.serviceprovider.client.HttpOAIClient;
+import org.dspace.xoai.serviceprovider.client.OAIClient;
 import org.dspace.xoai.serviceprovider.exceptions.BadArgumentException;
+import org.dspace.xoai.serviceprovider.exceptions.HttpException;
 import org.dspace.xoai.serviceprovider.exceptions.NoSetHierarchyException;
 import org.dspace.xoai.serviceprovider.model.Context;
 import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
@@ -59,12 +61,14 @@ public final class OaipmhUtils {
      * @param aVertx A Vert.x instance
      * @param aBaseURL A URL to check
      * @param aSets A list of sets to check
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Future that succeeds if the checks pass, and fails otherwise
      */
-    public static Future<Void> validateIdentifiers(final Vertx aVertx, final URL aBaseURL, final List<String> aSets) {
+    public static Future<Void> validateIdentifiers(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
+            final String aUserAgent) {
         final Promise<Void> validation = Promise.promise();
 
-        OaipmhUtils.listSets(aVertx, aBaseURL).onSuccess(sets -> {
+        OaipmhUtils.listSets(aVertx, aBaseURL, aUserAgent).onSuccess(sets -> {
             final List<String> setSpecs = OaipmhUtils.getSetSpecs(sets);
 
             for (final String set : aSets) {
@@ -86,10 +90,11 @@ public final class OaipmhUtils {
      *
      * @param aVertx A Vert.x instance
      * @param aBaseURL The OAI-PMH repository base URL
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return The list of OAI-PMH sets
      */
-    public static Future<List<Set>> listSets(final Vertx aVertx, final URL aBaseURL) {
-        return listSetsAsyncXoaiWrapper(aVertx, aBaseURL).map(sets -> (List<Set>) sets);
+    public static Future<List<Set>> listSets(final Vertx aVertx, final URL aBaseURL, final String aUserAgent) {
+        return listSetsAsyncXoaiWrapper(aVertx, aBaseURL, aUserAgent).map(sets -> (List<Set>) sets);
     }
 
     /**
@@ -100,10 +105,11 @@ public final class OaipmhUtils {
      * @param aSets The non-empty list of sets to harvest
      * @param aMetadataPrefix The OAI-PMH metadata prefix
      * @param aFrom The optional timestamp of the last successful run
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return The list of OAI-PMH records
      */
     public static Future<List<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
-            final String aMetadataPrefix, final Optional<OffsetDateTime> aFrom) {
+            final String aMetadataPrefix, final Optional<OffsetDateTime> aFrom, final String aUserAgent) {
         @SuppressWarnings("rawtypes")
         final List<Future> selectiveHarvests = new LinkedList<>();
 
@@ -113,7 +119,7 @@ public final class OaipmhUtils {
 
             aFrom.ifPresent(from -> params.withFrom(Date.from(from.toInstant())));
 
-            selectiveHarvests.add(listRecordsAsyncXoaiWrapper(aVertx, aBaseURL, params));
+            selectiveHarvests.add(listRecordsAsyncXoaiWrapper(aVertx, aBaseURL, params, aUserAgent));
         }
 
         return CompositeFuture.all(selectiveHarvests).map(result -> {
@@ -129,17 +135,19 @@ public final class OaipmhUtils {
      *
      * @param aVertx A Vert.x instance
      * @param aBaseURL The OAI-PMH repository base URL
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Future that resolves to a list of OAI-PMH sets
      */
-    private static Future<ImmutableList<Set>> listSetsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL) {
+    private static Future<ImmutableList<Set>> listSetsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
+            final String aUserAgent) {
         final Promise<ImmutableList<Set>> promise = Promise.promise();
 
         aVertx.<ImmutableList<Set>>executeBlocking(execution -> {
             try {
-                final Iterator<Set> synchronousResult = getNewOaipmhClient(aBaseURL).listSets();
+                final Iterator<Set> synchronousResult = getNewOaipmhClient(aBaseURL, aUserAgent).listSets();
 
                 execution.complete(ImmutableList.copyOf(synchronousResult));
-            } catch (final NoSetHierarchyException details) {
+            } catch (final HttpException | NoSetHierarchyException details) {
                 execution.fail(details.getCause());
             }
         }, false, promise);
@@ -153,18 +161,20 @@ public final class OaipmhUtils {
      * @param aVertx A Vert.x instance
      * @param aBaseURL The OAI-PMH repository base URL
      * @param aParams The OAI-PMH request parameters
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Future that resolves to a list of OAI-PMH records
      */
     private static Future<ImmutableList<Record>> listRecordsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
-            final ListRecordsParameters aParams) {
+            final ListRecordsParameters aParams, final String aUserAgent) {
         final Promise<ImmutableList<Record>> promise = Promise.promise();
 
         aVertx.<ImmutableList<Record>>executeBlocking(execution -> {
             try {
-                final Iterator<Record> synchronousResult = getNewOaipmhClient(aBaseURL).listRecords(aParams);
+                final Iterator<Record> synchronousResult =
+                        getNewOaipmhClient(aBaseURL, aUserAgent).listRecords(aParams);
 
                 execution.complete(ImmutableList.copyOf(synchronousResult));
-            } catch (final BadArgumentException details) {
+            } catch (final BadArgumentException | HttpException details) {
                 execution.fail(details.getCause());
             }
         }, false, promise);
@@ -181,11 +191,16 @@ public final class OaipmhUtils {
      * Related: <a href="https://github.com/DSpace/xoai/issues/55">DSpace/xoai/issues/55</a>
      *
      * @param aBaseURL An OAI-PMH base URL
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A new OAI-PMH client instance
+     * @throws HttpException It won't because of how {@link HttpOAIClient#HttpOAIClient(String, List, int, String)} is
+     *         being called with an empty list of exceptional URLs
      */
-    private static ServiceProvider getNewOaipmhClient(final URL aBaseURL) {
-        final Context context = new Context().withOAIClient(new HttpOAIClient(aBaseURL.toString()))
-                .withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
+    private static ServiceProvider getNewOaipmhClient(final URL aBaseURL, final String aUserAgent)
+            throws HttpException {
+        final OAIClient client = new HttpOAIClient(aBaseURL.toString(), List.of(), 60_000, aUserAgent);
+        final Context context =
+                new Context().withOAIClient(client).withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
 
         return new ServiceProvider(context);
     }
