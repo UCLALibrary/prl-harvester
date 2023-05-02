@@ -49,9 +49,13 @@ public final class AddInstitutionsHandler extends AbstractSolrAwareWriteOperatio
         CompositeFuture.all(semanticValidations.collect(Collectors.toList())).onSuccess(result -> {
             final List<Institution> institutions = result.list();
 
-            myHarvestScheduleStoreService.addInstitutions(institutions).compose(institutionsWithIDs -> {
-                return updateSolr(Tuple.of(institutionsWithIDs)).map(institutionsWithIDs);
-            }).onSuccess(institutionsWithIDs -> {
+            // Update the database and Solr
+            final Future<List<Institution>> update =
+                    myHarvestScheduleStoreService.addInstitutions(institutions).compose(institutionsWithIDs -> {
+                        return updateSolr(Tuple.of(institutionsWithIDs)).map(institutionsWithIDs);
+                    });
+
+            update.onSuccess(institutionsWithIDs -> {
                 final JsonArray responseBody =
                         new JsonArray(institutionsWithIDs.stream().map(Institution::toJson).toList());
 

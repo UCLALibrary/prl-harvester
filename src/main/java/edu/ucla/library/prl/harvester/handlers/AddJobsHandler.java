@@ -43,9 +43,12 @@ public final class AddJobsHandler extends AbstractRequestHandler {
         CompositeFuture.all(semanticValidations.collect(Collectors.toList())).onSuccess(result -> {
             final List<Job> jobs = result.list();
 
-            myHarvestScheduleStoreService.addJobs(jobs).compose(jobsWithIDs -> {
+            // Update the database and the in-memory scheduler
+            final Future<List<Job>> update = myHarvestScheduleStoreService.addJobs(jobs).compose(jobsWithIDs -> {
                 return myHarvestJobSchedulerService.addJobs(jobsWithIDs).map(jobsWithIDs);
-            }).onSuccess(jobsWithIDs -> {
+            });
+
+            update.onSuccess(jobsWithIDs -> {
                 final JsonArray responseBody = new JsonArray(jobsWithIDs.stream().map(Job::toJson).toList());
 
                 response.setStatusCode(HttpStatus.SC_CREATED)

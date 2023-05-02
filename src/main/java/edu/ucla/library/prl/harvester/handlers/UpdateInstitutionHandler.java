@@ -43,10 +43,14 @@ public final class UpdateInstitutionHandler extends AbstractSolrAwareWriteOperat
             final Institution institution = new Institution(aContext.body().asJsonObject());
             final Institution institutionWithID = Institution.withID(institution, id);
 
-            myHarvestScheduleStoreService.updateInstitution(id, institution).compose(nil -> {
-                return updateSolr(Tuple.of(institutionWithID));
-            }).onSuccess(result -> {
-                final JsonObject responseBody = institutionWithID.toJson();
+            // Update the database and Solr
+            final Future<Void> update =
+                    myHarvestScheduleStoreService.updateInstitution(id, institution).compose(nil -> {
+                        return updateSolr(Tuple.of(institutionWithID)).mapEmpty();
+                    });
+
+            update.onSuccess(nil -> {
+                final JsonObject responseBody = Institution.withID(institution, id).toJson();
 
                 response.setStatusCode(HttpStatus.SC_OK)
                         .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())

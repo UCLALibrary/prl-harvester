@@ -49,15 +49,18 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                     job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
 
             validateOaipmhIdentifiers.onSuccess(none -> {
-                myHarvestScheduleStoreService.getJob(id).compose(oldJob -> {
-                    return myHarvestScheduleStoreService.getInstitution(oldJob.getInstitutionID())
-                            .compose(institution -> {
-                                return myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                                    return myHarvestJobSchedulerService.updateJob(id, job);
-                                }).compose(nil -> {
-                                    return updateSolr(Tuple.of(oldJob, job, institution));
-                                });
-                            });
+                getJobAndInstitution(id).compose(oldJobAndInstitution -> {
+                    // Update the database, the in-memory scheduler, and Solr
+                    final Future<Void> update = myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
+                        return myHarvestJobSchedulerService.updateJob(id, job);
+                    }).compose(nil -> {
+                        final Job oldJob = oldJobAndInstitution._1();
+                        final Institution institution = oldJobAndInstitution._2();
+
+                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
+                    });
+
+                    return update;
                 }).onSuccess(nil -> {
                     final JsonObject responseBody = Job.withID(job, id).toJson();
 

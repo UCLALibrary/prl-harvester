@@ -16,7 +16,6 @@ import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
 
-import io.vavr.Tuple;
 import io.vavr.Tuple2;
 
 import io.vertx.core.Future;
@@ -45,17 +44,16 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
         try {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
 
-            // Query database first to get job info for removing it
-            myHarvestScheduleStoreService.getJob(id).compose(job -> {
-                return myHarvestScheduleStoreService.getInstitution(job.getInstitutionID()).compose(institution -> {
-                    // Do all the solr updating in this context
-                    return myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
-                        return myHarvestJobSchedulerService.removeJob(id);
-                    }).compose(nil -> {
-                        return updateSolr(Tuple.of(job, institution));
-                    });
+            getJobAndInstitution(id).compose(jobAndInst -> {
+                // Update the database, in-memory scheduler, and Solr
+                final Future<Void> removal = myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
+                    return myHarvestJobSchedulerService.removeJob(id);
+                }).compose(nil -> {
+                    return updateSolr(jobAndInst).mapEmpty();
                 });
-            }).onSuccess(solrResponse -> {
+
+                return removal;
+            }).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
             }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {

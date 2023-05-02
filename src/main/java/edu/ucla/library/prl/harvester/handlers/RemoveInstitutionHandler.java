@@ -1,19 +1,21 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple1;
+import io.vavr.Tuple2;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -43,30 +45,29 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
 
             // Before modifying the database, get institution data so that we can update Solr accordingly
-            myHarvestScheduleStoreService.getInstitution(id).compose(institution -> {
-                // Get the list of Jobs that we need to remove
-                final Future<Void> removeAssociatedJobs = myHarvestScheduleStoreService.listJobs().compose(jobs -> {
-                    @SuppressWarnings({ "rawtypes", "unchecked" })
-                    final Stream<Future> associatedJobRemovals = jobs.parallelStream() //
-                            .filter(job -> job.getInstitutionID() == id) //
-                            .map(job -> {
-                                final int jobID = job.getID().get();
+            getInstitutionAndJobs(id).compose(institutionAndJobs -> {
+                final Institution institution = institutionAndJobs._1();
+                final List<Job> jobs = institutionAndJobs._2();
 
-                                return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
-                                    return (Future) myHarvestJobSchedulerService.removeJob(jobID);
-                                });
-                            });
+                @SuppressWarnings({ "rawtypes", "unchecked" })
+                final List<Future> jobRemovals = jobs.parallelStream().map(job -> {
+                    final int jobID = job.getID().get();
 
-                    return CompositeFuture.all(associatedJobRemovals.toList()).mapEmpty();
+                    return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
+                        return (Future) myHarvestJobSchedulerService.removeJob(jobID);
+                    });
+                }).toList();
+
+                // If and when all the jobs are removed, remove the institution
+                @SuppressWarnings("PMD.UnnecessaryLocalBeforeReturn")
+                final Future<Void> removal = CompositeFuture.all(jobRemovals).compose(nil -> {
+                    return myHarvestScheduleStoreService.removeInstitution(id).compose(none -> {
+                        return updateSolr(Tuple.of(institution)).mapEmpty();
+                    });
                 });
 
-                // Remove the Jobs, then remove the Institution
-                return removeAssociatedJobs.compose(nil -> {
-                    return myHarvestScheduleStoreService.removeInstitution(id);
-                }).compose(nil -> {
-                    return updateSolr(Tuple.of(institution));
-                });
-            }).onSuccess(solrResponse -> {
+                return removal;
+            }).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
             }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
@@ -92,5 +93,19 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
                 mySolrClient.deleteByQuery(query).thenCompose(result -> mySolrClient.commit());
 
         return Future.fromCompletionStage(removal);
+    }
+
+    /**
+     * @param anInstitutionID An institution ID
+     * @return A 2-tuple of the institution and the list of jobs associated with it
+     */
+    private Future<Tuple2<Institution, List<Job>>> getInstitutionAndJobs(final int anInstitutionID) {
+        return myHarvestScheduleStoreService.getInstitution(anInstitutionID).compose(institution -> {
+            // Get the list of Jobs that we need to remove
+            return myHarvestScheduleStoreService.listJobs().map(jobs -> {
+                // Filter out the jobs not associated with this institution
+                return jobs.stream().filter(job -> job.getInstitutionID() == anInstitutionID).toList();
+            }).map(filteredJobs -> Tuple.of(institution, filteredJobs));
+        });
     }
 }
