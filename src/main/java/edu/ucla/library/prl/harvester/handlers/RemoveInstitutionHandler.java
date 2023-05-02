@@ -49,18 +49,9 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
                 final Institution institution = institutionAndJobs._1();
                 final List<Job> jobs = institutionAndJobs._2();
 
-                @SuppressWarnings({ "rawtypes", "unchecked" })
-                final List<Future> jobRemovals = jobs.parallelStream().map(job -> {
-                    final int jobID = job.getID().get();
-
-                    return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
-                        return (Future) myHarvestJobSchedulerService.removeJob(jobID);
-                    });
-                }).toList();
-
-                // If and when all the jobs are removed, remove the institution
                 @SuppressWarnings("PMD.UnnecessaryLocalBeforeReturn")
-                final Future<Void> removal = CompositeFuture.all(jobRemovals).compose(nil -> {
+                final Future<Void> removal = removeJobs(jobs).compose(nil -> {
+                    // If and when all the jobs are removed, remove the institution
                     return myHarvestScheduleStoreService.removeInstitution(id).compose(none -> {
                         return updateSolr(Tuple.of(institution)).mapEmpty();
                     });
@@ -107,5 +98,20 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
                 return jobs.stream().filter(job -> job.getInstitutionID() == anInstitutionID).toList();
             }).map(filteredJobs -> Tuple.of(institution, filteredJobs));
         });
+    }
+
+    /**
+     * @param aJobs A list of jobs
+     * @return A Future that succeeds if all the jobs were removed, and fails otherwise
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private Future<Void> removeJobs(final List<Job> aJobs) {
+        return CompositeFuture.all(aJobs.parallelStream().map(job -> {
+            final int jobID = job.getID().get();
+
+            return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
+                return (Future) myHarvestJobSchedulerService.removeJob(jobID);
+            });
+        }).toList()).mapEmpty();
     }
 }
