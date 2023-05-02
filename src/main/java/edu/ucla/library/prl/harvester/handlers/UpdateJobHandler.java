@@ -1,6 +1,7 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -45,10 +46,10 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         try {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
             final Job job = new Job(aContext.body().asJsonObject());
-            final Future<Void> validateOaipmhIdentifiers = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
+            final URL baseURL = job.getRepositoryBaseURL();
+            final List<String> sets = job.getSets().orElse(List.of());
 
-            validateOaipmhIdentifiers.onSuccess(none -> {
+            OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).onSuccess(none -> {
                 getJobAndInstitution(id).compose(oldJobAndInstitution -> {
                     // Update the database, the in-memory scheduler, and Solr
                     final Future<Void> update = myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {

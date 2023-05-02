@@ -1,6 +1,7 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -74,10 +75,10 @@ public final class AddJobsHandler extends AbstractRequestHandler {
         }
 
         return deserializationResult.compose(job -> {
-            final Future<Void> oaipmhIdentifierValidationResult = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
+            final URL baseURL = job.getRepositoryBaseURL();
+            final List<String> sets = job.getSets().orElse(List.of());
 
-            return oaipmhIdentifierValidationResult.map(job);
+            return OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).map(job);
         });
     }
 }
