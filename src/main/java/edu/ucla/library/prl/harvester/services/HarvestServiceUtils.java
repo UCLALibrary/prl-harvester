@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.solr.common.SolrInputDocument;
 
@@ -307,8 +308,7 @@ final class HarvestServiceUtils {
             return Future.succeededFuture(Optional.of(urlsWithImageFiletypeExtension.get(0)));
         } else {
             // None of the URLs have an image filetype extension, so check Content-Type of HEAD response
-            @SuppressWarnings("rawtypes")
-            final List<Future> contentTypeChecks = partitionedUrls.get(false).stream().map(url -> {
+            final Stream<Future<URL>> contentTypeChecks = partitionedUrls.get(false).stream().map(url -> {
                 final HttpRequest<?> headRequest = aWebClient.headAbs(url.toString());
 
                 return headRequest.send().compose(response -> {
@@ -322,9 +322,9 @@ final class HarvestServiceUtils {
                         return Future.failedFuture("not an image URL");
                     }
                 }, Future::failedFuture);
-            }).collect(Collectors.toUnmodifiableList());
+            });
 
-            return CompositeFuture.any(contentTypeChecks).map(result -> {
+            return CompositeFuture.any(contentTypeChecks.collect(Collectors.toList())).map(result -> {
                 // Scan the list for the first image URL
                 for (final URL url : result.<URL>list()) {
                     if (url != null) {

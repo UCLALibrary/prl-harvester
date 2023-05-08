@@ -3,6 +3,7 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.apache.solr.client.solrj.response.UpdateResponse;
@@ -104,14 +105,13 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
      * @param aJobs A list of jobs
      * @return A Future that succeeds if all the jobs were removed, and fails otherwise
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private Future<Void> removeJobs(final List<Job> aJobs) {
         return CompositeFuture.all(aJobs.parallelStream().map(job -> {
             final int jobID = job.getID().get();
 
             return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
-                return (Future) myHarvestJobSchedulerService.removeJob(jobID);
+                return myHarvestJobSchedulerService.removeJob(jobID);
             });
-        }).toList()).mapEmpty();
+        }).collect(Collectors.toList())).mapEmpty();
     }
 }

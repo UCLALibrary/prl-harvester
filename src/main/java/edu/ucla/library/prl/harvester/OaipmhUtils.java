@@ -5,9 +5,10 @@ import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
@@ -110,19 +111,16 @@ public final class OaipmhUtils {
      */
     public static Future<List<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
             final String aMetadataPrefix, final Optional<OffsetDateTime> aFrom, final String aUserAgent) {
-        @SuppressWarnings("rawtypes")
-        final List<Future> selectiveHarvests = new LinkedList<>();
-
-        for (final String setSpec : aSets) {
+        final Stream<Future<ImmutableList<Record>>> listRecordsPerSet = aSets.stream().map(setSpec -> {
             final ListRecordsParameters params =
                     ListRecordsParameters.request().withMetadataPrefix(aMetadataPrefix).withSetSpec(setSpec);
 
             aFrom.ifPresent(from -> params.withFrom(Date.from(from.toInstant())));
 
-            selectiveHarvests.add(listRecordsAsyncXoaiWrapper(aVertx, aBaseURL, params, aUserAgent));
-        }
+            return listRecordsAsyncXoaiWrapper(aVertx, aBaseURL, params, aUserAgent);
+        });
 
-        return CompositeFuture.all(selectiveHarvests).map(result -> {
+        return CompositeFuture.all(listRecordsPerSet.collect(Collectors.toList())).map(result -> {
             final List<ImmutableList<Record>> results = result.<ImmutableList<Record>>list();
 
             // Flatten the list of lists

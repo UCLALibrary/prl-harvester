@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
@@ -71,7 +72,6 @@ public class FrontEndIT extends AuthorizedFIT {
      * @param aContext A test context
      */
     @ParameterizedTest
-    @SuppressWarnings("rawtypes")
     @ValueSource(strings = { "/admin/", "/admin", "/" })
     public void testAdminInterfaceRetrieval(final String aPath, final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint indexHtmlResolves = aContext.checkpoint();
@@ -103,7 +103,7 @@ public class FrontEndIT extends AuthorizedFIT {
             });
 
             // Verify linked asset resolution
-            CompositeFuture.all(checkAllElements.map(fut -> (Future) fut).toList()).onSuccess(result -> {
+            CompositeFuture.all(checkAllElements.collect(Collectors.toList())).onSuccess(result -> {
                 linkedAssetsResolve.flag();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);

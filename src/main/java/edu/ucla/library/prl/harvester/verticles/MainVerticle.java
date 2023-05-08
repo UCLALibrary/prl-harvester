@@ -2,8 +2,9 @@
 package edu.ucla.library.prl.harvester.verticles;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
 
@@ -98,13 +99,13 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public void stop(final Promise<Void> aPromise) {
         myServer.close().compose(nil -> {
-            final List<Future> closeEventBusServices =
-                    myEventBusServices.stream().map(service -> (Future) service.unregister()).toList();
+            final Stream<Future<Void>> eventBusServiceClosures =
+                    myEventBusServices.stream().map(MessageConsumer::unregister);
 
-            return CompositeFuture.all(closeEventBusServices).compose(result -> myDbConnectionPool.close());
+            return CompositeFuture.all(eventBusServiceClosures.collect(Collectors.toList()))
+                    .compose(result -> myDbConnectionPool.close());
         }).onFailure(aPromise::fail).onSuccess(result -> aPromise.complete());
     }
 

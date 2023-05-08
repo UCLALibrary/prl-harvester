@@ -129,11 +129,12 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
      *
      * @return A Future that succeeds if the saved jobs were restored
      */
-    @SuppressWarnings("rawtypes")
     Future<Void> initializeScheduler() {
         return myHarvestScheduleStoreService.listJobs().compose(jobs -> {
-            return CompositeFuture
-                    .all(jobs.stream().map(job -> (Future) scheduleJob(job.getID().get(), job, true)).toList());
+            final Stream<Future<Void>> jobSchedulings =
+                    jobs.stream().map(job -> scheduleJob(job.getID().get(), job, true));
+
+            return CompositeFuture.all(jobSchedulings.collect(Collectors.toList()));
         }).mapEmpty();
     }
 
