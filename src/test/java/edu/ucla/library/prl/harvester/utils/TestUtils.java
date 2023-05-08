@@ -306,8 +306,10 @@ public final class TestUtils {
 
             return connection.query(query).execute();
         }).map(result -> {
+            final Runnable assertions;
+
             if (anInstitutionList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Institution> institutions = anInstitutionList.get();
 
                     assertEquals(institutions.size(), result.rowCount());
@@ -316,11 +318,13 @@ public final class TestUtils {
                         assertTrue(matchingRowExists(result, institution.toJson()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.rowCount());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.rowCount());
-            };
+            return assertions;
         });
     }
 
@@ -344,8 +348,10 @@ public final class TestUtils {
 
             return connection.query(query).execute();
         }).map(result -> {
+            final Runnable assertions;
+
             if (aJobList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Job> jobs = aJobList.get();
 
                     assertEquals(jobs.size(), result.rowCount());
@@ -354,11 +360,13 @@ public final class TestUtils {
                         assertTrue(matchingRowExists(result, job.toJson()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.rowCount());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.rowCount());
-            };
+            return assertions;
         });
     }
 
@@ -372,8 +380,10 @@ public final class TestUtils {
     public static Future<Runnable> getSolrInstitutionAssertions(final JavaAsyncSolrClient aSolrClient,
             final Optional<Set<Institution>> anInstitutionList) {
         return getAllDocuments(aSolrClient).map(result -> {
+            final Runnable assertions;
+
             if (anInstitutionList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Institution> institutions = anInstitutionList.get();
 
                     assertEquals(institutions.size(), result.getNumFound());
@@ -388,11 +398,13 @@ public final class TestUtils {
                         assertTrue(documentsAreEffectivelyEqual(input, output.get()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.getNumFound());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.getNumFound());
-            };
+            return assertions;
         });
     }
 
