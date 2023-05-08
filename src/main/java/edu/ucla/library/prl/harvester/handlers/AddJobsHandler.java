@@ -38,8 +38,7 @@ public final class AddJobsHandler extends AbstractRequestHandler {
     @Override
     public void handle(final RoutingContext aContext) {
         final HttpServerResponse response = aContext.response();
-        final Stream<Future<Job>> semanticValidations =
-                aContext.body().asJsonArray().stream().map(this::validateInstitution);
+        final Stream<Future<Job>> semanticValidations = aContext.body().asJsonArray().stream().map(this::validateJob);
 
         CompositeFuture.all(semanticValidations.collect(Collectors.toList())).onSuccess(result -> {
             final List<Job> jobs = result.list();
@@ -62,10 +61,10 @@ public final class AddJobsHandler extends AbstractRequestHandler {
     }
 
     /**
-     * @param aJob An entry in the request body array
-     * @return A Future that succeeds if the entry is a valid {@link Job}
+     * @param aJob An element in the request body array
+     * @return A Future that succeeds if the element is a valid {@link Job}
      */
-    private Future<Job> validateInstitution(final Object aJob) {
+    private Future<Job> validateJob(final Object aJob) {
         Future<Job> deserializationResult;
 
         try {
