@@ -211,10 +211,10 @@ public final class TestUtils {
      * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
      */
     public static Future<UpdateResponse> wipeSolr(final JavaAsyncSolrClient aSolrClient) {
-        final CompletionStage<UpdateResponse> wipeSolr =
+        final CompletionStage<UpdateResponse> deletion =
                 aSolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> aSolrClient.commit());
 
-        return Future.fromCompletionStage(wipeSolr);
+        return Future.fromCompletionStage(deletion);
     }
 
     /**
@@ -227,8 +227,10 @@ public final class TestUtils {
     public static Future<UpdateResponse> removeItemRecords(final JavaAsyncSolrClient aSolrClient,
             final String anInstitutionName) {
         final String query = StringUtils.format("institutionName:\"{}\"", anInstitutionName);
+        final CompletionStage<UpdateResponse> deletion =
+                aSolrClient.deleteByQuery(query).thenCompose(result -> aSolrClient.commit());
 
-        return Future.fromCompletionStage(aSolrClient.deleteByQuery(query).thenCompose(result -> aSolrClient.commit()));
+        return Future.fromCompletionStage(deletion);
     }
 
     /**
@@ -237,8 +239,10 @@ public final class TestUtils {
      */
     public static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
         final SolrParams params = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
+        final CompletionStage<SolrDocumentList> retrieval =
+                aSolrClient.query(params).thenApply(QueryResponse::getResults);
 
-        return Future.fromCompletionStage(aSolrClient.query(params).thenApply(QueryResponse::getResults));
+        return Future.fromCompletionStage(retrieval);
     }
 
     /**
