@@ -14,8 +14,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
@@ -72,8 +71,8 @@ public class FrontEndIT extends AuthorizedFIT {
      * @param aContext A test context
      */
     @ParameterizedTest
-    @MethodSource
     @SuppressWarnings("rawtypes")
+    @ValueSource(strings = { "/admin/", "/admin", "/" })
     public void testAdminInterfaceRetrieval(final String aPath, final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint indexHtmlResolves = aContext.checkpoint();
         final Checkpoint linkedAssetsResolve = aContext.checkpoint();
@@ -108,14 +107,6 @@ public class FrontEndIT extends AuthorizedFIT {
                 linkedAssetsResolve.flag();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
-    }
-
-    /**
-     * @return The arguments for the corresponding {@link ParameterizedTest}
-     */
-    static Stream<Arguments> testAdminInterfaceRetrieval() {
-        // The list of paths that should resolve to the admin interface, including via redirect
-        return Stream.of(Arguments.of("/admin/"), Arguments.of("/admin"), Arguments.of("/"));
     }
 
     /**
