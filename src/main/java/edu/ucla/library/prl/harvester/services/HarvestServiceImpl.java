@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.response.UpdateResponse;
@@ -166,7 +167,10 @@ public class HarvestServiceImpl implements HarvestService {
         }
 
         return CompositeFuture.all(docResults).map(CompositeFuture::<SolrInputDocument>list).compose(docs -> {
-            return Future.fromCompletionStage(mySolrClient.addDocs(docs).thenCompose(result -> mySolrClient.commit()));
+            final CompletionStage<UpdateResponse> addition =
+                    mySolrClient.addDocs(docs).thenCompose(result -> mySolrClient.commit());
+
+            return Future.fromCompletionStage(addition);
         });
     }
 
