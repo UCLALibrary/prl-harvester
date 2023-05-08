@@ -34,6 +34,9 @@ import edu.ucla.library.prl.harvester.services.HarvestJobSchedulerService;
 import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
 import edu.ucla.library.prl.harvester.services.HarvestService;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
+
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
@@ -82,19 +85,14 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start(final Promise<Void> aPromise) {
-        ConfigRetriever.create(vertx).getConfig().compose(config -> {
-            myDbConnectionPool = HarvestScheduleStoreService.getConnectionPool(vertx, config);
+        ConfigRetriever.create(vertx).getConfig().compose(this::createResources).onSuccess(resources -> {
+            // Save references to all resources so that they can be closed later
+            myDbConnectionPool = resources._1();
+            myEventBusServices = resources._2();
+            myServer = resources._3();
 
-            return createEventBusServices(config).compose(services -> {
-                myEventBusServices = services;
+            LOGGER.info(MessageCodes.PRL_001, myServer.actualPort());
 
-                return createRouter(config).compose(router -> createHttpServer(config, router));
-            });
-        }).onSuccess(server -> {
-            // Save a reference to the HTTP server so we can close it later
-            myServer = server;
-
-            LOGGER.info(MessageCodes.PRL_001, server.actualPort());
             aPromise.complete();
         }).onFailure(aPromise::fail);
     }
@@ -111,18 +109,38 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     /**
+     * Creates all the resources that must be closed when the verticle stops.
+     *
+     * @param aConfig A configuration
+     * @return A Future that resolves to all the resources
+     */
+    private Future<Tuple3<Pool, Set<MessageConsumer<JsonObject>>, HttpServer>>
+            createResources(final JsonObject aConfig) {
+        final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(vertx, aConfig);
+
+        return createEventBusServices(aConfig, dbConnectionPool).compose(services -> {
+            final Future<HttpServer> serverCreation =
+                    createRouter(aConfig).compose(router -> createHttpServer(aConfig, router));
+
+            return serverCreation.map(server -> Tuple.of(dbConnectionPool, services, server));
+        });
+    }
+
+    /**
      * Creates the event bus services.
      *
      * @param aConfig A configuration
+     * @param aPool A connection pool
      * @return A Future that resolves to the event bus services
      */
-    public Future<Set<MessageConsumer<JsonObject>>> createEventBusServices(final JsonObject aConfig) {
+    private Future<Set<MessageConsumer<JsonObject>>> createEventBusServices(final JsonObject aConfig,
+            final Pool aPool) {
         final ServiceBinder serviceBinder = new ServiceBinder(vertx);
         final MessageConsumer<JsonObject> harvestService = serviceBinder.setAddress(HarvestService.ADDRESS)
                 .register(HarvestService.class, HarvestService.create(vertx, aConfig));
-        final MessageConsumer<JsonObject> scheduleStoreService = serviceBinder
-                .setAddress(HarvestScheduleStoreService.ADDRESS).register(HarvestScheduleStoreService.class,
-                        HarvestScheduleStoreService.create(vertx, myDbConnectionPool));
+        final MessageConsumer<JsonObject> scheduleStoreService =
+                serviceBinder.setAddress(HarvestScheduleStoreService.ADDRESS)
+                        .register(HarvestScheduleStoreService.class, HarvestScheduleStoreService.create(vertx, aPool));
 
         return HarvestJobSchedulerService.create(vertx, aConfig).map(service -> {
             final MessageConsumer<JsonObject> schedulerService = serviceBinder
@@ -138,7 +156,7 @@ public class MainVerticle extends AbstractVerticle {
      * @param aConfig A configuration
      * @return A Future that resolves to the HTTP request router
      */
-    public Future<Router> createRouter(final JsonObject aConfig) {
+    private Future<Router> createRouter(final JsonObject aConfig) {
         // Load the OpenAPI specification
         return RouterBuilder.create(vertx, "openapi.yaml").map(routeBuilder -> {
             final Router router;
@@ -200,7 +218,7 @@ public class MainVerticle extends AbstractVerticle {
      * @param aRouter An HTTP request router
      * @return A Future that resolves to the HTTP server
      */
-    public Future<HttpServer> createHttpServer(final JsonObject aConfig, final Router aRouter) {
+    private Future<HttpServer> createHttpServer(final JsonObject aConfig, final Router aRouter) {
         final int port = Config.getHttpPort(aConfig);
 
         return vertx.createHttpServer(new HttpServerOptions().setPort(port)).requestHandler(aRouter).listen();
