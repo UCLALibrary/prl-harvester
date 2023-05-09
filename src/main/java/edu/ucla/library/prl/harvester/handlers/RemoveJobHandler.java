@@ -103,7 +103,7 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
         return getSetsToRemove.map(sets -> {
             final String[] collectionQueryClauses = sets.stream() //
                     .map(set -> StringUtils.format("set_spec:\"{}\"", set)) //
-                    .toArray(x -> new String[sets.size()]);
+                    .toArray(length -> new String[sets.size()]);
 
             return StringUtils.format("institutionName:\"{}\" AND ({})", anInstitutionName,
                     String.join(" OR ", collectionQueryClauses));

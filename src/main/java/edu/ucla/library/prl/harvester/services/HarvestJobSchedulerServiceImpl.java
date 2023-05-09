@@ -186,7 +186,7 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
      * Runs a harvest job, updates application state with the result, then publishes its result (or resulting error) to
      * the event bus addresses {@link JOB_RESULT_ADDRESS} and {@link ERROR_ADDRESS}, respectively.
      */
-    public static final class RunHarvest implements org.quartz.Job {
+    private static final class RunHarvest implements org.quartz.Job {
 
         /**
          * Per the docs for {@link org.quartz.Job}, a public no-argument constructor is required.
