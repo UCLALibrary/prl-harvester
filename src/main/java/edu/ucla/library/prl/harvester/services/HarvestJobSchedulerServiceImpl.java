@@ -191,7 +191,8 @@ public final class HarvestJobSchedulerServiceImpl implements HarvestJobScheduler
         /**
          * Per the docs for {@link org.quartz.Job}, a public no-argument constructor is required.
          */
-        @SuppressWarnings({ "PMD.UncommentedEmptyConstructor", "PMD.UnnecessaryConstructor" })
+        @SuppressWarnings({ "PMD.UncommentedEmptyConstructor", "PMD.UnnecessaryConstructor",
+            "checkstyle:RedundantModifier" })
         public RunHarvest() {
         }
 
