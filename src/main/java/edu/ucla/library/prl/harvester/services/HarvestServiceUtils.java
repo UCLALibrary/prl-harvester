@@ -187,7 +187,7 @@ final class HarvestServiceUtils {
             });
 
             // SolrInputDocument wants strings
-            stringifiedItemUrls = possibleItemUrls.stream().map(URL::toString).toList();
+            stringifiedItemUrls = unwrapUrls(possibleItemUrls);
 
             if (!stringifiedItemUrls.isEmpty()) {
                 // The URL with the highest score is probably the canonical item URL
@@ -242,6 +242,20 @@ final class HarvestServiceUtils {
 
             return doc;
         });
+    }
+
+    /**
+     * @param aUrlList A list of URLs
+     * @return A list of the URLs in string form
+     */
+    private static List<String> unwrapUrls(final List<URL> aUrlList) {
+        final List<String> strings = new LinkedList<>();
+
+        for (final URL url : aUrlList) {
+            strings.add(url.toString());
+        }
+
+        return strings;
     }
 
     /**
