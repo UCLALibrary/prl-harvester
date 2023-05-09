@@ -240,7 +240,7 @@ public class HarvestServiceIT {
         final CronExpression schedule = new CronExpression("0 * * * * ?");
 
         return Stream.of( //
-                Arguments.of(Job.withID(new Job(1, baseURL, List.of(huxley), schedule, null), 1)));
+                Arguments.of(Job.withID(new Job(myTestInstitutionID, baseURL, List.of(huxley), schedule, null), 1)));
     }
 
     /**
