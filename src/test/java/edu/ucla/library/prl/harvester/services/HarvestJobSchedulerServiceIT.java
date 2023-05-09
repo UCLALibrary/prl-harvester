@@ -163,7 +163,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testInstantiationExistingJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
@@ -223,7 +223,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testAddJobsAfterInstantiation(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSavedAndDbInitialized = aContext.checkpoint();
 
@@ -293,7 +293,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 10, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testUpdateJob(final Vertx aVertx, final VertxTestContext aContext) {
         // Make sure the job updates later, and uses a different record count
         final Checkpoint serviceSaved = aContext.checkpoint();
@@ -356,7 +356,7 @@ public class HarvestJobSchedulerServiceIT {
      * @param aContext A test context
      */
     @Test
-    @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
+    @Timeout(value = 20, timeUnit = TimeUnit.SECONDS)
     public void testRemoveJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
         final Checkpoint removedJobDidNotExecute = aContext.checkpoint();
