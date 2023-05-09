@@ -31,6 +31,7 @@ import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -117,7 +118,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             final List<String> targetSets;
             final OffsetDateTime startTime;
-            final Future<List<Record>> harvest;
+            final Future<Stream<Record>> harvest;
 
             if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
                 // Harvest only the specified sets
@@ -136,20 +137,23 @@ public class HarvestServiceImpl implements HarvestService {
                     aJob.getLastSuccessfulRun(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return harvest.compose(records -> {
-                final Future<List<SolrInputDocument>> getDocs =
-                        getSolrInputDocuments(records, institutionName, baseURL, setNameLookup, myWebClient);
-
-                return getDocs.compose(docs -> {
-                    final Future<Void> solrResult;
-
-                    if (!docs.isEmpty()) {
-                        solrResult = updateSolr(docs).mapEmpty();
-                    } else {
-                        solrResult = Future.succeededFuture();
-                    }
-
-                    return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, records.size()));
+                // Map each OAI-PMH record to a future Solr document
+                final Stream<Future<SolrInputDocument>> docFutures = records.map(record -> {
+                    return HarvestServiceUtils.getSolrDocument(record, institutionName, baseURL, setNameLookup,
+                            myWebClient);
                 });
+
+                return reifySolrDocs(docFutures);
+            }).compose(docs -> {
+                final Future<Void> solrResult;
+
+                if (!docs.isEmpty()) {
+                    solrResult = updateSolr(docs).mapEmpty();
+                } else {
+                    solrResult = Future.succeededFuture();
+                }
+
+                return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, docs.size()));
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
@@ -158,23 +162,21 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     /**
-     * @param aRecords A list of OAI-PMH records
-     * @param anInstitutionName The name of the institution
-     * @param aBaseURL The OAI-PMH base URL
-     * @param aSetNameLookup A lookup table that maps setSpec to setName
-     * @param aWebClient A web client
-     * @return A Future that resolves to a list of Solr documents
+     * @param aRecords A stream of Futures that resolve to Solr documents
+     * @return A Future that resolves to a list of the Solr documents
      */
-    private static Future<List<SolrInputDocument>> getSolrInputDocuments(final List<Record> aRecords,
-            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup,
-            final WebClient aWebClient) {
-        // Transform each OAI-PMH XML record into a Solr document
-        final Stream<Future<SolrInputDocument>> recordsToDocs = aRecords.parallelStream().map(record -> {
-            return HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL, aSetNameLookup, aWebClient);
-        });
+    private Future<List<SolrInputDocument>> reifySolrDocs(final Stream<Future<SolrInputDocument>> aRecords) {
+        final Promise<List<SolrInputDocument>> promise = Promise.promise();
 
-        return CompositeFuture.all(recordsToDocs.collect(Collectors.toList()))
-                .map(CompositeFuture::<SolrInputDocument>list);
+        myVertx.<List<SolrInputDocument>>executeBlocking(execution -> {
+            // Collecting the stream may require making network calls (utilizing any resumption tokens returned with the
+            // ListRecords response, or checking if a URL references a thumbnail image), possibly many; hence the use of
+            // a worker thread
+            CompositeFuture.all(aRecords.collect(Collectors.toList())).map(CompositeFuture::<SolrInputDocument>list)
+                    .onSuccess(execution::complete).onFailure(execution::fail);
+        }, false, promise);
+
+        return promise.future();
     }
 
     /**
