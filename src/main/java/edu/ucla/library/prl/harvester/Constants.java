@@ -22,6 +22,11 @@ public final class Constants {
     public static final int DEFAULT_HTTP_PORT = 8888;
 
     /**
+     * The default value for the HTTP timeout of the internal OAI-PMH client.
+     */
+    public static final int DEFAULT_OAIPMH_CLIENT_HTTP_TIMEOUT = 60_000;
+
+    /**
      * Constant classes should have private constructors.
      */
     private Constants() {

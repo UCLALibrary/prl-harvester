@@ -71,7 +71,7 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
         final Job job = aData._1();
         final Institution institution = aData._2();
         final Future<String> futureRecordRemovalQuery = getRecordRemovalQuery(myVertx, institution.getName(),
-                job.getRepositoryBaseURL(), job.getSets(), myHarvesterUserAgent);
+                job.getRepositoryBaseURL(), job.getSets(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
         return futureRecordRemovalQuery.compose(solrQuery -> {
             final CompletionStage<UpdateResponse> removal =
@@ -86,18 +86,20 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @param anInstitutionName An institution name
      * @param aBaseURL An OAI-PMH repository base URL
      * @param aSets A list of sets
+     * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Solr query that can be used to remove records from the given sets associated with the given institution
      */
     static Future<String> getRecordRemovalQuery(final Vertx aVertx, final String anInstitutionName, final URL aBaseURL,
-            final Optional<List<String>> aSets, final String aUserAgent) {
+            final Optional<List<String>> aSets, final int aTimeout, final String aUserAgent) {
         final Future<List<String>> getSetsToRemove;
 
         if (aSets.isPresent() && !aSets.get().isEmpty()) {
             getSetsToRemove = Future.succeededFuture(aSets.get());
         } else {
             // Missing or empty list means all sets in the repository
-            getSetsToRemove = OaipmhUtils.listSets(aVertx, aBaseURL, aUserAgent).map(OaipmhUtils::getSetSpecs);
+            getSetsToRemove =
+                    OaipmhUtils.listSets(aVertx, aBaseURL, aTimeout, aUserAgent).map(OaipmhUtils::getSetSpecs);
         }
 
         return getSetsToRemove.map(sets -> {

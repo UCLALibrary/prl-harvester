@@ -27,6 +27,11 @@ public abstract class AbstractRequestHandler implements Handler<RoutingContext> 
     protected final Vertx myVertx;
 
     /**
+     * The HTTP timeout to use with the internal OAI-PMH client.
+     */
+    protected final int myOaipmhClientHttpTimeout;
+
+    /**
      * The User-Agent HTTP request header to use for outgoing requests.
      */
     protected final String myHarvesterUserAgent;
@@ -47,6 +52,7 @@ public abstract class AbstractRequestHandler implements Handler<RoutingContext> 
      */
     protected AbstractRequestHandler(final Vertx aVertx, final JsonObject aConfig) {
         myHarvesterUserAgent = Config.getHarvesterUserAgent(aConfig);
+        myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(aConfig);
         myHarvestJobSchedulerService = HarvestJobSchedulerService.createProxy(aVertx);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
         myVertx = aVertx;

@@ -77,7 +77,9 @@ public final class AddJobsHandler extends AbstractRequestHandler {
             final URL baseURL = job.getRepositoryBaseURL();
             final List<String> sets = job.getSets().orElse(List.of());
 
-            return OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).map(job);
+            return OaipmhUtils
+                    .validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                    .map(job);
         });
     }
 }
