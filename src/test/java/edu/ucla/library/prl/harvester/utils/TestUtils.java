@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
@@ -53,7 +53,9 @@ import edu.ucla.library.prl.harvester.Param;
 import io.ino.solrs.JavaAsyncSolrClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.sqlclient.Pool;
@@ -211,10 +213,10 @@ public final class TestUtils {
      * @return A Future that succeeds if the Solr index was wiped successfully, and fails otherwise
      */
     public static Future<UpdateResponse> wipeSolr(final JavaAsyncSolrClient aSolrClient) {
-        final CompletionStage<UpdateResponse> wipeSolr =
+        final CompletionStage<UpdateResponse> deletion =
                 aSolrClient.deleteByQuery(SOLR_SELECT_ALL).thenCompose(result -> aSolrClient.commit());
 
-        return Future.fromCompletionStage(wipeSolr);
+        return Future.fromCompletionStage(deletion);
     }
 
     /**
@@ -227,8 +229,10 @@ public final class TestUtils {
     public static Future<UpdateResponse> removeItemRecords(final JavaAsyncSolrClient aSolrClient,
             final String anInstitutionName) {
         final String query = StringUtils.format("institutionName:\"{}\"", anInstitutionName);
+        final CompletionStage<UpdateResponse> deletion =
+                aSolrClient.deleteByQuery(query).thenCompose(result -> aSolrClient.commit());
 
-        return Future.fromCompletionStage(aSolrClient.deleteByQuery(query).thenCompose(result -> aSolrClient.commit()));
+        return Future.fromCompletionStage(deletion);
     }
 
     /**
@@ -237,8 +241,10 @@ public final class TestUtils {
      */
     public static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
         final SolrParams params = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
+        final CompletionStage<SolrDocumentList> retrieval =
+                aSolrClient.query(params).thenApply(QueryResponse::getResults);
 
-        return Future.fromCompletionStage(aSolrClient.query(params).thenApply(QueryResponse::getResults));
+        return Future.fromCompletionStage(retrieval);
     }
 
     /**
@@ -259,28 +265,27 @@ public final class TestUtils {
      */
     public static Future<Void> resetApplication(final WebClient aWebClient) {
         return aWebClient.get(JOBS).send().compose(response -> {
-            final Stream<Integer> jobIDs =
-                    response.bodyAsJsonArray().stream().map(job -> unwrapJobID(new Job((JsonObject) job)));
-            @SuppressWarnings("rawtypes")
-            final Function<Integer, Future> deleteJob = id -> {
+            // First, delete all the jobs
+            final Stream<Future<HttpResponse<Buffer>>> jobDeletions = response.bodyAsJsonArray().stream().map(job -> {
+                final int id = unwrapJobID(new Job((JsonObject) job));
                 final String uri = JOB.expandToString(getUriTemplateVars(id));
 
                 return aWebClient.delete(uri).expect(ResponsePredicate.SC_NO_CONTENT).send();
-            };
+            });
 
-            return CompositeFuture.all(jobIDs.map(deleteJob).toList());
+            return CompositeFuture.all(jobDeletions.collect(Collectors.toList()));
         }).compose(result -> {
             return aWebClient.get(INSTITUTIONS).send().compose(response -> {
-                final Stream<Integer> instIDs = response.bodyAsJsonArray().stream()
-                        .map(inst -> unwrapInstitutionID(new Institution((JsonObject) inst)));
-                @SuppressWarnings("rawtypes")
-                final Function<Integer, Future> deleteInst = id -> {
-                    final String uri = INSTITUTION.expandToString(getUriTemplateVars(id));
+                // Then, delete all the institutions
+                final Stream<Future<HttpResponse<Buffer>>> instDeletions =
+                        response.bodyAsJsonArray().stream().map(institution -> {
+                            final int id = unwrapInstitutionID(new Institution((JsonObject) institution));
+                            final String uri = INSTITUTION.expandToString(getUriTemplateVars(id));
 
-                    return aWebClient.delete(uri).expect(ResponsePredicate.SC_NO_CONTENT).send();
-                };
+                            return aWebClient.delete(uri).expect(ResponsePredicate.SC_NO_CONTENT).send();
+                        });
 
-                return CompositeFuture.all(instIDs.map(deleteInst).toList());
+                return CompositeFuture.all(instDeletions.collect(Collectors.toList()));
             });
         }).mapEmpty();
     }
@@ -302,8 +307,10 @@ public final class TestUtils {
 
             return connection.query(query).execute();
         }).map(result -> {
+            final Runnable assertions;
+
             if (anInstitutionList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Institution> institutions = anInstitutionList.get();
 
                     assertEquals(institutions.size(), result.rowCount());
@@ -312,11 +319,13 @@ public final class TestUtils {
                         assertTrue(matchingRowExists(result, institution.toJson()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.rowCount());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.rowCount());
-            };
+            return assertions;
         });
     }
 
@@ -340,8 +349,10 @@ public final class TestUtils {
 
             return connection.query(query).execute();
         }).map(result -> {
+            final Runnable assertions;
+
             if (aJobList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Job> jobs = aJobList.get();
 
                     assertEquals(jobs.size(), result.rowCount());
@@ -350,11 +361,13 @@ public final class TestUtils {
                         assertTrue(matchingRowExists(result, job.toJson()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.rowCount());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.rowCount());
-            };
+            return assertions;
         });
     }
 
@@ -368,8 +381,10 @@ public final class TestUtils {
     public static Future<Runnable> getSolrInstitutionAssertions(final JavaAsyncSolrClient aSolrClient,
             final Optional<Set<Institution>> anInstitutionList) {
         return getAllDocuments(aSolrClient).map(result -> {
+            final Runnable assertions;
+
             if (anInstitutionList.isPresent()) {
-                return () -> {
+                assertions = () -> {
                     final Set<Institution> institutions = anInstitutionList.get();
 
                     assertEquals(institutions.size(), result.getNumFound());
@@ -384,11 +399,13 @@ public final class TestUtils {
                         assertTrue(documentsAreEffectivelyEqual(input, output.get()));
                     }
                 };
+            } else {
+                assertions = () -> {
+                    assertEquals(0, result.getNumFound());
+                };
             }
 
-            return () -> {
-                assertEquals(0, result.getNumFound());
-            };
+            return assertions;
         });
     }
 

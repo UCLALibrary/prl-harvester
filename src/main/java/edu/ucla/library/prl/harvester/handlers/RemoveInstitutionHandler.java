@@ -1,16 +1,22 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 
 import edu.ucla.library.prl.harvester.Institution;
+import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
+
+import io.vavr.Tuple;
+import io.vavr.Tuple1;
+import io.vavr.Tuple2;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -18,12 +24,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for removing institutions.
  */
-public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperationHandler<Tuple1<Institution>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -41,30 +46,20 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
 
             // Before modifying the database, get institution data so that we can update Solr accordingly
-            myHarvestScheduleStoreService.getInstitution(id).compose(institution -> {
-                // Get the list of Jobs that we need to remove
-                final Future<Void> removeAssociatedJobs = myHarvestScheduleStoreService.listJobs().compose(jobs -> {
-                    @SuppressWarnings({ "rawtypes", "unchecked" })
-                    final Stream<Future> associatedJobRemovals = jobs.parallelStream() //
-                            .filter(job -> job.getInstitutionID() == id) //
-                            .map(job -> {
-                                final int jobID = job.getID().get();
+            getInstitutionAndJobs(id).compose(institutionAndJobs -> {
+                final Institution institution = institutionAndJobs._1();
+                final List<Job> jobs = institutionAndJobs._2();
 
-                                return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
-                                    return (Future) myHarvestJobSchedulerService.removeJob(jobID);
-                                });
-                            });
-
-                    return CompositeFuture.all(associatedJobRemovals.toList()).mapEmpty();
+                @SuppressWarnings("PMD.UnnecessaryLocalBeforeReturn")
+                final Future<Void> removal = removeJobs(jobs).compose(nil -> {
+                    // If and when all the jobs are removed, remove the institution
+                    return myHarvestScheduleStoreService.removeInstitution(id).compose(none -> {
+                        return updateSolr(Tuple.of(institution)).mapEmpty();
+                    });
                 });
 
-                // Remove the Jobs, then remove the Institution
-                return removeAssociatedJobs.compose(nil -> {
-                    return myHarvestScheduleStoreService.removeInstitution(id);
-                }).compose(nil -> {
-                    return updateSolr(Tuple.of(institution.toJson()));
-                });
-            }).onSuccess(solrResponse -> {
+                return removal;
+            }).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
             }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
@@ -76,11 +71,11 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
      * Removes the institution doc, and all item record docs that were harvested by jobs associated with the
      * institution.
      *
-     * @param aData A 1-tuple of the institution as JSON
+     * @param aData A 1-tuple of the institution
      */
     @Override
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        final Institution institution = new Institution(aData.getJsonObject(0));
+    Future<UpdateResponse> updateSolr(final Tuple1<Institution> aData) {
+        final Institution institution = aData._1();
 
         final String itemRecordDocsQuery = StringUtils.format("institutionName:\"{}\"", institution.getName());
         final String institutionDocQuery =
@@ -90,5 +85,33 @@ public final class RemoveInstitutionHandler extends AbstractSolrAwareWriteOperat
                 mySolrClient.deleteByQuery(query).thenCompose(result -> mySolrClient.commit());
 
         return Future.fromCompletionStage(removal);
+    }
+
+    /**
+     * @param anInstitutionID An institution ID
+     * @return A 2-tuple of the institution and the list of jobs associated with it
+     */
+    private Future<Tuple2<Institution, List<Job>>> getInstitutionAndJobs(final int anInstitutionID) {
+        return myHarvestScheduleStoreService.getInstitution(anInstitutionID).compose(institution -> {
+            // Get the list of Jobs that we need to remove
+            return myHarvestScheduleStoreService.listJobs().map(jobs -> {
+                // Filter out the jobs not associated with this institution
+                return jobs.stream().filter(job -> job.getInstitutionID() == anInstitutionID).toList();
+            }).map(filteredJobs -> Tuple.of(institution, filteredJobs));
+        });
+    }
+
+    /**
+     * @param aJobs A list of jobs
+     * @return A Future that succeeds if all the jobs were removed, and fails otherwise
+     */
+    private Future<Void> removeJobs(final List<Job> aJobs) {
+        return CompositeFuture.all(aJobs.parallelStream().map(job -> {
+            final int jobID = job.getID().get();
+
+            return myHarvestScheduleStoreService.removeJob(jobID).compose(nil -> {
+                return myHarvestJobSchedulerService.removeJob(jobID);
+            });
+        }).collect(Collectors.toList())).mapEmpty();
     }
 }

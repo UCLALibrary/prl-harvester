@@ -263,6 +263,7 @@ public final class Job {
     public boolean equals(final Object anOther) {
         if (anOther instanceof Job) {
             final Job other = (Job) anOther;
+
             if (getID().equals(other.getID()) && getInstitutionID() == other.getInstitutionID() &&
                     getRepositoryBaseURL().equals(other.getRepositoryBaseURL()) &&
                     getMetadataPrefix().equals(other.getMetadataPrefix()) && getSets().equals(other.getSets()) &&
