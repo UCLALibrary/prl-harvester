@@ -105,6 +105,8 @@ final class HarvestServiceUtils {
 
     /**
      * Transforms an OAI-PMH record into a PRL Solr document.
+     * <p>
+     * This mapper takes a very permissive stance on the contents of a record. There are no required elements.
      *
      * @param aRecord A Dublin Core record
      * @param anInstitutionName The name of the associated institution
