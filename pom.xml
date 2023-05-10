@@ -683,6 +683,7 @@
                   <PGPORT>${test.db.port}</PGPORT>
                   <HARVEST_TIMEOUT>86400000</HARVEST_TIMEOUT>
                   <HTTP_PORT>${test.harvester.port}</HTTP_PORT>
+                  <OAIPMH_CLIENT_HTTP_TIMEOUT>1</OAIPMH_CLIENT_HTTP_TIMEOUT>
                   <SOLR_CORE_URL>http://172.17.0.1:${test.solr.port}/solr/prl</SOLR_CORE_URL>
                   <LDAP_URL>ldap://172.17.0.1:${test.auth.ldap}</LDAP_URL>
                   <LDAP_AUTH_QUERY>cn={0},ou=prlgroup,dc=glauth,dc=com</LDAP_AUTH_QUERY>
