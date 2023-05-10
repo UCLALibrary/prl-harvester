@@ -189,16 +189,14 @@ public class HarvestServiceImpl implements HarvestService {
             // a worker thread (XOAI's network I/O is blocking)
 
             // First, split the stream into two parts: existing records ("true") and deleted records ("false")
-            final Map<Boolean, List<Either<String, Future<SolrInputDocument>>>> partitionedRecords =
-                    aMixedBag.collect(Collectors.partitioningBy(Either::isRight));
+            final var partitionedRecords = aMixedBag.collect(Collectors.partitioningBy(Either::isRight));
 
             // Get Solr docs for all of the existing records (the "true" bucket of the partition)
-            final CompositeFuture solrDocReification = CompositeFuture.all( //
+            final var solrDocReification = CompositeFuture.all( //
                     partitionedRecords.get(true).parallelStream().map(Either::get).collect(Collectors.toList()));
 
             // Collect the identifiers of all the deleted records (the "false" bucket of the partition)
-            final List<String> deletedRecordIDs =
-                    partitionedRecords.get(false).parallelStream().map(Either::getLeft).toList();
+            final var deletedRecordIDs = partitionedRecords.get(false).parallelStream().map(Either::getLeft).toList();
 
             // Combine results from each bucket and return it
             solrDocReification.map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
