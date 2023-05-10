@@ -196,7 +196,7 @@ public final class OaipmhUtils {
      */
     private static ServiceProvider getNewOaipmhClient(final URL aBaseURL, final String aUserAgent)
             throws HttpException {
-        final OAIClient client = new HttpOAIClient(aBaseURL.toString(), List.of(), 60_000, aUserAgent);
+        final OAIClient client = new HttpOAIClient(aBaseURL.toString(), List.of(), 300_000, aUserAgent);
         final Context context =
                 new Context().withOAIClient(client).withMetadataTransformer(Constants.OAI_DC, KnownTransformer.OAI_DC);
 
