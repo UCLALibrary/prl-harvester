@@ -735,7 +735,7 @@
     <lst name="defaults">
       <str name="echoParams">explicit</str>
       <int name="rows">10</int>
-      <str name="df">text_multi</str>
+      <str name="df">text_multi</str><!-- change for PRL -->
     </lst>
   </requestHandler>
 
