@@ -6,7 +6,9 @@ import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -127,15 +129,20 @@ public class HarvestServiceImpl implements HarvestService {
                     aJob.getLastSuccessfulRun(), myHarvesterUserAgent);
 
             return harvest.compose(records -> {
-                final Future<Void> solrResult;
+                final Future<List<SolrInputDocument>> getDocs =
+                        getSolrInputDocuments(records, institutionName, baseURL, setNameLookup, myWebClient);
 
-                if (!records.isEmpty()) {
-                    solrResult = updateSolr(records, institutionName, baseURL, setNameLookup).mapEmpty();
-                } else {
-                    solrResult = Future.succeededFuture();
-                }
+                return getDocs.compose(docs -> {
+                    final Future<Void> solrResult;
 
-                return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, records.size()));
+                    if (!docs.isEmpty()) {
+                        solrResult = updateSolr(docs).mapEmpty();
+                    } else {
+                        solrResult = Future.succeededFuture();
+                    }
+
+                    return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, records.size()));
+                });
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
@@ -144,30 +151,36 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     /**
-     * Performs a Solr update.
-     *
      * @param aRecords A list of OAI-PMH records
      * @param anInstitutionName The name of the institution
      * @param aBaseURL The OAI-PMH base URL
      * @param aSetNameLookup A lookup table that maps setSpec to setName
+     * @param aWebClient A web client
+     * @return A Future that resolves to a list of Solr documents
+     */
+    private static Future<List<SolrInputDocument>> getSolrInputDocuments(final List<Record> aRecords,
+            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup,
+            final WebClient aWebClient) {
+        // Transform each OAI-PMH XML record into a Solr document
+        final Stream<Future<SolrInputDocument>> recordsToDocs = aRecords.parallelStream().map(record -> {
+            return HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL, aSetNameLookup, aWebClient);
+        });
+
+        return CompositeFuture.all(recordsToDocs.collect(Collectors.toList()))
+                .map(CompositeFuture::<SolrInputDocument>list);
+    }
+
+    /**
+     * Performs a Solr update.
+     *
+     * @param aDocs A list of Solr documents to add
      * @return The result of performing the Solr update
      */
-    private Future<UpdateResponse> updateSolr(final List<Record> aRecords, final String anInstitutionName,
-            final URL aBaseURL, final Map<String, String> aSetNameLookup) {
-        @SuppressWarnings("rawtypes")
-        final List<Future> docResults = new LinkedList<>();
+    private Future<UpdateResponse> updateSolr(final List<SolrInputDocument> aDocs) {
+        final CompletionStage<UpdateResponse> addition =
+                mySolrClient.addDocs(aDocs).thenCompose(result -> mySolrClient.commit());
 
-        // Transform each OAI-PMH XML record into a Solr document
-        for (final Record record : aRecords) {
-            final Future<SolrInputDocument> docResult = HarvestServiceUtils.getSolrDocument(record, anInstitutionName,
-                    aBaseURL, aSetNameLookup, myWebClient);
-
-            docResults.add(docResult);
-        }
-
-        return CompositeFuture.all(docResults).map(CompositeFuture::<SolrInputDocument>list).compose(docs -> {
-            return Future.fromCompletionStage(mySolrClient.addDocs(docs).thenCompose(result -> mySolrClient.commit()));
-        });
+        return Future.fromCompletionStage(addition);
     }
 
     @Override

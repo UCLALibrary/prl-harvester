@@ -13,6 +13,8 @@ import java.util.stream.Stream;
 
 import javax.mail.internet.AddressException;
 
+import org.apache.solr.common.SolrDocumentList;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,6 +33,7 @@ import com.google.i18n.phonenumbers.NumberParseException;
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
+import edu.ucla.library.prl.harvester.JobResult;
 import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
@@ -38,6 +41,9 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.ino.solrs.JavaAsyncSolrClient;
+
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
@@ -161,16 +167,17 @@ public class HarvestServiceIT {
                 new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun),
                 1);
 
-        myHarvestServiceProxy.run(job).onSuccess(jobResult -> {
-            TestUtils.getAllDocuments(mySolrClient).onSuccess(queryResults -> {
-                LOGGER.debug(queryResults.toString());
+        runJobAndCheckSolr(job).onSuccess(results -> {
+            final JobResult jobResult = results._1();
+            final SolrDocumentList queryResults = results._2();
 
-                aContext.verify(() -> {
-                    // Check that the two counts agree
-                    assertEquals(anExpectedRecordCount, jobResult.getRecordCount());
-                    assertEquals(anExpectedRecordCount, queryResults.getNumFound());
-                }).completeNow();
-            }).onFailure(aContext::failNow);
+            LOGGER.debug(queryResults.toString());
+
+            aContext.verify(() -> {
+                // Check that the two counts agree
+                assertEquals(anExpectedRecordCount, jobResult.getRecordCount());
+                assertEquals(anExpectedRecordCount, queryResults.getNumFound());
+            }).completeNow();
         }).onFailure(aContext::failNow);
     }
 
@@ -208,14 +215,15 @@ public class HarvestServiceIT {
     @Tag("real-provider")
     @Timeout(value = 5, timeUnit = TimeUnit.MINUTES)
     public void testRunRealProvider(final Job aJob, final Vertx aVertx, final VertxTestContext aContext) {
-        myHarvestServiceProxy.run(aJob).onSuccess(jobResult -> {
-            TestUtils.getAllDocuments(mySolrClient).onSuccess(queryResults -> {
-                LOGGER.debug(queryResults.toString());
+        runJobAndCheckSolr(aJob).onSuccess(results -> {
+            final JobResult jobResult = results._1();
+            final SolrDocumentList queryResults = results._2();
 
-                aContext.verify(() -> {
-                    assertEquals(jobResult.getRecordCount(), queryResults.getNumFound());
-                }).completeNow();
-            }).onFailure(aContext::failNow);
+            LOGGER.debug(queryResults.toString());
+
+            aContext.verify(() -> {
+                assertEquals(jobResult.getRecordCount(), queryResults.getNumFound());
+            }).completeNow();
         }).onFailure(aContext::failNow);
     }
 
@@ -254,6 +262,20 @@ public class HarvestServiceIT {
             aContext.completeNow();
         }).onSuccess(result -> {
             aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_000, result.toJson()));
+        });
+    }
+
+    /**
+     * Runs a job and combines the result with the side effect observed in the Solr index.
+     *
+     * @param aJob A job
+     * @return A Future that resolves to a 2-tuple containing the job result summary and the created Solr documents
+     */
+    private Future<Tuple2<JobResult, SolrDocumentList>> runJobAndCheckSolr(final Job aJob) {
+        return myHarvestServiceProxy.run(aJob).compose(jobResult -> {
+            return TestUtils.getAllDocuments(mySolrClient).map(queryResults -> {
+                return Tuple.of(jobResult, queryResults);
+            });
         });
     }
 }

@@ -1,6 +1,7 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -8,11 +9,15 @@ import java.util.concurrent.CompletionStage;
 import org.apache.http.HttpStatus;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 
+import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.InvalidJobJsonException;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MediaType;
 import edu.ucla.library.prl.harvester.OaipmhUtils;
 import edu.ucla.library.prl.harvester.Param;
+
+import io.vavr.Tuple;
+import io.vavr.Tuple3;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -20,12 +25,11 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for updating jobs.
  */
-public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandler<Tuple3<Job, Job, Institution>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -41,21 +45,23 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
 
         try {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
-            final JsonObject jobJSON = aContext.body().asJsonObject();
-            final Job job = new Job(jobJSON);
-            final Future<Void> validateOaipmhIdentifiers = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
+            final Job job = new Job(aContext.body().asJsonObject());
+            final URL baseURL = job.getRepositoryBaseURL();
+            final List<String> sets = job.getSets().orElse(List.of());
 
-            validateOaipmhIdentifiers.onSuccess(none -> {
-                myHarvestScheduleStoreService.getJob(id).compose(oldJob -> {
-                    return myHarvestScheduleStoreService.getInstitution(oldJob.getInstitutionID())
-                            .compose(institution -> {
-                                return myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                                    return myHarvestJobSchedulerService.updateJob(id, job);
-                                }).compose(nil -> {
-                                    return updateSolr(Tuple.of(oldJob.toJson(), jobJSON, institution.getName()));
-                                });
-                            });
+            OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).onSuccess(none -> {
+                getJobAndInstitution(id).compose(oldJobAndInstitution -> {
+                    // Update the database, the in-memory scheduler, and Solr
+                    final Future<Void> update = myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
+                        return myHarvestJobSchedulerService.updateJob(id, job);
+                    }).compose(nil -> {
+                        final Job oldJob = oldJobAndInstitution._1();
+                        final Institution institution = oldJobAndInstitution._2();
+
+                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
+                    });
+
+                    return update;
                 }).onSuccess(nil -> {
                     final JsonObject responseBody = Job.withID(job, id).toJson();
 
@@ -74,14 +80,13 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * Removes all item records that belong to the sets removed from the job (if any).
      *
-     * @param aData A 3-tuple of the old JSON representation of the job, its new JSON representation, and the
-     *        institution name
+     * @param aData A 3-tuple of the old job, the new job, and the associated institution
      */
     @Override
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        final Job oldJob = new Job(aData.getJsonObject(0));
-        final Job newJob = new Job(aData.getJsonObject(1));
-        final String institutionName = aData.getString(2);
+    Future<UpdateResponse> updateSolr(final Tuple3<Job, Job, Institution> aData) {
+        final Job oldJob = aData._1();
+        final Job newJob = aData._2();
+        final Institution institution = aData._3();
 
         final Optional<List<String>> oldJobSets = oldJob.getSets();
         final Optional<List<String>> newJobSets = newJob.getSets();
@@ -107,7 +112,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         // If we determined that there are sets to remove, do that now
         return getActualOldJobSets.compose(sets -> {
             final Optional<List<String>> setsToRemove = Optional.of(getDifference(sets, newJobSets.get()));
-            final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institutionName,
+            final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institution.getName(),
                     oldJob.getRepositoryBaseURL(), setsToRemove, myHarvesterUserAgent);
 
             return getSolrQuery.compose(solrQuery -> {

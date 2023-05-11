@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.solr.common.SolrInputDocument;
 
@@ -104,6 +105,8 @@ final class HarvestServiceUtils {
 
     /**
      * Transforms an OAI-PMH record into a PRL Solr document.
+     * <p>
+     * This mapper takes a very permissive stance on the contents of a record. There are no required elements.
      *
      * @param aRecord A Dublin Core record
      * @param anInstitutionName The name of the associated institution
@@ -126,7 +129,8 @@ final class HarvestServiceUtils {
         final List<String> setSpecs = aRecord.getHeader().getSetSpecs();
 
         // Get an iterator over the elements inside the top-level "dc" element
-        final List<Element> allElements = aRecord.getMetadata().getValue().getElements().get(0).getElements();
+        final List<Element> allElementsWithAValue = aRecord.getMetadata().getValue().getElements().get(0).getElements()
+                .parallelStream().filter(e -> getValueOfFirstField(e) != null).toList();
 
         doc.setField("id", recordIdentifier);
         doc.setField("institutionName", anInstitutionName);
@@ -138,10 +142,9 @@ final class HarvestServiceUtils {
         doc.setField("collectionName", setNames);
         doc.setField("set_spec", setSpecs);
 
-        for (final Element element : allElements) {
+        for (final Element element : allElementsWithAValue) {
             final String name = element.getName();
-            // Each element contains just a text node
-            final String value = element.getFields().get(0).getValue();
+            final String value = getValueOfFirstField(element);
 
             if (THUMBNAIL_URL_FIELDS.contains(name)) {
                 try {
@@ -162,9 +165,9 @@ final class HarvestServiceUtils {
                 doc.setField("thumbnail_url", thumbnailURL.get().toString());
             }
 
-            for (final Element element : allElements) {
+            for (final Element element : allElementsWithAValue) {
                 final String name = element.getName();
-                final String value = element.getFields().get(0).getValue();
+                final String value = getValueOfFirstField(element);
                 final boolean valueIsNotThumbnailURL =
                         thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
@@ -197,10 +200,9 @@ final class HarvestServiceUtils {
                 doc.setField("alternate_external_link", stringifiedItemUrls.subList(1, stringifiedItemUrls.size()));
             }
 
-            for (final Element element : allElements) {
+            for (final Element element : allElementsWithAValue) {
                 final String name = element.getName();
-                // Each element contains just a text node
-                final String value = element.getFields().get(0).getValue();
+                final String value = getValueOfFirstField(element);
                 final boolean valueIsNotThumbnailURL =
                         thumbnailURL.map(url -> !url.toString().equals(value)).orElse(true);
 
@@ -255,6 +257,14 @@ final class HarvestServiceUtils {
         }
 
         return strings;
+    }
+
+    /**
+     * @param anElement An XML element
+     * @return The value of the first field; for elements that contain a single text node (as in DC), this is just that
+     */
+    private static String getValueOfFirstField(final Element anElement) {
+        return anElement.getFields().get(0).getValue();
     }
 
     /**
@@ -321,8 +331,7 @@ final class HarvestServiceUtils {
             return Future.succeededFuture(Optional.of(urlsWithImageFiletypeExtension.get(0)));
         } else {
             // None of the URLs have an image filetype extension, so check Content-Type of HEAD response
-            @SuppressWarnings("rawtypes")
-            final List<Future> contentTypeChecks = partitionedUrls.get(false).stream().map(url -> {
+            final Stream<Future<URL>> contentTypeChecks = partitionedUrls.get(false).stream().map(url -> {
                 final HttpRequest<?> headRequest = aWebClient.headAbs(url.toString());
 
                 return headRequest.send().compose(response -> {
@@ -336,9 +345,9 @@ final class HarvestServiceUtils {
                         return Future.failedFuture("not an image URL");
                     }
                 }, Future::failedFuture);
-            }).collect(Collectors.toUnmodifiableList());
+            });
 
-            return CompositeFuture.any(contentTypeChecks).map(result -> {
+            return CompositeFuture.any(contentTypeChecks.collect(Collectors.toList())).map(result -> {
                 // Scan the list for the first image URL
                 for (final URL url : result.<URL>list()) {
                     if (url != null) {

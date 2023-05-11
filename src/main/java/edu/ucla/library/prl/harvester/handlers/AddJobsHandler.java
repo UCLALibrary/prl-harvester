@@ -1,6 +1,7 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
+import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,15 +38,17 @@ public final class AddJobsHandler extends AbstractRequestHandler {
     @Override
     public void handle(final RoutingContext aContext) {
         final HttpServerResponse response = aContext.response();
-        final Stream<Future<Job>> semanticValidations =
-                aContext.body().asJsonArray().stream().map(this::validateInstitution);
+        final Stream<Future<Job>> semanticValidations = aContext.body().asJsonArray().stream().map(this::validateJob);
 
         CompositeFuture.all(semanticValidations.collect(Collectors.toList())).onSuccess(result -> {
             final List<Job> jobs = result.list();
 
-            myHarvestScheduleStoreService.addJobs(jobs).compose(jobsWithIDs -> {
+            // Update the database and the in-memory scheduler
+            final Future<List<Job>> update = myHarvestScheduleStoreService.addJobs(jobs).compose(jobsWithIDs -> {
                 return myHarvestJobSchedulerService.addJobs(jobsWithIDs).map(jobsWithIDs);
-            }).onSuccess(jobsWithIDs -> {
+            });
+
+            update.onSuccess(jobsWithIDs -> {
                 final JsonArray responseBody = new JsonArray(jobsWithIDs.stream().map(Job::toJson).toList());
 
                 response.setStatusCode(HttpStatus.SC_CREATED)
@@ -58,10 +61,10 @@ public final class AddJobsHandler extends AbstractRequestHandler {
     }
 
     /**
-     * @param aJob An entry in the request body array
-     * @return A Future that succeeds if the entry is a valid {@link Job}
+     * @param aJob An element in the request body array
+     * @return A Future that succeeds if the element is a valid {@link Job}
      */
-    private Future<Job> validateInstitution(final Object aJob) {
+    private Future<Job> validateJob(final Object aJob) {
         Future<Job> deserializationResult;
 
         try {
@@ -71,10 +74,10 @@ public final class AddJobsHandler extends AbstractRequestHandler {
         }
 
         return deserializationResult.compose(job -> {
-            final Future<Void> oaipmhIdentifierValidationResult = OaipmhUtils.validateIdentifiers(myVertx,
-                    job.getRepositoryBaseURL(), job.getSets().orElse(List.of()), myHarvesterUserAgent);
+            final URL baseURL = job.getRepositoryBaseURL();
+            final List<String> sets = job.getSets().orElse(List.of());
 
-            return oaipmhIdentifierValidationResult.map(job);
+            return OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).map(job);
         });
     }
 }

@@ -6,6 +6,7 @@
   <dc:subject>Authors, English--20th century</dc:subject>
   <dc:subject>Huxley, Aldous, 1894-1963 Childhood and youth</dc:subject>
   <dc:date>[1902]</dc:date>
+  <dc:date></dc:date><!-- A null-valued field that the record mapper should ignore -->
   <dc:language>zxx</dc:language>
   <dc:identifier>http://172.17.0.1:${test.s3.port}/thumbnails-source/ark+=21198=zz00253w02.jpg</dc:identifier>
   <dc:identifier>https://digital.library.ucla.edu/catalog/ark:/21198/zz00253w02</dc:identifier>

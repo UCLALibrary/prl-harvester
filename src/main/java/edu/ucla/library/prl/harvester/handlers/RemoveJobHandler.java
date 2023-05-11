@@ -16,17 +16,18 @@ import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
 
+import io.vavr.Tuple2;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * A handler for removing jobs.
  */
-public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandler {
+public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandler<Tuple2<Job, Institution>> {
 
     /**
      * @param aVertx A Vert.x instance
@@ -43,17 +44,16 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
         try {
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
 
-            // Query database first to get job info for removing it
-            myHarvestScheduleStoreService.getJob(id).compose(job -> {
-                return myHarvestScheduleStoreService.getInstitution(job.getInstitutionID()).compose(institution -> {
-                    // Do all the solr updating in this context
-                    return myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
-                        return myHarvestJobSchedulerService.removeJob(id);
-                    }).compose(nil -> {
-                        return updateSolr(Tuple.of(job.toJson(), institution.toJson()));
-                    });
+            getJobAndInstitution(id).compose(jobAndInst -> {
+                // Update the database, in-memory scheduler, and Solr
+                final Future<Void> removal = myHarvestScheduleStoreService.removeJob(id).compose(nil -> {
+                    return myHarvestJobSchedulerService.removeJob(id);
+                }).compose(nil -> {
+                    return updateSolr(jobAndInst).mapEmpty();
                 });
-            }).onSuccess(solrResponse -> {
+
+                return removal;
+            }).onSuccess(nil -> {
                 response.setStatusCode(HttpStatus.SC_NO_CONTENT).end();
             }).onFailure(aContext::fail);
         } catch (final NumberFormatException details) {
@@ -64,12 +64,12 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * Removes all item records that were harvested by the job.
      *
-     * @param aData A 2-tuple of the ID of the job to remove, and its JSON representation
+     * @param aData A 2-tuple of the job to remove and its associated institution
      */
     @Override
-    Future<UpdateResponse> updateSolr(final Tuple aData) {
-        final Job job = new Job(aData.getJsonObject(0));
-        final Institution institution = new Institution(aData.getJsonObject(1));
+    Future<UpdateResponse> updateSolr(final Tuple2<Job, Institution> aData) {
+        final Job job = aData._1();
+        final Institution institution = aData._2();
         final Future<String> futureRecordRemovalQuery = getRecordRemovalQuery(myVertx, institution.getName(),
                 job.getRepositoryBaseURL(), job.getSets(), myHarvesterUserAgent);
 
@@ -103,7 +103,7 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
         return getSetsToRemove.map(sets -> {
             final String[] collectionQueryClauses = sets.stream() //
                     .map(set -> StringUtils.format("set_spec:\"{}\"", set)) //
-                    .toArray(x -> new String[sets.size()]);
+                    .toArray(length -> new String[sets.size()]);
 
             return StringUtils.format("institutionName:\"{}\" AND ({})", anInstitutionName,
                     String.join(" OR ", collectionQueryClauses));

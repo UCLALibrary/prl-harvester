@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.http.HttpStatus;
@@ -14,8 +15,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 import info.freelibrary.util.Logger;
@@ -72,8 +72,7 @@ public class FrontEndIT extends AuthorizedFIT {
      * @param aContext A test context
      */
     @ParameterizedTest
-    @MethodSource
-    @SuppressWarnings("rawtypes")
+    @ValueSource(strings = { "/admin/", "/admin", "/" })
     public void testAdminInterfaceRetrieval(final String aPath, final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint indexHtmlResolves = aContext.checkpoint();
         final Checkpoint linkedAssetsResolve = aContext.checkpoint();
@@ -84,12 +83,12 @@ public class FrontEndIT extends AuthorizedFIT {
             final Stream<Future<Void>> checkLinkElements = html.getElementsByTag("link").stream().map(elt -> {
                 final String href = elt.attr("href");
 
-                return myWebClient.get(href).send().compose(resp -> checkAssetResponse(href, resp));
+                return resolveAsset(myWebClient, href).mapEmpty();
             });
             final Stream<Future<Void>> checkScriptElements = html.getElementsByTag("script").stream().map(elt -> {
                 final String src = elt.attr("src");
 
-                return myWebClient.get(src).send().compose(resp -> checkAssetResponse(src, resp));
+                return resolveAsset(myWebClient, src).mapEmpty();
             });
             final Stream<Future<Void>> checkAllElements = Stream.concat(checkLinkElements, checkScriptElements);
 
@@ -104,33 +103,20 @@ public class FrontEndIT extends AuthorizedFIT {
             });
 
             // Verify linked asset resolution
-            CompositeFuture.all(checkAllElements.map(fut -> (Future) fut).toList()).onSuccess(result -> {
+            CompositeFuture.all(checkAllElements.collect(Collectors.toList())).onSuccess(result -> {
                 linkedAssetsResolve.flag();
             }).onFailure(aContext::failNow);
         }).onFailure(aContext::failNow);
     }
 
     /**
-     * @return The arguments for the corresponding {@link ParameterizedTest}
-     */
-    static Stream<Arguments> testAdminInterfaceRetrieval() {
-        // The list of paths that should resolve to the admin interface, including via redirect
-        return Stream.of(Arguments.of("/admin/"), Arguments.of("/admin"), Arguments.of("/"));
-    }
-
-    /**
+     * @param aWebClient A web client
      * @param anAssetURL The URL of a static asset
-     * @param anAssetResponse The HTTP response of a GET request for that asset
-     * @return A Future that succeeds if the HTTP status code is 200, or fails otherwise
+     * @return A Future that succeeds if the HTTP response status code is 200, or fails otherwise
      */
-    private static Future<Void> checkAssetResponse(final String anAssetURL,
-            final HttpResponse<Buffer> anAssetResponse) {
-        final int statusCode = anAssetResponse.statusCode();
-
-        if (HttpStatus.SC_OK == statusCode) {
-            return Future.succeededFuture();
-        }
-        return Future.failedFuture(
-                LOGGER.getMessage(MessageCodes.PRL_036, anAssetURL, statusCode, anAssetResponse.bodyAsString()));
+    private static Future<HttpResponse<Buffer>> resolveAsset(final WebClient aWebClient, final String anAssetURL) {
+        return aWebClient.get(anAssetURL).expect(ResponsePredicate.SC_OK).send().recover(details -> {
+            return Future.failedFuture(LOGGER.getMessage(MessageCodes.PRL_036, anAssetURL, details.getMessage()));
+        });
     }
 }
