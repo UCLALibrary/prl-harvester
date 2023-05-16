@@ -154,6 +154,7 @@ public class HarvestServiceIT {
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      * @param anExpectedRecordCount The expected number of records that would be harvested by the job
+     * @param anExpectedDeletedRecordCount The expected number of records that would be removed by the job
      * @param aVertx A Vert.x instance
      * @param aContext A test context
      */
@@ -161,8 +162,8 @@ public class HarvestServiceIT {
     @MethodSource
     @Timeout(value = 1, timeUnit = TimeUnit.MINUTES)
     public void testRun(final List<String> aSets, final CronExpression aScheduleCronExpression,
-            final OffsetDateTime aLastSuccessfulRun, final int anExpectedRecordCount, final Vertx aVertx,
-            final VertxTestContext aContext) {
+            final OffsetDateTime aLastSuccessfulRun, final int anExpectedRecordCount,
+            final int anExpectedDeletedRecordCount, final Vertx aVertx, final VertxTestContext aContext) {
         final Job job = Job.withID(
                 new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun),
                 1);
@@ -177,6 +178,7 @@ public class HarvestServiceIT {
                 // Check that the two counts agree
                 assertEquals(anExpectedRecordCount, jobResult.getRecordCount());
                 assertEquals(anExpectedRecordCount, queryResults.getNumFound());
+                assertEquals(anExpectedDeletedRecordCount, jobResult.getDeletedRecordCount());
             }).completeNow();
         }).onFailure(aContext::failNow);
     }
@@ -193,14 +195,14 @@ public class HarvestServiceIT {
 
         // These arguments reflect the directory structure of src/test/resources/provider
         return Stream.of( //
-                Arguments.of(List.of(set1), schedule, null, 2), //
-                Arguments.of(List.of(set2), schedule, null, 3), //
-                Arguments.of(List.of(set1, set2), schedule, null, 5), //
-                Arguments.of(List.of(), schedule, null, 5), //
-                Arguments.of(List.of("undefined"), schedule, null, 0), //
-                Arguments.of(List.of(set1, "nil"), schedule, null, 2), //
-                Arguments.of(null, schedule, OffsetDateTime.now().minusHours(1), 5), //
-                Arguments.of(null, schedule, OffsetDateTime.now().plusHours(1), 0));
+                Arguments.of(List.of(set1), schedule, null, 2, 0), //
+                Arguments.of(List.of(set2), schedule, null, 3, 0), //
+                Arguments.of(List.of(set1, set2), schedule, null, 5, 0), //
+                Arguments.of(List.of(), schedule, null, 5, 0), //
+                Arguments.of(List.of("undefined"), schedule, null, 0, 0), //
+                Arguments.of(List.of(set1, "nil"), schedule, null, 2, 0), //
+                Arguments.of(null, schedule, OffsetDateTime.now().minusHours(1), 5, 0), //
+                Arguments.of(null, schedule, OffsetDateTime.now().plusHours(1), 0, 0));
     }
 
     /**

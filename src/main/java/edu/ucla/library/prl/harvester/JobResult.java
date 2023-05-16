@@ -30,6 +30,11 @@ public class JobResult {
     static final String RECORD_COUNT = "recordCount";
 
     /**
+     * The JSON key for the deleted record count.
+     */
+    static final String DELETED_RECORD_COUNT = "deletedRecordCount";
+
+    /**
      * The ID of the associated job.
      */
     private final int myJobID;
@@ -45,16 +50,24 @@ public class JobResult {
     private final int myRecordCount;
 
     /**
+     * The number of records deleted.
+     */
+    private final int myDeletedRecordCount;
+
+    /**
      * Instantiates a job result.
      *
      * @param aJobID The ID of the associated job
      * @param aStartTime The time when the job was started
      * @param aRecordCount The number of records harvested
+     * @param aDeletedRecordCount The number of records deleted
      */
-    public JobResult(final int aJobID, final OffsetDateTime aStartTime, final int aRecordCount) {
+    public JobResult(final int aJobID, final OffsetDateTime aStartTime, final int aRecordCount,
+            final int aDeletedRecordCount) {
         myJobID = aJobID;
         myStartTime = Objects.requireNonNull(aStartTime);
         myRecordCount = aRecordCount;
+        myDeletedRecordCount = aDeletedRecordCount;
     }
 
     /**
@@ -63,13 +76,14 @@ public class JobResult {
      * @param aJsonObject A job result represented as JSON
      * @throws InvalidJobResultJsonException If the JSON representation is invalid
      */
-    @SuppressWarnings({ "PMD.AvoidLiteralsInIfCondition", "PMD.CyclomaticComplexity" })
+    @SuppressWarnings({ "PMD.AvoidLiteralsInIfCondition", "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity" })
     public JobResult(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
 
         final Integer jobID = aJsonObject.getInteger(JOB_ID);
         final String startTime = aJsonObject.getString(START_TIME);
         final Integer recordCount = aJsonObject.getInteger(RECORD_COUNT);
+        final Integer deletedRecordCount = aJsonObject.getInteger(DELETED_RECORD_COUNT);
 
         if (jobID != null) {
             if (jobID >= 1) {
@@ -101,6 +115,16 @@ public class JobResult {
         } else {
             throw new InvalidJobResultJsonException(MessageCodes.PRL_002, RECORD_COUNT);
         }
+
+        if (deletedRecordCount != null) {
+            if (deletedRecordCount >= 0) {
+                myDeletedRecordCount = deletedRecordCount.intValue();
+            } else {
+                throw new InvalidJobResultJsonException(MessageCodes.PRL_004, DELETED_RECORD_COUNT, deletedRecordCount);
+            }
+        } else {
+            throw new InvalidJobResultJsonException(MessageCodes.PRL_002, DELETED_RECORD_COUNT);
+        }
     }
 
     /**
@@ -110,7 +134,8 @@ public class JobResult {
         return new JsonObject() //
                 .put(JOB_ID, getJobID()) //
                 .put(START_TIME, getStartTime().toString()) //
-                .put(RECORD_COUNT, getRecordCount());
+                .put(RECORD_COUNT, getRecordCount()) //
+                .put(DELETED_RECORD_COUNT, getDeletedRecordCount());
     }
 
     /**
@@ -134,13 +159,21 @@ public class JobResult {
         return myRecordCount;
     }
 
+    /**
+     * @return The deleted record count
+     */
+    public int getDeletedRecordCount() {
+        return myDeletedRecordCount;
+    }
+
     @Override
     public boolean equals(final Object anOther) {
         if (anOther instanceof JobResult) {
             final JobResult other = (JobResult) anOther;
 
             if (getJobID() == other.getJobID() && getStartTime().equals(other.getStartTime()) &&
-                    getRecordCount() == other.getRecordCount()) {
+                    getRecordCount() == other.getRecordCount() &&
+                    getDeletedRecordCount() == other.getDeletedRecordCount()) {
                 return true;
             }
         }
@@ -156,6 +189,7 @@ public class JobResult {
         result = prime * result + myJobID;
         result = prime * result + myStartTime.hashCode();
         result = prime * result + myRecordCount;
+        result = prime * result + myDeletedRecordCount;
 
         return result;
     }

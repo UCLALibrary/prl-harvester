@@ -162,8 +162,8 @@ public class HarvestServiceImpl implements HarvestService {
                 final List<SolrInputDocument> docs = docsAndDeletedRecordIDs._1();
                 final List<String> deletedRecordIDs = docsAndDeletedRecordIDs._2();
 
-                return updateSolr(docs, deletedRecordIDs)
-                        .map(result -> new JobResult(aJob.getID().get(), startTime, docs.size()));
+                return updateSolr(docs, deletedRecordIDs).map(
+                        result -> new JobResult(aJob.getID().get(), startTime, docs.size(), deletedRecordIDs.size()));
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
