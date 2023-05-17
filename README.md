@@ -27,6 +27,7 @@ LDAP_ATTRIBUTE_VALUE|The LDAP attribute value used to authorize user|Yes|
 LDAP_AUTH_QUERY|The LDAP query to authenticate user|Yes|
 LDAP_USER_QUERY|The LDAP query to retrieve user info|Yes|
 LDAP_URL|The LDAP server URL|Yes|
+OAIPMH_CLIENT_HTTP_TIMEOUT|The max amount of time that an OAI-PMH HTTP request may take to complete (in milliseconds)|No|60000
 PGDATABASE|The database name|No|db
 PGHOSTADDR|The database host|No|localhost
 PGPASSWORD|The database password|No|pass

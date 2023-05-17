@@ -64,6 +64,11 @@ public final class Config {
     public static final String LDAP_URL = "LDAP_URL";
 
     /**
+     * The ENV property for the HTTP timeout of the internal OAI-PMH client.
+     */
+    public static final String OAIPMH_CLIENT_HTTP_TIMEOUT = "OAIPMH_CLIENT_HTTP_TIMEOUT";
+
+    /**
      * The ENV property for the Solr core URL.
      */
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
@@ -93,5 +98,15 @@ public final class Config {
      */
     public static int getHttpPort(final JsonObject aConfig) {
         return aConfig.getInteger(Config.HTTP_PORT, Constants.DEFAULT_HTTP_PORT);
+    }
+
+    /**
+     * Gets the HTTP timeout to use with the internal OAI-PMH client.
+     *
+     * @param aConfig A configuration
+     * @return The timeout
+     */
+    public static int getOaipmhClientHttpTimeout(final JsonObject aConfig) {
+        return aConfig.getInteger(Config.OAIPMH_CLIENT_HTTP_TIMEOUT, Constants.DEFAULT_OAIPMH_CLIENT_HTTP_TIMEOUT);
     }
 }

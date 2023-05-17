@@ -54,6 +54,11 @@ public class HarvestServiceImpl implements HarvestService {
     private final Vertx myVertx;
 
     /**
+     * The HTTP timeout to use with the internal OAI-PMH client.
+     */
+    private final int myOaipmhClientHttpTimeout;
+
+    /**
      * The User-Agent HTTP request header to use for outgoing requests.
      */
     private final String myHarvesterUserAgent;
@@ -84,6 +89,7 @@ public class HarvestServiceImpl implements HarvestService {
 
         myVertx = aVertx;
         myHarvesterUserAgent = userAgent;
+        myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(aConfig);
         myWebClient = WebClient.create(aVertx, new WebClientOptions().setUserAgent(userAgent));
         mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
@@ -93,7 +99,8 @@ public class HarvestServiceImpl implements HarvestService {
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
         final int institutionID = aJob.getInstitutionID();
-        final Future<List<Set>> listSets = OaipmhUtils.listSets(myVertx, baseURL, myHarvesterUserAgent);
+        final Future<List<Set>> listSets =
+                OaipmhUtils.listSets(myVertx, baseURL, myOaipmhClientHttpTimeout, myHarvesterUserAgent);
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
 
         if (aJob.getID().isEmpty()) {
@@ -126,7 +133,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
             harvest = OaipmhUtils.listRecords(myVertx, baseURL, targetSets, aJob.getMetadataPrefix(),
-                    aJob.getLastSuccessfulRun(), myHarvesterUserAgent);
+                    aJob.getLastSuccessfulRun(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return harvest.compose(records -> {
                 final Future<List<SolrInputDocument>> getDocs =

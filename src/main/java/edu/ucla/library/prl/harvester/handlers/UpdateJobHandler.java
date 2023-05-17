@@ -49,29 +49,31 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             final URL baseURL = job.getRepositoryBaseURL();
             final List<String> sets = job.getSets().orElse(List.of());
 
-            OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myHarvesterUserAgent).onSuccess(none -> {
-                getJobAndInstitution(id).compose(oldJobAndInstitution -> {
-                    // Update the database, the in-memory scheduler, and Solr
-                    final Future<Void> update = myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                        return myHarvestJobSchedulerService.updateJob(id, job);
-                    }).compose(nil -> {
-                        final Job oldJob = oldJobAndInstitution._1();
-                        final Institution institution = oldJobAndInstitution._2();
+            OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                    .onSuccess(none -> {
+                        getJobAndInstitution(id).compose(oldJobAndInstitution -> {
+                            // Update the database, the in-memory scheduler, and Solr
+                            final Future<Void> update =
+                                    myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
+                                        return myHarvestJobSchedulerService.updateJob(id, job);
+                                    }).compose(nil -> {
+                                        final Job oldJob = oldJobAndInstitution._1();
+                                        final Institution institution = oldJobAndInstitution._2();
 
-                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
+                                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
+                                    });
+
+                            return update;
+                        }).onSuccess(nil -> {
+                            final JsonObject responseBody = Job.withID(job, id).toJson();
+
+                            response.setStatusCode(HttpStatus.SC_OK)
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
+                                    .end(responseBody.encode());
+                        }).onFailure(aContext::fail);
+                    }).onFailure(details -> {
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
                     });
-
-                    return update;
-                }).onSuccess(nil -> {
-                    final JsonObject responseBody = Job.withID(job, id).toJson();
-
-                    response.setStatusCode(HttpStatus.SC_OK)
-                            .putHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON.toString())
-                            .end(responseBody.encode());
-                }).onFailure(aContext::fail);
-            }).onFailure(details -> {
-                response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
-            });
         } catch (final InvalidJobJsonException | NumberFormatException details) {
             response.setStatusCode(HttpStatus.SC_BAD_REQUEST).end(details.getMessage());
         }
@@ -98,7 +100,8 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         } else if (oldJobSets.isEmpty() && newJobSets.isPresent()) {
             // From non-selective harvesting to selective, so it's very likely that there are sets to remove
             // Must query OAI-PMH repository in order to get the sets belonging to the old job
-            getActualOldJobSets = OaipmhUtils.listSets(myVertx, oldJob.getRepositoryBaseURL(), myHarvesterUserAgent)
+            getActualOldJobSets = OaipmhUtils
+                    .listSets(myVertx, oldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
                     .map(OaipmhUtils::getSetSpecs);
             // TODO: make it impossible to change the base URL
         } else if (oldJobSets.isPresent() && newJobSets.isEmpty()) {
@@ -113,7 +116,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         return getActualOldJobSets.compose(sets -> {
             final Optional<List<String>> setsToRemove = Optional.of(getDifference(sets, newJobSets.get()));
             final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institution.getName(),
-                    oldJob.getRepositoryBaseURL(), setsToRemove, myHarvesterUserAgent);
+                    oldJob.getRepositoryBaseURL(), setsToRemove, myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return getSolrQuery.compose(solrQuery -> {
                 final CompletionStage<UpdateResponse> removal =

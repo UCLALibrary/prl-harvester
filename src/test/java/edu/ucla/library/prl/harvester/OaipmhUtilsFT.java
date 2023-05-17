@@ -51,6 +51,8 @@ public class OaipmhUtilsFT {
 
     private String myHarvesterUserAgent;
 
+    private int myOaipmhClientHttpTimeout;
+
     private URL myTestDataProviderURL;
 
     /**
@@ -61,6 +63,7 @@ public class OaipmhUtilsFT {
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
         ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
             myHarvesterUserAgent = Config.getHarvesterUserAgent(config);
+            myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(config);
 
             try {
                 myTestDataProviderURL = new URL(config.getString(TestUtils.TEST_PROVIDER_BASE_URL));
@@ -81,12 +84,13 @@ public class OaipmhUtilsFT {
      */
     @Test
     public final void testListSets(final Vertx aVertx, final VertxTestContext aContext) {
-        OaipmhUtils.listSets(aVertx, myTestDataProviderURL, myHarvesterUserAgent).onSuccess(sets -> {
-            aContext.verify(() -> {
-                assertEquals(2, sets.size());
-                assertTrue(OaipmhUtils.getSetSpecs(sets).containsAll(java.util.Set.of(SET1, SET2)));
-            }).completeNow();
-        }).onFailure(aContext::failNow);
+        OaipmhUtils.listSets(aVertx, myTestDataProviderURL, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                .onSuccess(sets -> {
+                    aContext.verify(() -> {
+                        assertEquals(2, sets.size());
+                        assertTrue(OaipmhUtils.getSetSpecs(sets).containsAll(java.util.Set.of(SET1, SET2)));
+                    }).completeNow();
+                }).onFailure(aContext::failNow);
     }
 
     /**
@@ -101,8 +105,8 @@ public class OaipmhUtilsFT {
     @MethodSource
     public final void testListRecords(final List<String> aSets, final int anExpectedRecordCount, final Vertx aVertx,
             final VertxTestContext aContext) {
-        OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(), myHarvesterUserAgent)
-                .onSuccess(records -> {
+        OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(),
+                myOaipmhClientHttpTimeout, myHarvesterUserAgent).onSuccess(records -> {
                     aContext.verify(() -> {
                         assertEquals(anExpectedRecordCount, records.size());
                     }).completeNow();
@@ -127,8 +131,8 @@ public class OaipmhUtilsFT {
      */
     @Test
     public final void testValidateIdentifiers(final Vertx aVertx, final VertxTestContext aContext) {
-        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(SET1, SET2), myHarvesterUserAgent)
-                .onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(SET1, SET2), myOaipmhClientHttpTimeout,
+                myHarvesterUserAgent).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
     /**
@@ -148,8 +152,8 @@ public class OaipmhUtilsFT {
             return;
         }
 
-        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2), myHarvesterUserAgent)
-                .onFailure(details -> {
+        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2), myOaipmhClientHttpTimeout,
+                myHarvesterUserAgent).onFailure(details -> {
                     aContext.verify(() -> {
                         assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL),
                                 details.getMessage());
@@ -167,8 +171,8 @@ public class OaipmhUtilsFT {
     public final void testValidateIdentifiersInvalidSetSpec(final Vertx aVertx, final VertxTestContext aContext) {
         final String undefinedSet = "set3";
 
-        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(undefinedSet), myHarvesterUserAgent)
-                .onFailure(details -> {
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(undefinedSet), myOaipmhClientHttpTimeout,
+                myHarvesterUserAgent).onFailure(details -> {
                     aContext.verify(() -> {
                         assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, myTestDataProviderURL, undefinedSet),
                                 details.getMessage());
