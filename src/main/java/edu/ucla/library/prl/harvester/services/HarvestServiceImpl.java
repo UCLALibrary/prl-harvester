@@ -3,6 +3,7 @@ package edu.ucla.library.prl.harvester.services;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,6 @@ import io.ino.solrs.JavaAsyncSolrClient;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
-import io.vavr.control.Either;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -102,6 +102,7 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
+    @SuppressWarnings("PMD.CognitiveComplexity")
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
         final int institutionID = aJob.getInstitutionID();
@@ -142,23 +143,33 @@ public class HarvestServiceImpl implements HarvestService {
                     aJob.getLastSuccessfulRun(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return harvest.compose(records -> {
-                // Map each OAI-PMH record to either:
-                // - a future Solr document; or
-                // - its identifier, if it has been deleted from the repository
-                final Stream<Either<String, Future<SolrInputDocument>>> recordMappings = records.map(record -> {
-                    final Header header = record.getHeader();
+                final Promise<Tuple2<List<SolrInputDocument>, List<String>>> promise = Promise.promise();
 
-                    if (header.isDeleted()) {
-                        return Either.left(header.getIdentifier());
-                    } else {
-                        return Either.right(HarvestServiceUtils.getSolrDocument(record, institutionName, baseURL,
-                                setNameLookup, myWebClient));
+                myVertx.executeBlocking(execution -> {
+                    @SuppressWarnings("rawtypes")
+                    final List<Future> recordMappings = new LinkedList<>();
+                    final List<String> deletedRecordIDs = new LinkedList<>();
+                    final Iterator<Record> it = records.iterator();
+
+                    while (it.hasNext()) {
+                        final Record record = it.next();
+                        final Header header = record.getHeader();
+
+                        if (header.isDeleted()) {
+                            deletedRecordIDs.add(header.getIdentifier());
+                        } else {
+                            recordMappings.add(HarvestServiceUtils.getSolrDocument(record, institutionName, baseURL,
+                                    setNameLookup, myWebClient));
+                        }
                     }
-                });
 
-                return reifyRecordMappings(recordMappings);
+                    CompositeFuture.all(recordMappings).map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
+                        return Tuple.of(docs, deletedRecordIDs);
+                    }).onSuccess(execution::complete).onFailure(execution::fail);
+                }, false, promise);
+
+                return promise.future();
             }).compose(docsAndDeletedRecordIDs -> {
-                // Phew, now we have some concrete things to tell Solr about!
                 final List<SolrInputDocument> docs = docsAndDeletedRecordIDs._1();
                 final List<String> deletedRecordIDs = docsAndDeletedRecordIDs._2();
 
@@ -169,42 +180,6 @@ public class HarvestServiceImpl implements HarvestService {
             // TODO: consider retrying on failure
             return Future.failedFuture(new ServiceException(hashCode(), details.toString()));
         });
-    }
-
-    /**
-     * @param aMixedBag A stream whose elements are either: (a) Futures that resolve to Solr documents, or (b)
-     *        identifiers of deleted records
-     * @return A Future that resolves to a 2-tuple containing: a list of the Solr documents (possibly empty), and a list
-     *         of identifiers of deleted records (also possibly empty)
-     */
-    private Future<Tuple2<List<SolrInputDocument>, List<String>>>
-            reifyRecordMappings(final Stream<Either<String, Future<SolrInputDocument>>> aMixedBag) {
-
-        // This promise will be returned and (eventually) completed
-        final Promise<Tuple2<List<SolrInputDocument>, List<String>>> promise = Promise.promise();
-
-        myVertx.executeBlocking(execution -> {
-            // Collecting the stream may require making network calls (utilizing any resumption tokens returned with the
-            // ListRecords response, or checking if a URL references a thumbnail image), possibly many; hence the use of
-            // a worker thread (XOAI's network I/O is blocking)
-
-            // First, split the stream into two parts: existing records ("true") and deleted records ("false")
-            final var partitionedRecords = aMixedBag.collect(Collectors.partitioningBy(Either::isRight));
-
-            // Get Solr docs for all of the existing records (the "true" bucket of the partition)
-            final var solrDocReification = CompositeFuture.all( //
-                    partitionedRecords.get(true).parallelStream().map(Either::get).collect(Collectors.toList()));
-
-            // Collect the identifiers of all the deleted records (the "false" bucket of the partition)
-            final var deletedRecordIDs = partitionedRecords.get(false).parallelStream().map(Either::getLeft).toList();
-
-            // Combine results from each bucket and return it
-            solrDocReification.map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
-                return Tuple.of(docs, deletedRecordIDs);
-            }).onSuccess(execution::complete).onFailure(execution::fail);
-        }, false, promise);
-
-        return promise.future();
     }
 
     /**
