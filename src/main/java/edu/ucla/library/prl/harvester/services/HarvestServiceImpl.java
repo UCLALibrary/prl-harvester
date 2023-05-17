@@ -146,26 +146,8 @@ public class HarvestServiceImpl implements HarvestService {
                 final Promise<Tuple2<List<SolrInputDocument>, List<String>>> promise = Promise.promise();
 
                 myVertx.executeBlocking(execution -> {
-                    @SuppressWarnings("rawtypes")
-                    final List<Future> recordMappings = new LinkedList<>();
-                    final List<String> deletedRecordIDs = new LinkedList<>();
-                    final Iterator<Record> it = records.iterator();
-
-                    while (it.hasNext()) {
-                        final Record record = it.next();
-                        final Header header = record.getHeader();
-
-                        if (header.isDeleted()) {
-                            deletedRecordIDs.add(header.getIdentifier());
-                        } else {
-                            recordMappings.add(HarvestServiceUtils.getSolrDocument(record, institutionName, baseURL,
-                                    setNameLookup, myWebClient));
-                        }
-                    }
-
-                    CompositeFuture.all(recordMappings).map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
-                        return Tuple.of(docs, deletedRecordIDs);
-                    }).onSuccess(execution::complete).onFailure(execution::fail);
+                    partitionAndMapRecords(records, institutionName, baseURL, setNameLookup)
+                            .onSuccess(execution::complete).onFailure(execution::fail);
                 }, false, promise);
 
                 return promise.future();
@@ -179,6 +161,44 @@ public class HarvestServiceImpl implements HarvestService {
         }).recover(details -> {
             // TODO: consider retrying on failure
             return Future.failedFuture(new ServiceException(hashCode(), details.toString()));
+        });
+    }
+
+    /**
+     * Partitions the records into those that have been deleted and those that haven't, and then maps deleted ones to
+     * their identifier and not-deleted ones to a Solr document.
+     * <p>
+     * This is a potentially long-running function that performs blocking network I/O, so should be run on a worker
+     * thread.
+     *
+     * @param aRecords A set of records
+     * @param anInstitutionName The name of the associated institution
+     * @param aBaseURL An OAI-PMH repository base URL
+     * @param aSetNameLookup A lookup table that maps setSpec to setName
+     * @return A Future that resolves to a 2-tuple containing: a list of the Solr documents (possibly empty), and a list
+     *         of identifiers of deleted records (also possibly empty)
+     */
+    private Future<Tuple2<List<SolrInputDocument>, List<String>>> partitionAndMapRecords(final Stream<Record> aRecords,
+            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup) {
+        @SuppressWarnings("rawtypes")
+        final List<Future> recordMappings = new LinkedList<>();
+        final List<String> deletedRecordIDs = new LinkedList<>();
+        final Iterator<Record> it = aRecords.iterator();
+
+        while (it.hasNext()) {
+            final Record record = it.next();
+            final Header header = record.getHeader();
+
+            if (header.isDeleted()) {
+                deletedRecordIDs.add(header.getIdentifier());
+            } else {
+                recordMappings.add(HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL,
+                        aSetNameLookup, myWebClient));
+            }
+        }
+
+        return CompositeFuture.all(recordMappings).map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
+            return Tuple.of(docs, deletedRecordIDs);
         });
     }
 
