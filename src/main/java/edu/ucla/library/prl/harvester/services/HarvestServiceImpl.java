@@ -102,7 +102,6 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     @Override
-    @SuppressWarnings("PMD.CognitiveComplexity")
     public Future<JobResult> run(final Job aJob) {
         final URL baseURL = aJob.getRepositoryBaseURL();
         final int institutionID = aJob.getInstitutionID();
