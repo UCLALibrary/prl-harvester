@@ -12,8 +12,8 @@ const props = defineProps({
     selectJobToUpdate: { type: Function },
     selectJobToRemove: { type: Function },
 })
-const isSelectiveHarvest = computed(() => (props.sets ? props.sets.length > 0 : false))
-const sortedSets = computed(() => (props.sets ? props.sets.slice().sort() : []))
+const isSelectiveHarvest = computed(() => props.sets.length > 0)
+const sortedSets = computed(() => props.sets.slice().sort())
 </script>
 
 <template>

@@ -3,7 +3,6 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.http.HttpStatus;
@@ -91,13 +90,13 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @return A Solr query that can be used to remove records from the given sets associated with the given institution
      */
     static Future<String> getRecordRemovalQuery(final Vertx aVertx, final String anInstitutionName, final URL aBaseURL,
-            final Optional<List<String>> aSets, final int aTimeout, final String aUserAgent) {
+            final List<String> aSets, final int aTimeout, final String aUserAgent) {
         final Future<List<String>> getSetsToRemove;
 
-        if (aSets.isPresent() && !aSets.get().isEmpty()) {
-            getSetsToRemove = Future.succeededFuture(aSets.get());
+        if (!aSets.isEmpty()) {
+            getSetsToRemove = Future.succeededFuture(aSets);
         } else {
-            // Missing or empty list means all sets in the repository
+            // Empty list means all sets in the repository
             getSetsToRemove =
                     OaipmhUtils.listSets(aVertx, aBaseURL, aTimeout, aUserAgent).map(OaipmhUtils::getSetSpecs);
         }

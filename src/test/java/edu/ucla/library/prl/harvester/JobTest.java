@@ -91,11 +91,10 @@ public class JobTest {
         final OffsetDateTime exampleTimestamp = OffsetDateTime.parse("2000-01-01T00:00Z");
 
         return Stream.of( //
-                Arguments.of(1, exampleURL, null, exampleSchedule, null), //
-                Arguments.of(2, exampleURL, null, exampleSchedule, exampleTimestamp), //
-                Arguments.of(3, exampleURL, List.of(), exampleSchedule, exampleTimestamp), //
-                Arguments.of(4, exampleURL, exampleSets, exampleSchedule, null), //
-                Arguments.of(5, exampleURL, exampleSets, exampleSchedule, exampleTimestamp));
+                Arguments.of(1, exampleURL, List.of(), exampleSchedule, exampleTimestamp), //
+                Arguments.of(2, exampleURL, exampleSets, exampleSchedule, exampleTimestamp), //
+                Arguments.of(3, exampleURL, List.of(), exampleSchedule, null), //
+                Arguments.of(4, exampleURL, exampleSets, exampleSchedule, null));
     }
 
     /**

@@ -365,7 +365,7 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint removedJobDidNotExecute = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, null)).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of())).compose(jobID -> {
             final OffsetDateTime now = OffsetDateTime.now().withNano(0);
             // After this time, we can be reasonably certain that the canceled job won't run
             final OffsetDateTime whenWeWillKnow = now.plusSeconds(10);

@@ -73,7 +73,6 @@ components:
           items:
             type: string
             description: An OAI-PMH setSpec
-          nullable: true
         scheduleCronExpression:
           type: string
           example: "0 5 * * 1"

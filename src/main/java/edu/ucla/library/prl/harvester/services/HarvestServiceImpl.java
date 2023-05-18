@@ -125,9 +125,9 @@ public class HarvestServiceImpl implements HarvestService {
             final OffsetDateTime startTime;
             final Future<Stream<Record>> harvest;
 
-            if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
+            if (!aJob.getSets().isEmpty()) {
                 // Harvest only the specified sets
-                targetSets = aJob.getSets().get();
+                targetSets = aJob.getSets();
             } else {
                 // Harvest all sets in the repository
                 targetSets = new LinkedList<>(setNameLookup.keySet());
