@@ -1,8 +1,8 @@
 
 package edu.ucla.library.prl.harvester.handlers;
 
-import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.http.HttpStatus;
@@ -10,7 +10,6 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
-import edu.ucla.library.prl.harvester.OaipmhUtils;
 import edu.ucla.library.prl.harvester.Param;
 
 import info.freelibrary.util.StringUtils;
@@ -69,45 +68,36 @@ public final class RemoveJobHandler extends AbstractSolrAwareWriteOperationHandl
     Future<UpdateResponse> updateSolr(final Tuple2<Job, Institution> aData) {
         final Job job = aData._1();
         final Institution institution = aData._2();
-        final Future<String> futureRecordRemovalQuery = getRecordRemovalQuery(myVertx, institution.getName(),
-                job.getRepositoryBaseURL(), job.getSets(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
+        final Optional<String> recordRemovalQuery = getRecordRemovalQuery(institution.getName(), job.getSets());
 
-        return futureRecordRemovalQuery.compose(solrQuery -> {
+        if (recordRemovalQuery.isPresent()) {
+            final String solrQuery = recordRemovalQuery.get();
             final CompletionStage<UpdateResponse> removal =
                     mySolrClient.deleteByQuery(solrQuery).thenCompose(result -> mySolrClient.commit());
 
             return Future.fromCompletionStage(removal);
-        });
+        } else {
+            return Future.succeededFuture();
+        }
     }
 
     /**
-     * @param aVertx A Vert.x instance
      * @param anInstitutionName An institution name
-     * @param aBaseURL An OAI-PMH repository base URL
      * @param aSets A list of sets
-     * @param aTimeout The value to use for the HTTP timeout
-     * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Solr query that can be used to remove records from the given sets associated with the given institution
      */
-    static Future<String> getRecordRemovalQuery(final Vertx aVertx, final String anInstitutionName, final URL aBaseURL,
-            final List<String> aSets, final int aTimeout, final String aUserAgent) {
-        final Future<List<String>> getSetsToRemove;
+    static Optional<String> getRecordRemovalQuery(final String anInstitutionName, final List<String> aSets) {
 
         if (!aSets.isEmpty()) {
-            getSetsToRemove = Future.succeededFuture(aSets);
-        } else {
-            // Empty list means all sets in the repository
-            getSetsToRemove =
-                    OaipmhUtils.listSets(aVertx, aBaseURL, aTimeout, aUserAgent).map(OaipmhUtils::getSetSpecs);
-        }
-
-        return getSetsToRemove.map(sets -> {
-            final String[] collectionQueryClauses = sets.stream() //
+            final String[] collectionQueryClauses = aSets.stream() //
                     .map(set -> StringUtils.format("set_spec:\"{}\"", set)) //
-                    .toArray(length -> new String[sets.size()]);
-
-            return StringUtils.format("institutionName:\"{}\" AND ({})", anInstitutionName,
+                    .toArray(length -> new String[aSets.size()]);
+            final String query = StringUtils.format("institutionName:\"{}\" AND ({})", anInstitutionName,
                     String.join(" OR ", collectionQueryClauses));
-        });
+
+            return Optional.of(query);
+        } else {
+            return Optional.empty();
+        }
     }
 }
