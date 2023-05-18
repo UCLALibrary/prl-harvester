@@ -3,6 +3,7 @@ package edu.ucla.library.prl.harvester.handlers;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.http.HttpStatus;
@@ -114,22 +115,25 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         // If we determined that there are sets to remove, do that now
         return getActualOldJobSets.compose(sets -> {
             final List<String> setsToRemove = getDifference(sets, newJobSets);
-            final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institution.getName(),
-                    oldJob.getRepositoryBaseURL(), setsToRemove, myOaipmhClientHttpTimeout, myHarvesterUserAgent);
+            final Optional<String> recordRemovalQuery =
+                    RemoveJobHandler.getRecordRemovalQuery(institution.getName(), setsToRemove);
 
-            return getSolrQuery.compose(solrQuery -> {
+            if (recordRemovalQuery.isPresent()) {
+                final String solrQuery = recordRemovalQuery.get();
                 final CompletionStage<UpdateResponse> removal =
                         mySolrClient.deleteByQuery(solrQuery).thenCompose(result -> mySolrClient.commit());
 
                 return Future.fromCompletionStage(removal);
-            });
+            } else {
+                return Future.succeededFuture();
+            }
         });
     }
 
     /**
      * @param anOldList A list representing an original state
      * @param aNewList A list representing a new, updated state
-     * @return The list of elements that are in {@code aNewList} but not in {@code anOldList}
+     * @return The list of elements in {@code anOldList} that are not in {@code aNewList}
      */
     private static List<String> getDifference(final List<String> anOldList, final List<String> aNewList) {
         return anOldList.stream().filter(setSpec -> !aNewList.contains(setSpec)).toList();
