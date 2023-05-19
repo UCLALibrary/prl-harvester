@@ -3,6 +3,7 @@ package edu.ucla.library.prl.harvester.services;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.stream.Stream;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 
+import org.dspace.xoai.model.oaipmh.Header;
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
 
@@ -29,8 +31,12 @@ import info.freelibrary.util.LoggerFactory;
 
 import io.ino.solrs.JavaAsyncSolrClient;
 
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -117,7 +123,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             final List<String> targetSets;
             final OffsetDateTime startTime;
-            final Future<List<Record>> harvest;
+            final Future<Stream<Record>> harvest;
 
             if (aJob.getSets().isPresent() && !aJob.getSets().get().isEmpty()) {
                 // Harvest only the specified sets
@@ -136,20 +142,20 @@ public class HarvestServiceImpl implements HarvestService {
                     aJob.getLastSuccessfulRun(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return harvest.compose(records -> {
-                final Future<List<SolrInputDocument>> getDocs =
-                        getSolrInputDocuments(records, institutionName, baseURL, setNameLookup, myWebClient);
+                final Promise<Tuple2<List<SolrInputDocument>, List<String>>> promise = Promise.promise();
 
-                return getDocs.compose(docs -> {
-                    final Future<Void> solrResult;
+                myVertx.executeBlocking(execution -> {
+                    partitionAndMapRecords(records, institutionName, baseURL, setNameLookup)
+                            .onSuccess(execution::complete).onFailure(execution::fail);
+                }, false, promise);
 
-                    if (!docs.isEmpty()) {
-                        solrResult = updateSolr(docs).mapEmpty();
-                    } else {
-                        solrResult = Future.succeededFuture();
-                    }
+                return promise.future();
+            }).compose(docsAndDeletedRecordIDs -> {
+                final List<SolrInputDocument> docs = docsAndDeletedRecordIDs._1();
+                final List<String> deletedRecordIDs = docsAndDeletedRecordIDs._2();
 
-                    return solrResult.map(nil -> new JobResult(aJob.getID().get(), startTime, records.size()));
-                });
+                return updateSolr(docs, deletedRecordIDs).map(
+                        result -> new JobResult(aJob.getID().get(), startTime, docs.size(), deletedRecordIDs.size()));
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
@@ -158,36 +164,69 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     /**
-     * @param aRecords A list of OAI-PMH records
-     * @param anInstitutionName The name of the institution
-     * @param aBaseURL The OAI-PMH base URL
+     * Partitions the records into those that have been deleted and those that haven't, and then maps deleted ones to
+     * their identifier and not-deleted ones to a Solr document.
+     * <p>
+     * This is a potentially long-running function that performs blocking network I/O, so should be run on a worker
+     * thread.
+     *
+     * @param aRecords A set of records
+     * @param anInstitutionName The name of the associated institution
+     * @param aBaseURL An OAI-PMH repository base URL
      * @param aSetNameLookup A lookup table that maps setSpec to setName
-     * @param aWebClient A web client
-     * @return A Future that resolves to a list of Solr documents
+     * @return A Future that resolves to a 2-tuple containing: a list of the Solr documents (possibly empty), and a list
+     *         of identifiers of deleted records (also possibly empty)
      */
-    private static Future<List<SolrInputDocument>> getSolrInputDocuments(final List<Record> aRecords,
-            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup,
-            final WebClient aWebClient) {
-        // Transform each OAI-PMH XML record into a Solr document
-        final Stream<Future<SolrInputDocument>> recordsToDocs = aRecords.parallelStream().map(record -> {
-            return HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL, aSetNameLookup, aWebClient);
-        });
+    private Future<Tuple2<List<SolrInputDocument>, List<String>>> partitionAndMapRecords(final Stream<Record> aRecords,
+            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup) {
+        @SuppressWarnings("rawtypes")
+        final List<Future> recordMappings = new LinkedList<>();
+        final List<String> deletedRecordIDs = new LinkedList<>();
+        final Iterator<Record> it = aRecords.iterator();
 
-        return CompositeFuture.all(recordsToDocs.collect(Collectors.toList()))
-                .map(CompositeFuture::<SolrInputDocument>list);
+        while (it.hasNext()) {
+            final Record record = it.next();
+            final Header header = record.getHeader();
+
+            if (header.isDeleted()) {
+                deletedRecordIDs.add(header.getIdentifier());
+            } else {
+                recordMappings.add(HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL,
+                        aSetNameLookup, myWebClient));
+            }
+        }
+
+        return CompositeFuture.all(recordMappings).map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
+            return Tuple.of(docs, deletedRecordIDs);
+        });
     }
 
     /**
      * Performs a Solr update.
      *
-     * @param aDocs A list of Solr documents to add
-     * @return The result of performing the Solr update
+     * @param aDocs A list of Solr documents to add (possibly empty)
+     * @param aDeletedRecordIDs A list of record identifiers that have been deleted (possibly empty)
+     * @return The result of performing the Solr update (if any was necessary)
      */
-    private Future<UpdateResponse> updateSolr(final List<SolrInputDocument> aDocs) {
-        final CompletionStage<UpdateResponse> addition =
-                mySolrClient.addDocs(aDocs).thenCompose(result -> mySolrClient.commit());
+    private Future<UpdateResponse> updateSolr(final List<SolrInputDocument> aDocs,
+            final List<String> aDeletedRecordIDs) {
+        final CompletionStage<UpdateResponse> update;
 
-        return Future.fromCompletionStage(addition);
+        if (!aDocs.isEmpty() && !aDeletedRecordIDs.isEmpty()) {
+            // Both docs to add and delete
+            update = mySolrClient.addDocs(aDocs).thenCompose(result -> mySolrClient.deleteByIds(aDeletedRecordIDs));
+        } else if (!aDocs.isEmpty() && aDeletedRecordIDs.isEmpty()) {
+            // Only docs to add
+            update = mySolrClient.addDocs(aDocs);
+        } else if (aDocs.isEmpty() && !aDeletedRecordIDs.isEmpty()) {
+            // Only docs to delete
+            update = mySolrClient.deleteByIds(aDeletedRecordIDs);
+        } else {
+            // Nothing to do
+            return Future.succeededFuture();
+        }
+
+        return Future.fromCompletionStage(update.thenCompose(result -> mySolrClient.commit()));
     }
 
     @Override

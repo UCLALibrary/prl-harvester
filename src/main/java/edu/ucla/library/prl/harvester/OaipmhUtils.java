@@ -7,8 +7,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
@@ -35,6 +39,7 @@ import io.vertx.core.Vertx;
 /**
  * A utility class for working with OAI-PMH asynchronously.
  */
+@SuppressWarnings("PMD.ExcessiveImports")
 public final class OaipmhUtils {
 
     /**
@@ -111,12 +116,12 @@ public final class OaipmhUtils {
      * @param aFrom The optional timestamp of the last successful run
      * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
-     * @return The list of OAI-PMH records
+     * @return A stream of OAI-PMH records
      */
-    public static Future<List<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
+    public static Future<Stream<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
             final String aMetadataPrefix, final Optional<OffsetDateTime> aFrom, final int aTimeout,
             final String aUserAgent) {
-        final Stream<Future<ImmutableList<Record>>> listRecordsPerSet = aSets.stream().map(setSpec -> {
+        final Stream<Future<Stream<Record>>> listRecordsPerSet = aSets.stream().map(setSpec -> {
             final ListRecordsParameters params =
                     ListRecordsParameters.request().withMetadataPrefix(aMetadataPrefix).withSetSpec(setSpec);
 
@@ -126,10 +131,10 @@ public final class OaipmhUtils {
         });
 
         return CompositeFuture.all(listRecordsPerSet.collect(Collectors.toList())).map(result -> {
-            final List<ImmutableList<Record>> results = result.<ImmutableList<Record>>list();
+            final List<Stream<Record>> results = result.<Stream<Record>>list();
 
-            // Flatten the list of lists
-            return results.parallelStream().flatMap(List::parallelStream).toList();
+            // Flatten the list of streams
+            return results.parallelStream().flatMap(Function.identity());
         });
     }
 
@@ -167,18 +172,21 @@ public final class OaipmhUtils {
      * @param aParams The OAI-PMH request parameters
      * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
-     * @return A Future that resolves to a list of OAI-PMH records
+     * @return A Future that resolves to a stream of OAI-PMH records
      */
-    private static Future<ImmutableList<Record>> listRecordsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
+    private static Future<Stream<Record>> listRecordsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
             final ListRecordsParameters aParams, final int aTimeout, final String aUserAgent) {
-        final Promise<ImmutableList<Record>> promise = Promise.promise();
+        final Promise<Stream<Record>> promise = Promise.promise();
 
-        aVertx.<ImmutableList<Record>>executeBlocking(execution -> {
+        aVertx.<Stream<Record>>executeBlocking(execution -> {
             try {
-                final Iterator<Record> synchronousResult =
+                final int characteristics = Spliterator.DISTINCT | Spliterator.NONNULL;
+                final Iterator<Record> iterator =
                         getNewOaipmhClient(aBaseURL, aTimeout, aUserAgent).listRecords(aParams);
+                final Stream<Record> synchronousResult =
+                        StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, characteristics), true);
 
-                execution.complete(ImmutableList.copyOf(synchronousResult));
+                execution.complete(synchronousResult);
             } catch (final BadArgumentException | HttpException details) {
                 execution.fail(details.getCause());
             }

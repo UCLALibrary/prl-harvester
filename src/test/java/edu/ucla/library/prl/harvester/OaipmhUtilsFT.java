@@ -108,7 +108,7 @@ public class OaipmhUtilsFT {
         OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(),
                 myOaipmhClientHttpTimeout, myHarvesterUserAgent).onSuccess(records -> {
                     aContext.verify(() -> {
-                        assertEquals(anExpectedRecordCount, records.size());
+                        assertEquals(anExpectedRecordCount, records.toList().size());
                     }).completeNow();
                 });
     }

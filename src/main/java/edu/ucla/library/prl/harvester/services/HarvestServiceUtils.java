@@ -8,6 +8,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -121,16 +122,15 @@ final class HarvestServiceUtils {
             final URL aBaseURL, final Map<String, String> aSetNameLookup, final WebClient aWebClient) {
         final SolrInputDocument doc = new SolrInputDocument();
         final Map<String, List<String>> dcElementsMap = new HashMap<>();
-        final List<URL> possibleThumbnailUrls = new LinkedList<>();
-        final List<String> setNames = new LinkedList<>();
-
         final String recordIdentifier = aRecord.getHeader().getIdentifier();
         // PRL requires data providers to define sets in order to participate, so at least one setSpec must be present
         final List<String> setSpecs = aRecord.getHeader().getSetSpecs();
-
         // Get an iterator over the elements inside the top-level "dc" element
         final List<Element> allElementsWithAValue = aRecord.getMetadata().getValue().getElements().get(0).getElements()
                 .parallelStream().filter(e -> getValueOfFirstField(e) != null).toList();
+
+        final List<URL> possibleThumbnailUrls = new LinkedList<>();
+        final List<String> setNames = new ArrayList<>(setSpecs.size());
 
         doc.setField("id", recordIdentifier);
         doc.setField("institutionName", anInstitutionName);
@@ -250,7 +250,7 @@ final class HarvestServiceUtils {
      * @return A list of the URLs in string form
      */
     private static List<String> unwrapUrls(final List<URL> aUrlList) {
-        final List<String> strings = new LinkedList<>();
+        final List<String> strings = new ArrayList<>(aUrlList.size());
 
         for (final URL url : aUrlList) {
             strings.add(url.toString());

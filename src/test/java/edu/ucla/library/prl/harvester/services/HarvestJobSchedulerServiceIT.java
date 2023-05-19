@@ -189,6 +189,7 @@ public class HarvestJobSchedulerServiceIT {
                         aContext.verify(() -> {
                             assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
                             assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
                                     job.getLastSuccessfulRun().get().withNano(0).toInstant());
@@ -248,6 +249,7 @@ public class HarvestJobSchedulerServiceIT {
                         aContext.verify(() -> {
                             assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
                             assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
                                     job.getLastSuccessfulRun().get().withNano(0).toInstant());
@@ -320,6 +322,7 @@ public class HarvestJobSchedulerServiceIT {
                         aContext.verify(() -> {
                             assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
+                            assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
                             assertEquals(jobResult.getStartTime().withNano(0).toInstant(),
                                     job.getLastSuccessfulRun().get().withNano(0).toInstant());
