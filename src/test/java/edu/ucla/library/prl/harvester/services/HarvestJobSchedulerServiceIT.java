@@ -180,7 +180,7 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);
@@ -240,7 +240,7 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);
@@ -313,7 +313,7 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);

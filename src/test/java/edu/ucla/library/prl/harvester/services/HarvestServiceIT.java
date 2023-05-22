@@ -275,7 +275,7 @@ public class HarvestServiceIT {
      */
     private Future<Tuple2<JobResult, SolrDocumentList>> runJobAndCheckSolr(final Job aJob) {
         return myHarvestServiceProxy.run(aJob).compose(jobResult -> {
-            return TestUtils.getAllDocuments(mySolrClient).map(queryResults -> {
+            return TestUtils.getItemRecordDocuments(mySolrClient).map(queryResults -> {
                 return Tuple.of(jobResult, queryResults);
             });
         });

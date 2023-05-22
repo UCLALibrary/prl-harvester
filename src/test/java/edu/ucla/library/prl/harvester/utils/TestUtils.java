@@ -125,6 +125,12 @@ public final class TestUtils {
 
     private static final String SOLR_SELECT_ALL = "*:*";
 
+    private static final String SOLR_ID_INCLUDE = "id:{}";
+
+    private static final String SOLR_ID_EXCLUDE = "id:(-{})";
+
+    private static final String INSTITUTION_DOC_ID_PATTERN = "prl-harvester-institution-*";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(TestUtils.class, MessageCodes.BUNDLE);
 
     private TestUtils() {
@@ -240,7 +246,32 @@ public final class TestUtils {
      * @return A Future that resolves to the list of all documents
      */
     public static Future<SolrDocumentList> getAllDocuments(final JavaAsyncSolrClient aSolrClient) {
-        final SolrParams params = new NamedList<>(Map.of("q", SOLR_SELECT_ALL)).toSolrParams();
+        return getDocuments(aSolrClient, SOLR_SELECT_ALL);
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @return A Future that resolves to the list of institution documents
+     */
+    public static Future<SolrDocumentList> getInstitutionDocuments(final JavaAsyncSolrClient aSolrClient) {
+        return getDocuments(aSolrClient, StringUtils.format(SOLR_ID_INCLUDE, INSTITUTION_DOC_ID_PATTERN));
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @return A Future that resolves to the list of item record documents
+     */
+    public static Future<SolrDocumentList> getItemRecordDocuments(final JavaAsyncSolrClient aSolrClient) {
+        return getDocuments(aSolrClient, StringUtils.format(SOLR_ID_EXCLUDE, INSTITUTION_DOC_ID_PATTERN));
+    }
+
+    /**
+     * @param aSolrClient A Solr client
+     * @param aQuery A Solr query
+     * @return A Future that resolves to the list of documents that match the query
+     */
+    public static Future<SolrDocumentList> getDocuments(final JavaAsyncSolrClient aSolrClient, final String aQuery) {
+        final SolrParams params = new NamedList<>(Map.of("q", aQuery)).toSolrParams();
         final CompletionStage<SolrDocumentList> retrieval =
                 aSolrClient.query(params).thenApply(QueryResponse::getResults);
 
@@ -380,7 +411,7 @@ public final class TestUtils {
      */
     public static Future<Runnable> getSolrInstitutionAssertions(final JavaAsyncSolrClient aSolrClient,
             final Optional<Set<Institution>> anInstitutionList) {
-        return getAllDocuments(aSolrClient).map(result -> {
+        return getInstitutionDocuments(aSolrClient).map(result -> {
             final Runnable assertions;
 
             if (anInstitutionList.isPresent()) {
