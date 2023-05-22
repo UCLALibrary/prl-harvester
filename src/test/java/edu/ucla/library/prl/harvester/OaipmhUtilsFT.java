@@ -45,10 +45,6 @@ public class OaipmhUtilsFT {
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(OaipmhUtils.class, MessageCodes.BUNDLE);
 
-    private static final String SET1 = "set1";
-
-    private static final String SET2 = "set2";
-
     private String myHarvesterUserAgent;
 
     private int myOaipmhClientHttpTimeout;
@@ -88,7 +84,8 @@ public class OaipmhUtilsFT {
                 .onSuccess(sets -> {
                     aContext.verify(() -> {
                         assertEquals(2, sets.size());
-                        assertTrue(OaipmhUtils.getSetSpecs(sets).containsAll(java.util.Set.of(SET1, SET2)));
+                        assertTrue(OaipmhUtils.getSetSpecs(sets)
+                                .containsAll(java.util.Set.of(TestUtils.SET1, TestUtils.SET2)));
                     }).completeNow();
                 }).onFailure(aContext::failNow);
     }
@@ -118,9 +115,9 @@ public class OaipmhUtilsFT {
      */
     static Stream<Arguments> testListRecords() {
         return Stream.of( //
-                Arguments.of(List.of(SET1), 2), //
-                Arguments.of(List.of(SET2), 3), //
-                Arguments.of(List.of(SET1, SET2), 5));
+                Arguments.of(List.of(TestUtils.SET1), 2), //
+                Arguments.of(List.of(TestUtils.SET2), 3), //
+                Arguments.of(List.of(TestUtils.SET1, TestUtils.SET2), 5));
     }
 
     /**
@@ -131,7 +128,9 @@ public class OaipmhUtilsFT {
      */
     @Test
     public final void testValidateIdentifiers(final Vertx aVertx, final VertxTestContext aContext) {
-        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(SET1, SET2), myOaipmhClientHttpTimeout,
+        final List<String> sets = List.of(TestUtils.SET1, TestUtils.SET2);
+
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, sets, myOaipmhClientHttpTimeout,
                 myHarvesterUserAgent).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
     }
 
@@ -144,6 +143,7 @@ public class OaipmhUtilsFT {
     @Test
     public final void testValidateIdentifiersInvalidBaseURL(final Vertx aVertx, final VertxTestContext aContext) {
         final URL invalidOaipmhBaseURL;
+        final List<String> sets = List.of(TestUtils.SET1, TestUtils.SET2);
 
         try {
             invalidOaipmhBaseURL = new URL("http://example.com");
@@ -152,7 +152,7 @@ public class OaipmhUtilsFT {
             return;
         }
 
-        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, List.of(SET1, SET2), myOaipmhClientHttpTimeout,
+        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, sets, myOaipmhClientHttpTimeout,
                 myHarvesterUserAgent).onFailure(details -> {
                     aContext.verify(() -> {
                         assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL),
