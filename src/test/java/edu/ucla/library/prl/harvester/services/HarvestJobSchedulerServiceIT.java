@@ -25,8 +25,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.quartz.CronExpression;
-
 import com.google.i18n.phonenumbers.NumberParseException;
 
 import info.freelibrary.util.Logger;
@@ -270,8 +268,8 @@ public class HarvestJobSchedulerServiceIT {
                 final Job job;
 
                 try {
-                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1), getFutureCronExpression(5),
-                            null);
+                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1),
+                            TestUtils.getFutureCronExpression(5), null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
                 }
@@ -402,22 +400,6 @@ public class HarvestJobSchedulerServiceIT {
     }
 
     /**
-     * Gets a Cron expression that will match some time in the future.
-     *
-     * @param aSecondsLater The number of seconds in the future to create an hourly Cron expression for
-     * @return The Cron expression
-     * @throws ParseException
-     */
-    private static CronExpression getFutureCronExpression(final long aSecondsLater) throws ParseException {
-        final OffsetDateTime futureTime = OffsetDateTime.now().plusSeconds(aSecondsLater);
-        final String cron = String.format("%d %d * * * ?", futureTime.getSecond(), futureTime.getMinute());
-
-        LOGGER.debug(MessageCodes.PRL_033, aSecondsLater, cron);
-
-        return new CronExpression(cron);
-    }
-
-    /**
      * @return A Future that succeeds if a random institution was added to the database
      */
     private Future<Integer> addInstitution() {
@@ -442,7 +424,7 @@ public class HarvestJobSchedulerServiceIT {
         final Job job;
 
         try {
-            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, getFutureCronExpression(5), null);
+            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, TestUtils.getFutureCronExpression(5), null);
         } catch (final ParseException details) {
             return Future.failedFuture(details);
         }

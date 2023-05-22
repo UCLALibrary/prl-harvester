@@ -499,4 +499,20 @@ public final class TestUtils {
             return new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_023));
         });
     }
+
+    /**
+     * Gets a Cron expression that will match some time in the future.
+     *
+     * @param aSecondsLater The number of seconds in the future to create an hourly Cron expression for
+     * @return The Cron expression
+     * @throws ParseException
+     */
+    public static CronExpression getFutureCronExpression(final long aSecondsLater) throws ParseException {
+        final OffsetDateTime futureTime = OffsetDateTime.now().plusSeconds(aSecondsLater);
+        final String cron = String.format("%d %d * * * ?", futureTime.getSecond(), futureTime.getMinute());
+
+        LOGGER.debug(MessageCodes.PRL_033, aSecondsLater, cron);
+
+        return new CronExpression(cron);
+    }
 }
