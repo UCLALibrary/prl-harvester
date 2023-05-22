@@ -104,6 +104,10 @@ public final class TestUtils {
 
     public static final String SET2 = "set2";
 
+    public static final int SET1_RECORD_COUNT = 2;
+
+    public static final int SET2_RECORD_COUNT = 3;
+
     private static final Random RANDOMIZER = new Random();
 
     private static final PhoneNumberUtil PHONE_NUMBER_UTIL = PhoneNumberUtil.getInstance();

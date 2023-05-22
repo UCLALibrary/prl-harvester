@@ -62,14 +62,6 @@ public class HarvestJobSchedulerServiceIT {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestJobSchedulerServiceIT.class, MessageCodes.BUNDLE);
 
-    private static final String SET1 = "set1";
-
-    private static final String SET2 = "set2";
-
-    private static final int SET1_RECORD_COUNT = 2;
-
-    private static final int SET2_RECORD_COUNT = 3;
-
     private JsonObject myConfig;
 
     private Pool myDbConnectionPool;
@@ -164,9 +156,10 @@ public class HarvestJobSchedulerServiceIT {
     @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testInstantiationExistingJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
+        final List<String> bothSets = List.of(TestUtils.SET1, TestUtils.SET2);
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, bothSets)).compose(jobID -> {
             final Checkpoint jobResultReceived = aContext.checkpoint();
 
             LOGGER.debug(MessageCodes.PRL_030);
@@ -185,7 +178,8 @@ public class HarvestJobSchedulerServiceIT {
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET1_RECORD_COUNT + TestUtils.SET2_RECORD_COUNT,
+                                    jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -245,7 +239,7 @@ public class HarvestJobSchedulerServiceIT {
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET1_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -268,7 +262,7 @@ public class HarvestJobSchedulerServiceIT {
                 final Job job;
 
                 try {
-                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1),
+                    job = new Job(institutionID, myTestProviderBaseURL, List.of(TestUtils.SET1),
                             TestUtils.getFutureCronExpression(5), null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
@@ -299,7 +293,7 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET2))).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of(TestUtils.SET2))).compose(jobID -> {
             final Checkpoint jobResultReceived = aContext.checkpoint(1);
 
             LOGGER.debug(MessageCodes.PRL_030);
@@ -318,7 +312,7 @@ public class HarvestJobSchedulerServiceIT {
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET2_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -343,7 +337,7 @@ public class HarvestJobSchedulerServiceIT {
 
                 serviceSaved.flag();
 
-                return updateJob(jobID, List.of(SET2));
+                return updateJob(jobID, List.of(TestUtils.SET2));
             }).onSuccess(result -> {
                 LOGGER.info(MessageCodes.PRL_032);
             });
