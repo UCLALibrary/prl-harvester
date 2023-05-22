@@ -133,7 +133,7 @@ public final class TestUtils {
 
     private static final String SOLR_ID_EXCLUDE = "id:(-{})";
 
-    private static final String INSTITUTION_DOC_ID_PATTERN = "prl-harvester-institution-*";
+    private static final String INSTITUTION_DOC_ID_PATTERN = StringUtils.format(Institution.SOLR_DOC_ID_TEMPLATE, "*");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestUtils.class, MessageCodes.BUNDLE);
 
