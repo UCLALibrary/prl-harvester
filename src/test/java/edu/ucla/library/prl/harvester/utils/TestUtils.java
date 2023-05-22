@@ -445,6 +445,24 @@ public final class TestUtils {
     }
 
     /**
+     * Constructs some assertions for the item record docs in the Solr index.
+     *
+     * @param aSolrClient A Solr client
+     * @param anExpectedRecordCount The number of item record docs that should exist
+     * @return A Future that resolves to a Runnable consisting of the assertions
+     */
+    public static Future<Runnable> getSolrItemRecordAssertions(final JavaAsyncSolrClient aSolrClient,
+            final int anExpectedRecordCount) {
+        return getItemRecordDocuments(aSolrClient).map(result -> {
+            final Runnable assertions = () -> {
+                assertEquals(anExpectedRecordCount, result.getNumFound());
+            };
+
+            return assertions;
+        });
+    }
+
+    /**
      * @param aRows Database query results
      * @param anExpectedRowAsJson The JSON representation that exactly one of the rows should have
      * @return Whether there exists a row that matches the expected JSON representation
