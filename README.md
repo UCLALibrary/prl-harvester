@@ -20,7 +20,7 @@ DB_CONNECTION_POOL_MAX_SIZE|The max size of the database connection pool|No|5
 DB_RECONNECT_ATTEMPTS|The number of database reconnect attempts|No|2
 DB_RECONNECT_INTERVAL|The length of the database reconnect interval (in milliseconds)|No|1000
 HARVEST_TIMEOUT|The max amount of time that a harvest may take to complete (in milliseconds)|No|30000
-HARVESTER_USER_AGENT|The User-Agent HTTP request header to use for outgoing requests|No|PRL Harvester
+HARVESTER_USER_AGENT|The User-Agent HTTP request header to use for outgoing requests|No|PRL-Harvester
 HTTP_PORT|The application's port|No|8888
 LDAP_ATTRIBUTE_KEY|The LDAP attribute key used to authorize user|Yes|
 LDAP_ATTRIBUTE_VALUE|The LDAP attribute value used to authorize user|Yes|

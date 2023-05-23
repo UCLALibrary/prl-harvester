@@ -14,7 +14,7 @@ public final class Constants {
     /**
      * The default value for the User-Agent HTTP request header.
      */
-    public static final String DEFAULT_HARVESTER_USER_AGENT = "PRL Harvester";
+    public static final String DEFAULT_HARVESTER_USER_AGENT = "PRL-Harvester";
 
     /**
      * The default value for the HTTP port.
