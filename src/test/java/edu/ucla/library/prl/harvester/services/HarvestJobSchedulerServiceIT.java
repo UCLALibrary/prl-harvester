@@ -38,7 +38,7 @@ import edu.ucla.library.prl.harvester.MessageCodes;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import io.ino.solrs.JavaAsyncSolrClient;
-import io.vertx.config.ConfigRetriever;
+
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -84,7 +84,7 @@ public class HarvestJobSchedulerServiceIT {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().compose(config -> {
+        Config.getConfig(aVertx).compose(config -> {
             final ServiceBinder binder = new ServiceBinder(aVertx);
             final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
 

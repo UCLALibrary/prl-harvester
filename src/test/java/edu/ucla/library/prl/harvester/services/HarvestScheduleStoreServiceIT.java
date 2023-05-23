@@ -4,6 +4,7 @@ package edu.ucla.library.prl.harvester.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -37,7 +38,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.quartz.CronExpression;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -86,9 +86,7 @@ public class HarvestScheduleStoreServiceIT {
      */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        final ConfigRetriever retriever = ConfigRetriever.create(aVertx);
-
-        retriever.getConfig().compose(config -> {
+        Config.getConfig(aVertx).compose(config -> {
             final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             final HarvestScheduleStoreService service = HarvestScheduleStoreService.create(aVertx, dbConnectionPool);
             final ServiceBinder binder = new ServiceBinder(aVertx);
