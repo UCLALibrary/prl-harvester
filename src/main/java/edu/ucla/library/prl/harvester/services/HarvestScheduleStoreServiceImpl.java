@@ -7,6 +7,7 @@ import info.freelibrary.util.LoggerFactory;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -161,6 +162,16 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         SET
         repositoryBaseURL = #{repositoryBaseURL}, sets = #{sets}, lastSuccessfulRun = #{lastSuccessfulRun},
             scheduleCronExpression = #{scheduleCronExpression}
+        WHERE id = #{id} AND institutionID = #{institutionID}
+        """;
+
+    /**
+     * The zero-out last run time query for a job.
+     */
+    private static final String UPDATE_JOB_RUN = """
+        UPDATE public.harvestjobs
+        SET
+        lastSuccessfulRun = null
         WHERE id = #{id} AND institutionID = #{institutionID}
         """;
 
@@ -363,11 +374,42 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
+                checkUpdateLastRun(aJobId, aJob);
                 return Future.succeededFuture();
             }
             return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
                     LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
         });
+    }
+
+    private Future<Void> checkUpdateLastRun(final int aJobId, final Job aJob) {
+        getJob(aJobId).compose(current -> {
+            if (hasNewSets(aJob.getSets(), current.getSets())) {
+                final Future<SqlResult<Void>> updateExecution = myDbConnectionPool.withConnection(connection -> {
+                    final Job jobWithID = Job.withID(aJob, aJobId);
+
+                    return SqlTemplate.forUpdate(connection, UPDATE_JOB_RUN).mapFrom(JOB_TO_TUPLE).execute(jobWithID);
+                });
+
+                return updateExecution.recover(error -> {
+                    return Future.failedFuture(
+                            new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
+                }).compose(update -> {
+                    if (hasSingleRow(update)) {
+                        return Future.succeededFuture();
+                    }
+                    return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
+                            LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
+                });
+
+            }
+        });
+    }
+
+    private boolean hasNewSets(final List<String> anUpdateList, final List<String> aCurrentList) {
+        final List<String> difference =
+                anUpdateList.stream().filter(entry -> !aCurrentlist.contains(entry)).collect(Collectors.toList());
+        return !difference.isEmpty();
     }
 
     @Override
