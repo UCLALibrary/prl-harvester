@@ -38,7 +38,6 @@ import edu.ucla.library.prl.harvester.services.HarvestService;
 import io.vavr.Tuple;
 import io.vavr.Tuple3;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -86,7 +85,7 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start(final Promise<Void> aPromise) {
-        ConfigRetriever.create(vertx).getConfig().compose(this::createResources).onSuccess(resources -> {
+        Config.getConfig(vertx).compose(this::createResources).onSuccess(resources -> {
             // Save references to all resources so that they can be closed later
             myDbConnectionPool = resources._1();
             myEventBusServices = resources._2();
