@@ -201,8 +201,8 @@ public class HarvestServiceIT {
                 Arguments.of(List.of(), schedule, null, 5, 0), //
                 Arguments.of(List.of("undefined"), schedule, null, 0, 0), //
                 Arguments.of(List.of(set1, "nil"), schedule, null, 2, 0), //
-                Arguments.of(null, schedule, OffsetDateTime.now().minusHours(1), 5, 0), //
-                Arguments.of(null, schedule, OffsetDateTime.now().plusHours(1), 0, 0));
+                Arguments.of(List.of(), schedule, OffsetDateTime.now().minusHours(1), 5, 0), //
+                Arguments.of(List.of(), schedule, OffsetDateTime.now().plusHours(1), 0, 0));
     }
 
     /**
@@ -275,7 +275,7 @@ public class HarvestServiceIT {
      */
     private Future<Tuple2<JobResult, SolrDocumentList>> runJobAndCheckSolr(final Job aJob) {
         return myHarvestServiceProxy.run(aJob).compose(jobResult -> {
-            return TestUtils.getAllDocuments(mySolrClient).map(queryResults -> {
+            return TestUtils.getItemRecordDocuments(mySolrClient).map(queryResults -> {
                 return Tuple.of(jobResult, queryResults);
             });
         });

@@ -47,7 +47,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             final int id = Integer.parseInt(aContext.request().getParam(Param.id.name()));
             final Job job = new Job(aContext.body().asJsonObject());
             final URL baseURL = job.getRepositoryBaseURL();
-            final List<String> sets = job.getSets().orElse(List.of());
+            final List<String> sets = job.getSets();
 
             OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
                     .onSuccess(none -> {
@@ -90,21 +90,21 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
         final Job newJob = aData._2();
         final Institution institution = aData._3();
 
-        final Optional<List<String>> oldJobSets = oldJob.getSets();
-        final Optional<List<String>> newJobSets = newJob.getSets();
+        final List<String> oldJobSets = oldJob.getSets();
+        final List<String> newJobSets = newJob.getSets();
         final Future<List<String>> getActualOldJobSets;
 
-        if (oldJobSets.isPresent() && newJobSets.isPresent()) {
+        if (!oldJobSets.isEmpty() && !newJobSets.isEmpty()) {
             // Still selective harvesting, althought the list of sets may have changed, so determine that
-            getActualOldJobSets = Future.succeededFuture(oldJobSets.get());
-        } else if (oldJobSets.isEmpty() && newJobSets.isPresent()) {
+            getActualOldJobSets = Future.succeededFuture(oldJobSets);
+        } else if (oldJobSets.isEmpty() && !newJobSets.isEmpty()) {
             // From non-selective harvesting to selective, so it's very likely that there are sets to remove
             // Must query OAI-PMH repository in order to get the sets belonging to the old job
             getActualOldJobSets = OaipmhUtils
                     .listSets(myVertx, oldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
                     .map(OaipmhUtils::getSetSpecs);
             // TODO: make it impossible to change the base URL
-        } else if (oldJobSets.isPresent() && newJobSets.isEmpty()) {
+        } else if (!oldJobSets.isEmpty() && newJobSets.isEmpty()) {
             // From selective harvesting to non-selective, so nothing to remove
             return Future.succeededFuture();
         } else {
@@ -114,23 +114,26 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
 
         // If we determined that there are sets to remove, do that now
         return getActualOldJobSets.compose(sets -> {
-            final Optional<List<String>> setsToRemove = Optional.of(getDifference(sets, newJobSets.get()));
-            final Future<String> getSolrQuery = RemoveJobHandler.getRecordRemovalQuery(myVertx, institution.getName(),
-                    oldJob.getRepositoryBaseURL(), setsToRemove, myOaipmhClientHttpTimeout, myHarvesterUserAgent);
+            final List<String> setsToRemove = getDifference(sets, newJobSets);
+            final Optional<String> recordRemovalQuery =
+                    RemoveJobHandler.getRecordRemovalQuery(institution.getName(), setsToRemove);
 
-            return getSolrQuery.compose(solrQuery -> {
+            if (recordRemovalQuery.isPresent()) {
+                final String solrQuery = recordRemovalQuery.get();
                 final CompletionStage<UpdateResponse> removal =
                         mySolrClient.deleteByQuery(solrQuery).thenCompose(result -> mySolrClient.commit());
 
                 return Future.fromCompletionStage(removal);
-            });
+            } else {
+                return Future.succeededFuture();
+            }
         });
     }
 
     /**
      * @param anOldList A list representing an original state
      * @param aNewList A list representing a new, updated state
-     * @return The list of elements that are in {@code aNewList} but not in {@code anOldList}
+     * @return The list of elements in {@code anOldList} that are not in {@code aNewList}
      */
     private static List<String> getDifference(final List<String> anOldList, final List<String> aNewList) {
         return anOldList.stream().filter(setSpec -> !aNewList.contains(setSpec)).toList();

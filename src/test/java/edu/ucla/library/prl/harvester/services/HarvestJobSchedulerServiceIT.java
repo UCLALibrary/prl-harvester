@@ -25,8 +25,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.quartz.CronExpression;
-
 import com.google.i18n.phonenumbers.NumberParseException;
 
 import info.freelibrary.util.Logger;
@@ -63,14 +61,6 @@ public class HarvestJobSchedulerServiceIT {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HarvestJobSchedulerServiceIT.class, MessageCodes.BUNDLE);
-
-    private static final String SET1 = "set1";
-
-    private static final String SET2 = "set2";
-
-    private static final int SET1_RECORD_COUNT = 2;
-
-    private static final int SET2_RECORD_COUNT = 3;
 
     private JsonObject myConfig;
 
@@ -166,9 +156,10 @@ public class HarvestJobSchedulerServiceIT {
     @Timeout(value = 15, timeUnit = TimeUnit.SECONDS)
     public void testInstantiationExistingJob(final Vertx aVertx, final VertxTestContext aContext) {
         final Checkpoint serviceSaved = aContext.checkpoint();
+        final List<String> bothSets = List.of(TestUtils.SET1, TestUtils.SET2);
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET1, SET2))).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, bothSets)).compose(jobID -> {
             final Checkpoint jobResultReceived = aContext.checkpoint();
 
             LOGGER.debug(MessageCodes.PRL_030);
@@ -180,14 +171,15 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET1_RECORD_COUNT + SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET1_RECORD_COUNT + TestUtils.SET2_RECORD_COUNT,
+                                    jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -240,14 +232,14 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET1_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET1_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -270,8 +262,8 @@ public class HarvestJobSchedulerServiceIT {
                 final Job job;
 
                 try {
-                    job = new Job(institutionID, myTestProviderBaseURL, List.of(SET1), getFutureCronExpression(5),
-                            null);
+                    job = new Job(institutionID, myTestProviderBaseURL, List.of(TestUtils.SET1),
+                            TestUtils.getFutureCronExpression(5), null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
                 }
@@ -301,7 +293,7 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint serviceSaved = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, List.of(SET2))).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of(TestUtils.SET2))).compose(jobID -> {
             final Checkpoint jobResultReceived = aContext.checkpoint(1);
 
             LOGGER.debug(MessageCodes.PRL_030);
@@ -313,14 +305,14 @@ public class HarvestJobSchedulerServiceIT {
                     final JobResult jobResult = new JobResult(message.body());
                     final CompositeFuture queryBackingServices =
                             CompositeFuture.all(myHarvestScheduleStoreServiceProxy.getJob(jobResult.getJobID()),
-                                    TestUtils.getAllDocuments(mySolrClient));
+                                    TestUtils.getItemRecordDocuments(mySolrClient));
 
                     queryBackingServices.onSuccess(results -> {
                         final Job job = results.resultAt(0);
                         final SolrDocumentList solrDocs = results.resultAt(1);
 
                         aContext.verify(() -> {
-                            assertEquals(SET2_RECORD_COUNT, jobResult.getRecordCount());
+                            assertEquals(TestUtils.SET2_RECORD_COUNT, jobResult.getRecordCount());
                             assertEquals(jobResult.getRecordCount(), solrDocs.getNumFound());
                             assertEquals(0, jobResult.getDeletedRecordCount());
                             assertTrue(job.getLastSuccessfulRun().isPresent());
@@ -345,7 +337,7 @@ public class HarvestJobSchedulerServiceIT {
 
                 serviceSaved.flag();
 
-                return updateJob(jobID, List.of(SET2));
+                return updateJob(jobID, List.of(TestUtils.SET2));
             }).onSuccess(result -> {
                 LOGGER.info(MessageCodes.PRL_032);
             });
@@ -365,7 +357,7 @@ public class HarvestJobSchedulerServiceIT {
         final Checkpoint removedJobDidNotExecute = aContext.checkpoint();
 
         // Add jobs before instantiation of the service
-        addInstitution().compose(institutionID -> addJob(institutionID, null)).compose(jobID -> {
+        addInstitution().compose(institutionID -> addJob(institutionID, List.of())).compose(jobID -> {
             final OffsetDateTime now = OffsetDateTime.now().withNano(0);
             // After this time, we can be reasonably certain that the canceled job won't run
             final OffsetDateTime whenWeWillKnow = now.plusSeconds(10);
@@ -402,22 +394,6 @@ public class HarvestJobSchedulerServiceIT {
     }
 
     /**
-     * Gets a Cron expression that will match some time in the future.
-     *
-     * @param aSecondsLater The number of seconds in the future to create an hourly Cron expression for
-     * @return The Cron expression
-     * @throws ParseException
-     */
-    private static CronExpression getFutureCronExpression(final long aSecondsLater) throws ParseException {
-        final OffsetDateTime futureTime = OffsetDateTime.now().plusSeconds(aSecondsLater);
-        final String cron = String.format("%d %d * * * ?", futureTime.getSecond(), futureTime.getMinute());
-
-        LOGGER.debug(MessageCodes.PRL_033, aSecondsLater, cron);
-
-        return new CronExpression(cron);
-    }
-
-    /**
      * @return A Future that succeeds if a random institution was added to the database
      */
     private Future<Integer> addInstitution() {
@@ -442,7 +418,7 @@ public class HarvestJobSchedulerServiceIT {
         final Job job;
 
         try {
-            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, getFutureCronExpression(5), null);
+            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, TestUtils.getFutureCronExpression(5), null);
         } catch (final ParseException details) {
             return Future.failedFuture(details);
         }

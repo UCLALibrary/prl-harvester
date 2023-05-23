@@ -6,6 +6,7 @@ import java.net.URL;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +80,7 @@ public final class Job {
     /**
      * The list of sets to harvest.
      */
-    private final Optional<List<String>> mySets;
+    private final List<String> mySets;
 
     /**
      * The schedule on which this job should be run.
@@ -105,7 +106,7 @@ public final class Job {
         myID = Optional.empty();
         myInstitutionID = anInstitutionID;
         myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
-        mySets = Optional.ofNullable(aSets);
+        mySets = Objects.requireNonNull(aSets);
         myScheduleCronExpression = Objects.requireNonNull(aScheduleCronExpression);
         myLastSuccessfulRun = Optional.ofNullable(aLastSuccessfulRun);
     }
@@ -124,6 +125,7 @@ public final class Job {
 
         final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
         final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
+        final JsonArray sets = aJsonObject.getJsonArray(SETS);
         final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
 
         myID = Optional.ofNullable(aJsonObject.getInteger(ID));
@@ -145,7 +147,14 @@ public final class Job {
             throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
         }
 
-        mySets = Optional.ofNullable(aJsonObject.getJsonArray(SETS)).map(JsonArray::getList);
+        if (sets != null) {
+            mySets = new ArrayList<>(sets.size());
+            sets.forEach(set -> {
+                mySets.add((String) set);
+            });
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
+        }
 
         if (scheduleCronExpression != null) {
             try {
@@ -175,7 +184,7 @@ public final class Job {
         final JsonObject json = new JsonObject(toSqlTemplateParametersMap());
 
         // Convert all the non-JSON types to JSON types
-        getSets().ifPresent(sets -> json.put(SETS, new JsonArray(sets)));
+        json.put(SETS, new JsonArray(getSets()));
         getLastSuccessfulRun().ifPresent(datetime -> json.put(LAST_SUCCESSFUL_RUN, datetime.toString()));
 
         return json;
@@ -191,7 +200,7 @@ public final class Job {
         map.put(REPOSITORY_BASE_URL, getRepositoryBaseURL().toString());
         map.put(METADATA_PREFIX, getMetadataPrefix());
         // SqlTemplate parameter mapping requires that an array is represented as a Java array (not a List or JsonArray)
-        map.put(SETS, getSets().map(sets -> sets.toArray(new String[0])).orElse(null));
+        map.put(SETS, getSets().toArray(new String[0]));
         map.put(SCHEDULE_CRON_EXPRESSION, getScheduleCronExpression().getCronExpression());
         // Likewise, timestamps must be represented as OffsetDateTime (not a String)
         map.put(LAST_SUCCESSFUL_RUN, getLastSuccessfulRun().orElse(null));
@@ -230,9 +239,9 @@ public final class Job {
     }
 
     /**
-     * @return The optional list of sets
+     * @return The list of sets
      */
-    public Optional<List<String>> getSets() {
+    public List<String> getSets() {
         return mySets;
     }
 
@@ -285,7 +294,7 @@ public final class Job {
         result = prime * result + myID.map(id -> id.hashCode()).orElse(0);
         result = prime * result + myInstitutionID;
         result = prime * result + myRepositoryBaseURL.hashCode();
-        result = prime * result + mySets.map(sets -> sets.hashCode()).orElse(0);
+        result = prime * result + mySets.hashCode();
         result = prime * result + myScheduleCronExpression.getCronExpression().hashCode();
         result = prime * result + myLastSuccessfulRun.map(timestamp -> timestamp.hashCode()).orElse(0);
 

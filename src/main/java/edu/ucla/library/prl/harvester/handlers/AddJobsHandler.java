@@ -75,7 +75,7 @@ public final class AddJobsHandler extends AbstractRequestHandler {
 
         return deserializationResult.compose(job -> {
             final URL baseURL = job.getRepositoryBaseURL();
-            final List<String> sets = job.getSets().orElse(List.of());
+            final List<String> sets = job.getSets();
 
             return OaipmhUtils
                     .validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
