@@ -402,13 +402,15 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                             LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
                 });
 
+            } else {
+                return Future.succeededFuture();
             }
         });
     }
 
     private boolean hasNewSets(final List<String> anUpdateList, final List<String> aCurrentList) {
         final List<String> difference =
-                anUpdateList.stream().filter(entry -> !aCurrentlist.contains(entry)).collect(Collectors.toList());
+                anUpdateList.stream().filter(entry -> !aCurrentList.contains(entry)).collect(Collectors.toList());
         return !difference.isEmpty();
     }
 
