@@ -1,6 +1,18 @@
 
 package edu.ucla.library.prl.harvester;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Optional;
+import java.util.Properties;
+
+import info.freelibrary.util.Logger;
+import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
+
+import io.vertx.config.ConfigRetriever;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 /**
@@ -74,10 +86,59 @@ public final class Config {
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
 
     /**
+     * A logger.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(Config.class, MessageCodes.BUNDLE);
+
+    /**
+     * The name for the application version.
+     */
+    private static final String VERSION = "VERSION";
+
+    /**
      * Constant classes should have private constructors.
      */
     private Config() {
         // This is intentionally left empty.
+    }
+
+    /**
+     * Gets the application configuration.
+     *
+     * @param aVertx A Vert.x instance
+     * @return The configuration
+     */
+    public static Future<JsonObject> getConfig(final Vertx aVertx) {
+        return ConfigRetriever.create(aVertx).setConfigurationProcessor(Config::setAppVersion).getConfig();
+    }
+
+    /**
+     * A configuration processor that adds the application version, if available.
+     *
+     * @param aConfig An application configuration
+     * @return The processed application configuration
+     */
+    private static JsonObject setAppVersion(final JsonObject aConfig) {
+        final String manifestPath = "/META-INF/MANIFEST.MF";
+
+        try (InputStream manifest = Config.class.getResourceAsStream(manifestPath)) {
+            final Properties properties = new Properties();
+            final Optional<String> version;
+
+            properties.load(manifest);
+            version = Optional.ofNullable(properties.getProperty("Maven-Version"));
+
+            if (version.isPresent()) {
+                return aConfig.copy().put(VERSION, version.get());
+            } else {
+                return aConfig;
+            }
+        } catch (final IOException details) {
+            // Either the app wasn't deployed as a JAR, or Vert.x Maven Plugin isn't creating the manifest file
+            LOGGER.warn(MessageCodes.PRL_048, manifestPath, details.getMessage());
+
+            return aConfig;
+        }
     }
 
     /**
@@ -87,7 +148,15 @@ public final class Config {
      * @return The user agent
      */
     public static String getHarvesterUserAgent(final JsonObject aConfig) {
-        return aConfig.getString(Config.HARVESTER_USER_AGENT, Constants.DEFAULT_HARVESTER_USER_AGENT);
+        final String productName =
+                aConfig.getString(Config.HARVESTER_USER_AGENT, Constants.DEFAULT_HARVESTER_USER_AGENT);
+        final Optional<String> productVersion = Optional.ofNullable(aConfig.getString(VERSION));
+
+        if (productVersion.isPresent()) {
+            return StringUtils.format("{}/{}", productName, productVersion.get());
+        } else {
+            return productName;
+        }
     }
 
     /**

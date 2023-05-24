@@ -22,10 +22,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
+
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -57,7 +57,7 @@ public class OaipmhUtilsFT {
      */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+        Config.getConfig(aVertx).onSuccess(config -> {
             myHarvesterUserAgent = Config.getHarvesterUserAgent(config);
             myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(config);
 

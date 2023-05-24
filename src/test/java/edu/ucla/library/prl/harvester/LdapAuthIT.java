@@ -18,7 +18,6 @@ import info.freelibrary.util.StringUtils;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.AuthenticationProvider;
@@ -56,7 +55,7 @@ public class LdapAuthIT {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+        Config.getConfig(aVertx).onSuccess(config -> {
             myAuthOpts = new LdapAuthnOptions().setURL(config.getString(Config.LDAP_URL))
                     .setAuthenticationQuery(config.getString(Config.LDAP_AUTH_QUERY));
             myUsername = config.getString(TestUtils.LDAP_USERNAME);
