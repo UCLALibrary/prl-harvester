@@ -374,7 +374,6 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                     .failedFuture(new HarvestScheduleStoreServiceException(Error.INTERNAL_ERROR, error.getMessage()));
         }).compose(update -> {
             if (hasSingleRow(update)) {
-                checkUpdateLastRun(aJobId, aJob);
                 return Future.succeededFuture();
             }
             return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
