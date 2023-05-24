@@ -22,6 +22,7 @@ import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 import info.freelibrary.util.IllegalArgumentI18nException;
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
+import info.freelibrary.util.StringUtils;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -33,6 +34,13 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 @DataObject
 @SuppressWarnings("PMD.DataClass")
 public final class Institution {
+
+    /**
+     * The string template for the ID of a Solr doc representing an institution.
+     * <p>
+     * The template should be formatted with the institution ID.
+     */
+    public static final String SOLR_DOC_ID_TEMPLATE = "prl-harvester-institution-{}";
 
     /**
      * The JSON key for the ID.
@@ -272,8 +280,8 @@ public final class Institution {
         final SolrInputDocument doc = new SolrInputDocument();
 
         // Required fields
-        doc.setField(ID, String.format("prl-harvester-institution-%d", getID()
-                .orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022))).intValue()));
+        doc.setField(ID, StringUtils.format(SOLR_DOC_ID_TEMPLATE,
+                getID().orElseThrow(() -> new NoSuchElementException(LOGGER.getMessage(MessageCodes.PRL_022)))));
         doc.setField("prrla_member_title", getName());
         doc.setField("prrla_member_description", getDescription());
         doc.setField("prrla_member_location", getLocation());

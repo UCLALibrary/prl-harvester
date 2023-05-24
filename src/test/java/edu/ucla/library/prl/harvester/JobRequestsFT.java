@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.mail.internet.AddressException;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.google.i18n.phonenumbers.NumberParseException;
@@ -37,6 +39,7 @@ import edu.ucla.library.prl.harvester.utils.TestUtils;
 import io.ino.solrs.JavaAsyncSolrClient;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -47,6 +50,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.junit5.Checkpoint;
+import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.sqlclient.Pool;
@@ -757,6 +761,80 @@ public class JobRequestsFT extends AuthorizedFIT {
                     dbVerified.flag();
                 });
             }).onFailure(aContext::failNow);
+        }).onFailure(aContext::failNow);
+    }
+
+    /**
+     * Test that {@link Op#updateJob} after the job has been run does not result in changes to Solr if the list of sets
+     * is unchanged.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    @Timeout(value = 20, timeUnit = TimeUnit.SECONDS)
+    @DisabledIfSystemProperty(named = "skipCronTests", matches = "true")
+    void testUpdateJobSameSetsPreservesHarvest(final Vertx aVertx, final VertxTestContext aContext) {
+        final Checkpoint solrVerified = aContext.checkpoint(2);
+        final int harvestDelay = 5;
+        final Job job;
+        final Future<HttpResponse<Buffer>> addJobs;
+
+        try {
+            // Create a job that will be run soon
+            job = new Job(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1),
+                    TestUtils.getFutureCronExpression(harvestDelay), null);
+        } catch (final ParseException details) {
+            aContext.failNow(details);
+            return;
+        }
+
+        // First request
+        addJobs = myWebClient.post(JOBS).sendJson(new JsonArray().add(job.toJson()));
+
+        addJobs.compose(addJobsResponse -> {
+            final Promise<Void> harvestIsLikelyComplete = Promise.promise();
+
+            aVertx.setTimer(2 * harvestDelay * 1000, timerID -> {
+                // Verify the presence of item record docs
+                TestUtils.getSolrItemRecordAssertions(mySolrClient, TestUtils.SET1_RECORD_COUNT)
+                        .onSuccess(assertions -> {
+                            aContext.verify(() -> {
+                                assertions.run();
+
+                                solrVerified.flag();
+                            });
+                        }).onFailure(aContext::failNow);
+
+                harvestIsLikelyComplete.complete();
+            });
+
+            LOGGER.info(MessageCodes.PRL_032);
+
+            return harvestIsLikelyComplete.future().compose(nil -> {
+                final Job firstResponseJob = new Job(addJobsResponse.bodyAsJsonArray().getJsonObject(0));
+                final Variables jobID = TestUtils.getUriTemplateVars(firstResponseJob.getID().get());
+                final Future<HttpResponse<Buffer>> updateJob;
+
+                // Second request
+                // Sending the same job back should be a no-op
+                updateJob = myWebClient.put(JOB.expandToString(jobID)).expect(ResponsePredicate.JSON)
+                        .sendJson(firstResponseJob.toJson());
+
+                return updateJob.compose(result -> {
+                    // Verify that the item record docs are still there
+                    TestUtils.getSolrItemRecordAssertions(mySolrClient, TestUtils.SET1_RECORD_COUNT)
+                            .onSuccess(assertions -> {
+                                aContext.verify(() -> {
+                                    assertions.run();
+
+                                    solrVerified.flag();
+                                });
+                            }).onFailure(aContext::failNow);
+
+                    return Future.succeededFuture();
+                });
+            });
         }).onFailure(aContext::failNow);
     }
 
