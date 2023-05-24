@@ -18,10 +18,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import edu.ucla.library.prl.harvester.utils.TestUtils;
+
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -53,7 +53,7 @@ public class FrontEndIT extends AuthorizedFIT {
      */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().compose(config -> {
+        Config.getConfig(aVertx).compose(config -> {
             final String host = config.getString(TestUtils.HTTP_HOST);
             final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);

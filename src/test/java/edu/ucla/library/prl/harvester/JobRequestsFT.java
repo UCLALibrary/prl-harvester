@@ -37,7 +37,7 @@ import edu.ucla.library.prl.harvester.services.HarvestScheduleStoreService;
 import edu.ucla.library.prl.harvester.utils.TestUtils;
 
 import io.ino.solrs.JavaAsyncSolrClient;
-import io.vertx.config.ConfigRetriever;
+
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -88,7 +88,7 @@ public class JobRequestsFT extends AuthorizedFIT {
      */
     @BeforeAll
     public final void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().compose(config -> {
+        Config.getConfig(aVertx).compose(config -> {
             final String host = config.getString(TestUtils.HTTP_HOST);
             final int port = Config.getHttpPort(config);
             final WebClientOptions webClientOpts = new WebClientOptions().setDefaultHost(host).setDefaultPort(port);

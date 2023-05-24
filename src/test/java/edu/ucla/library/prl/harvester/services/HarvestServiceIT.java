@@ -45,7 +45,6 @@ import io.ino.solrs.JavaAsyncSolrClient;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -87,7 +86,7 @@ public class HarvestServiceIT {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().compose(config -> {
+        Config.getConfig(aVertx).compose(config -> {
             final Institution testInstitution;
             final Pool dbConnectionPool = HarvestScheduleStoreService.getConnectionPool(aVertx, config);
             final HarvestScheduleStoreService scheduleStoreService =

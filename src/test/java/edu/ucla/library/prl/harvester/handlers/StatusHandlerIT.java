@@ -16,7 +16,6 @@ import info.freelibrary.util.HTTP;
 import edu.ucla.library.prl.harvester.Config;
 import edu.ucla.library.prl.harvester.MediaType;
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.client.HttpRequest;
@@ -49,7 +48,7 @@ public class StatusHandlerIT {
      */
     @BeforeAll
     public void setUp(final Vertx aVertx, final VertxTestContext aContext) {
-        ConfigRetriever.create(aVertx).getConfig().onSuccess(config -> {
+        Config.getConfig(aVertx).onSuccess(config -> {
             myWebClient = WebClient.create(aVertx);
             myPort = Config.getHttpPort(config);
 

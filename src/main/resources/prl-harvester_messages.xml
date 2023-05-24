@@ -53,5 +53,6 @@
   <entry key="PRL_045">Operation succeeded, but it should have failed</entry>
   <entry key="PRL_046">Must provide non-empty list</entry>
   <entry key="PRL_047">[Bad Request] Validation error for body application/json: provided array should have size &gt;= 1</entry>
+  <entry key="PRL_048">Could not find resource "{}": {}</entry>
 
 </properties>
