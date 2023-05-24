@@ -60,7 +60,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                                         final Job oldJob = oldJobAndInstitution._1();
                                         final Institution institution = oldJobAndInstitution._2();
 
-					myHarvestScheduleStoreService.checkUpdateLastRun(oldJob, job);
+                                        myHarvestScheduleStoreService.updateJobLastRun(oldJob, job, id);
                                         return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
                                     });
 

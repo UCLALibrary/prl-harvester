@@ -382,7 +382,8 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
         });
     }
 
-    public void checkUpdateLastRun(final Jon anOldJob, final Job aNewJob) {
+    @Override
+    public Future<Void> updateJobLastRun(final Job anOldJob, final Job aNewJob, final int aJobId) {
         if (hasNewSets(aNewJob.getSets(), anOldJob.getSets())) {
             final Future<SqlResult<Void>> updateExecution = myDbConnectionPool.withConnection(connection -> {
                 final Job jobWithID = Job.withID(aNewJob, aJobId);
@@ -398,8 +399,10 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
                     return Future.succeededFuture();
                 }
                 return Future.failedFuture(new HarvestScheduleStoreServiceException(Error.NOT_FOUND,
-                        LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aJob.getInstitutionID())));
+                        LOGGER.getMessage(MessageCodes.PRL_015, aJobId, aNewJob.getInstitutionID())));
             });
+        } else {
+            return Future.succeededFuture();
         }
     }
 

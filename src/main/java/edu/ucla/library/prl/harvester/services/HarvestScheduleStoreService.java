@@ -129,6 +129,16 @@ public interface HarvestScheduleStoreService {
     Future<Void> updateJob(int aJobId, Job aJob);
 
     /**
+     * Updates a harvest job's last run time if new sets added.
+     *
+     * @param anOldJob The original harvest job
+     * @param aNewJob The harvest job to replace the existing one with
+     * @param aJobId The unique local ID for the harvest job
+     * @return A Future that succeeds if the harvest job was updated
+     */
+    Future<Void> updateJobLastRun(Job anOldJob, Job aNewJob, int aJobId);
+
+    /**
      * Removes a harvest job.
      *
      * @param aJobId The unique local ID for the harvest job
