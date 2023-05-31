@@ -142,9 +142,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @return True if new job has sets not contained in old job
      */
     private boolean hasNewSets(final Job anOldJob, final Job aNewJob) {
-        return getDifference(aNewJob.getSets(),
-                anOldJob.getSets())
-                        .isEmpty() ||
+        return getDifference(aNewJob.getSets(), anOldJob.getSets()).isEmpty() ||
                 !anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty() &&
                         (getDifference(OaipmhUtils.listSets(myVertx, anOldJob.getRepositoryBaseURL(),
                                 myOaipmhClientHttpTimeout, myHarvesterUserAgent).map(OaipmhUtils::getSetSpecs).result(),
