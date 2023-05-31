@@ -53,15 +53,20 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                     .onSuccess(none -> {
                         getJobAndInstitution(id).compose(oldJobAndInstitution -> {
                             // Update the database, the in-memory scheduler, and Solr
+                            final Job oldJob = oldJobAndInstitution._1();
+                            final Institution institution = oldJobAndInstitution._2();
+                            final Job jobToSubmit;
+                            if (hasNewSets(oldJob, job)) {
+                                jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), job.getSets(),
+                                        job.getScheduleCronExpression(), null);
+                            } else {
+                                jobToSubmit = job;
+                            }
                             final Future<Void> update =
-                                    myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                                        return myHarvestJobSchedulerService.updateJob(id, job);
+                                    myHarvestScheduleStoreService.updateJob(id, jobToSubmit).compose(nil -> {
+                                        return myHarvestJobSchedulerService.updateJob(id, jobToSubmit);
                                     }).compose(nil -> {
-                                        final Job oldJob = oldJobAndInstitution._1();
-                                        final Institution institution = oldJobAndInstitution._2();
-
-                                        myHarvestScheduleStoreService.updateJobLastRun(oldJob, job, id);
-                                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
+                                        return updateSolr(Tuple.of(oldJob, jobToSubmit, institution)).mapEmpty();
                                     });
 
                             return update;
@@ -129,6 +134,21 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                 return Future.succeededFuture();
             }
         });
+    }
+
+    /**
+     * @param anOldJob A Job representing an original state
+     * @param aNewJob A Job representing a new, updated state
+     * @return True if new job has sets not contained in old job
+     */
+    private boolean hasNewSets(final Job anOldJob, final Job aNewJob) {
+        return getDifference(aNewJob.getSets(),
+                anOldJob.getSets())
+                        .isEmpty() ||
+                !anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty() &&
+                        (getDifference(OaipmhUtils.listSets(myVertx, anOldJob.getRepositoryBaseURL(),
+                                myOaipmhClientHttpTimeout, myHarvesterUserAgent).map(OaipmhUtils::getSetSpecs).result(),
+                                anOldJob.getSets()).isEmpty());
     }
 
     /**
