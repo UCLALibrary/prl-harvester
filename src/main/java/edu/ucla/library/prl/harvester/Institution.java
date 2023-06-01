@@ -148,9 +148,9 @@ public final class Institution {
             final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
             final Optional<URL> aWebContact, final URL aWebsite) {
         myID = Optional.empty();
-        myName = Objects.requireNonNull(aName);
-        myDescription = Objects.requireNonNull(aDescription);
-        myLocation = Objects.requireNonNull(aLocation);
+        myName = Objects.requireNonNull(aName.trim());
+        myDescription = Objects.requireNonNull(aDescription.trim());
+        myLocation = Objects.requireNonNull(aLocation.trim());
 
         if (anEmail.isPresent() || aPhone.isPresent() || aWebContact.isPresent()) {
             myEmail = Objects.requireNonNull(anEmail);
@@ -186,19 +186,19 @@ public final class Institution {
         myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (name != null) {
-            myName = name;
+            myName = name.trim();
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, NAME);
         }
 
         if (description != null) {
-            myDescription = description;
+            myDescription = description.trim();
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, DESCRIPTION);
         }
 
         if (location != null) {
-            myLocation = location;
+            myLocation = location.trim();
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, LOCATION);
         }
@@ -236,7 +236,7 @@ public final class Institution {
 
         if (website != null) {
             try {
-                myWebsite = new URL(website);
+                myWebsite = new URL(website.trim());
             } catch (final MalformedURLException details) {
                 throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, WEBSITE, details.getMessage());
             }

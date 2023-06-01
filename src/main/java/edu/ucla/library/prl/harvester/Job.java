@@ -138,7 +138,7 @@ public final class Job {
 
         if (repositoryBaseURL != null) {
             try {
-                myRepositoryBaseURL = new URL(repositoryBaseURL);
+                myRepositoryBaseURL = new URL(repositoryBaseURL.trim());
             } catch (final MalformedURLException details) {
                 throw new InvalidJobJsonException(details, MessageCodes.PRL_004, REPOSITORY_BASE_URL,
                         details.getMessage());
@@ -150,7 +150,7 @@ public final class Job {
         if (sets != null) {
             mySets = new ArrayList<>(sets.size());
             sets.forEach(set -> {
-                mySets.add((String) set);
+                mySets.add(((String) set).trim());
             });
         } else {
             throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
@@ -158,7 +158,7 @@ public final class Job {
 
         if (scheduleCronExpression != null) {
             try {
-                myScheduleCronExpression = new CronExpression(scheduleCronExpression);
+                myScheduleCronExpression = new CronExpression(scheduleCronExpression.trim());
             } catch (final ParseException details) {
                 throw new InvalidJobJsonException(details, MessageCodes.PRL_004, SCHEDULE_CRON_EXPRESSION,
                         details.getMessage());
