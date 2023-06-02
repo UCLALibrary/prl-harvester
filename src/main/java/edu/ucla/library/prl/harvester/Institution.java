@@ -150,7 +150,7 @@ public final class Institution {
         myID = Optional.empty();
         myName = Objects.requireNonNull(StringUtils.trimToNull(aName));
         myDescription = Objects.requireNonNull(StringUtils.trimToNull(aDescription));
-        myLocation = Objects.requireNonNull(iStringUtils.trimToNull(aLocation));
+        myLocation = Objects.requireNonNull(StringUtils.trimToNull(aLocation));
 
         if (anEmail.isPresent() || aPhone.isPresent() || aWebContact.isPresent()) {
             myEmail = Objects.requireNonNull(anEmail);
