@@ -148,9 +148,9 @@ public final class Institution {
             final Optional<InternetAddress> anEmail, final Optional<PhoneNumber> aPhone,
             final Optional<URL> aWebContact, final URL aWebsite) {
         myID = Optional.empty();
-        myName = Objects.requireNonNull(aName.trim());
-        myDescription = Objects.requireNonNull(aDescription.trim());
-        myLocation = Objects.requireNonNull(aLocation.trim());
+        myName = Objects.requireNonNull(StringUtils.trimToNull(aName));
+        myDescription = Objects.requireNonNull(StringUtils.trimToNull(aDescription));
+        myLocation = Objects.requireNonNull(iStringUtils.trimToNull(aLocation));
 
         if (anEmail.isPresent() || aPhone.isPresent() || aWebContact.isPresent()) {
             myEmail = Objects.requireNonNull(anEmail);
@@ -186,19 +186,19 @@ public final class Institution {
         myID = Optional.ofNullable(aJsonObject.getInteger(ID));
 
         if (name != null) {
-            myName = name.trim();
+            myName = Objects.requireNonNull(StringUtils.trimToNull(name));
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, NAME);
         }
 
         if (description != null) {
-            myDescription = description.trim();
+            myDescription = Objects.requireNonNull(StringUtils.trimToNull(description));
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, DESCRIPTION);
         }
 
         if (location != null) {
-            myLocation = location.trim();
+            myLocation = Objects.requireNonNull(StringUtils.trimToNull(location));
         } else {
             throw new InvalidInstitutionJsonException(MessageCodes.PRL_002, LOCATION);
         }
@@ -236,7 +236,7 @@ public final class Institution {
 
         if (website != null) {
             try {
-                myWebsite = new URL(website.trim());
+                myWebsite = new URL(Objects.requireNonNull(StringUtils.trimToNull(website)));
             } catch (final MalformedURLException details) {
                 throw new InvalidInstitutionJsonException(details, MessageCodes.PRL_004, WEBSITE, details.getMessage());
             }
