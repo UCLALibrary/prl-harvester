@@ -15,6 +15,8 @@ import java.util.Optional;
 
 import org.quartz.CronExpression;
 
+import info.freelibrary.util.StringUtils;
+
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -138,7 +140,7 @@ public final class Job {
 
         if (repositoryBaseURL != null) {
             try {
-                myRepositoryBaseURL = new URL(repositoryBaseURL.trim());
+                myRepositoryBaseURL = new URL(Objects.requireNonNull(StringUtils.trimToNull(repositoryBaseURL)));
             } catch (final MalformedURLException details) {
                 throw new InvalidJobJsonException(details, MessageCodes.PRL_004, REPOSITORY_BASE_URL,
                         details.getMessage());
@@ -150,7 +152,7 @@ public final class Job {
         if (sets != null) {
             mySets = new ArrayList<>(sets.size());
             sets.forEach(set -> {
-                mySets.add(((String) set).trim());
+                mySets.add(Objects.requireNonNull(StringUtils.trimToNull((String) set)));
             });
         } else {
             throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
@@ -158,7 +160,8 @@ public final class Job {
 
         if (scheduleCronExpression != null) {
             try {
-                myScheduleCronExpression = new CronExpression(scheduleCronExpression.trim());
+                myScheduleCronExpression =
+                        new CronExpression(Objects.requireNonNull(StringUtils.trimToNull(scheduleCronExpression)));
             } catch (final ParseException details) {
                 throw new InvalidJobJsonException(details, MessageCodes.PRL_004, SCHEDULE_CRON_EXPRESSION,
                         details.getMessage());
