@@ -56,7 +56,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                             // Update the database, the in-memory scheduler, and Solr
                             final Job oldJob = oldJobAndInstitution._1();
                             final Institution institution = oldJobAndInstitution._2();
-                            return hasNewSetsAlt(oldJob, job).compose(hasNew -> {
+                            return hasNewSets(oldJob, job).compose(hasNew -> {
                                 final Job jobToSubmit;
                                 if (hasNewSets(oldJob, job)) {
                                     jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
