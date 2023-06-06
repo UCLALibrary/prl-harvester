@@ -144,7 +144,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
      * @param aNewJob A Job representing a new, updated state
      * @return Future that resolves to true if new job has sets not contained in old job
      */
-    //PDM doesn't know Future|Promise<Boolean> eventually becomes boolean, and boolean-style names make code clearer
+    // PDM doesn't know Future|Promise<Boolean> eventually becomes boolean, and boolean-style names make code clearer
     @SuppressWarnings("PMD.LinguisticNaming")
     private Future<Boolean> hasNewSets(final Job anOldJob, final Job aNewJob) {
         final Promise<Boolean> hasNew = Promise.promise();
