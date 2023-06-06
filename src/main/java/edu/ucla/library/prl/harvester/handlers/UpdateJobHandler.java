@@ -20,6 +20,7 @@ import io.vavr.Tuple;
 import io.vavr.Tuple3;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
@@ -55,21 +56,23 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                             // Update the database, the in-memory scheduler, and Solr
                             final Job oldJob = oldJobAndInstitution._1();
                             final Institution institution = oldJobAndInstitution._2();
-                            final Job jobToSubmit;
-                            if (hasNewSets(oldJob, job)) {
-                                jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), job.getSets(),
-                                        job.getScheduleCronExpression(), null);
-                            } else {
-                                jobToSubmit = job;
-                            }
-                            final Future<Void> update =
-                                    myHarvestScheduleStoreService.updateJob(id, jobToSubmit).compose(nil -> {
-                                        return myHarvestJobSchedulerService.updateJob(id, jobToSubmit);
-                                    }).compose(nil -> {
-                                        return updateSolr(Tuple.of(oldJob, jobToSubmit, institution)).mapEmpty();
-                                    });
+                            return hasNewSetsAlt(oldJob, job).compose(hasNew -> {
+                                final Job jobToSubmit;
+                                if (hasNewSets(oldJob, job)) {
+                                    jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
+                                            job.getSets(), job.getScheduleCronExpression(), null);
+                                } else {
+                                    jobToSubmit = job;
+                                }
+                                final Future<Void> update =
+                                        myHarvestScheduleStoreService.updateJob(id, jobToSubmit).compose(nil -> {
+                                            return myHarvestJobSchedulerService.updateJob(id, jobToSubmit);
+                                        }).compose(nil -> {
+                                            return updateSolr(Tuple.of(oldJob, jobToSubmit, institution)).mapEmpty();
+                                        });
 
-                            return update;
+                                return update;
+                            });
                         }).onSuccess(nil -> {
                             final JsonObject responseBody = Job.withID(job, id).toJson();
 
@@ -139,14 +142,25 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
     /**
      * @param anOldJob A Job representing an original state
      * @param aNewJob A Job representing a new, updated state
-     * @return True if new job has sets not contained in old job
+     * @return Future that resolves to true if new job has sets not contained in old job
      */
-    private boolean hasNewSets(final Job anOldJob, final Job aNewJob) {
-        return getDifference(aNewJob.getSets(), anOldJob.getSets()).isEmpty() ||
-                !anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty() &&
-                        (getDifference(OaipmhUtils.listSets(myVertx, anOldJob.getRepositoryBaseURL(),
-                                myOaipmhClientHttpTimeout, myHarvesterUserAgent).map(OaipmhUtils::getSetSpecs).result(),
-                                anOldJob.getSets()).isEmpty());
+    //PDM doesn't know Future|Promise<Boolean> eventually becomes boolean, and boolean-style names make code clearer
+    @SuppressWarnings("PMD.LinguisticNaming")
+    private Future<Boolean> hasNewSets(final Job anOldJob, final Job aNewJob) {
+        final Promise<Boolean> hasNew = Promise.promise();
+
+        OaipmhUtils.listSets(myVertx, anOldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                .onSuccess(sets -> {
+                    final List<String> setSpecs = OaipmhUtils.getSetSpecs(sets);
+                    final boolean simpleDiff = getDifference(aNewJob.getSets(), anOldJob.getSets()).isEmpty();
+                    final boolean emptyCompare = !anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty();
+                    final boolean specsDiff = getDifference(setSpecs, anOldJob.getSets()).isEmpty();
+                    hasNew.complete(simpleDiff || emptyCompare && specsDiff);
+                }).onFailure(details -> {
+                    hasNew.fail(details.getMessage());
+                });
+
+        return hasNew.future();
     }
 
     /**
