@@ -58,7 +58,7 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                             final Institution institution = oldJobAndInstitution._2();
                             return hasNewSets(oldJob, job).compose(hasNew -> {
                                 final Job jobToSubmit;
-                                if (hasNewSets(oldJob, job)) {
+                                if (hasNewSets) {
                                     jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
                                             job.getSets(), job.getScheduleCronExpression(), null);
                                 } else {
