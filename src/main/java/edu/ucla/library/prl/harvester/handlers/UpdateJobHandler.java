@@ -20,7 +20,6 @@ import io.vavr.Tuple;
 import io.vavr.Tuple3;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
@@ -147,20 +146,29 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
     // PDM doesn't know Future|Promise<Boolean> eventually becomes boolean, and boolean-style names make code clearer
     @SuppressWarnings("PMD.LinguisticNaming")
     private Future<Boolean> hasNewSets(final Job anOldJob, final Job aNewJob) {
-        final Promise<Boolean> hasNew = Promise.promise();
+        final Future<List<String>> getActualNewJobSets;
 
-        OaipmhUtils.listSets(myVertx, anOldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
-                .onSuccess(sets -> {
-                    final List<String> setSpecs = OaipmhUtils.getSetSpecs(sets);
-                    final boolean simpleDiff = getDifference(aNewJob.getSets(), anOldJob.getSets()).isEmpty();
-                    final boolean emptyCompare = !anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty();
-                    final boolean specsDiff = getDifference(setSpecs, anOldJob.getSets()).isEmpty();
-                    hasNew.complete(simpleDiff || emptyCompare && specsDiff);
-                }).onFailure(details -> {
-                    hasNew.fail(details.getMessage());
-                });
-
-        return hasNew.future();
+        if (!anOldJob.getSets().isEmpty() && !aNewJob.getSets().isEmpty()) {
+            // Still selective harvesting, although the list of sets may have changed, so calculate difference between
+            // the lists on each job
+            getActualNewJobSets = Future.succeededFuture(aNewJob.getSets());
+        } else if (anOldJob.getSets().isEmpty() && !aNewJob.getSets().isEmpty()) {
+            // From non-selective harvesting to selective (i.e., harvesting a subset of the repository's sets), so we
+            // know that none have been added
+            return Future.succeededFuture(false);
+        } else if (!anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty()) {
+            // From selective harvesting to non-selective, so query OAI-PMH repository to determine which additional
+            // sets (if any) should be harvested
+            getActualNewJobSets = OaipmhUtils
+                    .listSets(myVertx, anOldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                    .map(OaipmhUtils::getSetSpecs);
+        } else {
+            // Still harvesting entire repository, so nothing to add
+            return Future.succeededFuture(false);
+        }
+        return getActualNewJobSets.compose(sets -> {
+            return Future.succeededFuture(getDifference(sets, anOldJob.getSets()).isEmpty());
+        });
     }
 
     /**
