@@ -53,17 +53,25 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                     .onSuccess(none -> {
                         getJobAndInstitution(id).compose(oldJobAndInstitution -> {
                             // Update the database, the in-memory scheduler, and Solr
-                            final Future<Void> update =
-                                    myHarvestScheduleStoreService.updateJob(id, job).compose(nil -> {
-                                        return myHarvestJobSchedulerService.updateJob(id, job);
-                                    }).compose(nil -> {
-                                        final Job oldJob = oldJobAndInstitution._1();
-                                        final Institution institution = oldJobAndInstitution._2();
+                            final Job oldJob = oldJobAndInstitution._1();
+                            final Institution institution = oldJobAndInstitution._2();
+                            return hasNewSets(oldJob, job).compose(hasNew -> {
+                                final Job jobToSubmit;
+                                if (hasNew) {
+                                    jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
+                                            job.getSets(), job.getScheduleCronExpression(), null);
+                                } else {
+                                    jobToSubmit = job;
+                                }
+                                final Future<Void> update =
+                                        myHarvestScheduleStoreService.updateJob(id, jobToSubmit).compose(nil -> {
+                                            return myHarvestJobSchedulerService.updateJob(id, jobToSubmit);
+                                        }).compose(nil -> {
+                                            return updateSolr(Tuple.of(oldJob, jobToSubmit, institution)).mapEmpty();
+                                        });
 
-                                        return updateSolr(Tuple.of(oldJob, job, institution)).mapEmpty();
-                                    });
-
-                            return update;
+                                return update;
+                            });
                         }).onSuccess(nil -> {
                             final JsonObject responseBody = Job.withID(job, id).toJson();
 
@@ -127,6 +135,39 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             } else {
                 return Future.succeededFuture();
             }
+        });
+    }
+
+    /**
+     * @param anOldJob A Job representing an original state
+     * @param aNewJob A Job representing a new, updated state
+     * @return Future that resolves to true if new job has sets not contained in old job
+     */
+    // PDM doesn't know Future<Boolean> eventually becomes boolean, and boolean-style names make code clearer
+    @SuppressWarnings("PMD.LinguisticNaming")
+    private Future<Boolean> hasNewSets(final Job anOldJob, final Job aNewJob) {
+        final Future<List<String>> getActualNewJobSets;
+
+        if (!anOldJob.getSets().isEmpty() && !aNewJob.getSets().isEmpty()) {
+            // Still selective harvesting, although the list of sets may have changed, so calculate difference between
+            // the lists on each job
+            getActualNewJobSets = Future.succeededFuture(aNewJob.getSets());
+        } else if (anOldJob.getSets().isEmpty() && !aNewJob.getSets().isEmpty()) {
+            // From non-selective harvesting to selective (i.e., harvesting a subset of the repository's sets), so we
+            // know that none have been added
+            return Future.succeededFuture(false);
+        } else if (!anOldJob.getSets().isEmpty() && aNewJob.getSets().isEmpty()) {
+            // From selective harvesting to non-selective, so query OAI-PMH repository to determine which additional
+            // sets (if any) should be harvested
+            getActualNewJobSets = OaipmhUtils
+                    .listSets(myVertx, anOldJob.getRepositoryBaseURL(), myOaipmhClientHttpTimeout, myHarvesterUserAgent)
+                    .map(OaipmhUtils::getSetSpecs);
+        } else {
+            // Still harvesting entire repository, so nothing to add
+            return Future.succeededFuture(false);
+        }
+        return getActualNewJobSets.compose(sets -> {
+            return Future.succeededFuture(!getDifference(sets, anOldJob.getSets()).isEmpty());
         });
     }
 
