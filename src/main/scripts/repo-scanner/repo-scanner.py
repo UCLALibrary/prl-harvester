@@ -19,7 +19,7 @@ def list_identifiers_url(repository_base_url, set_spec, metadata_prefix):
     '''Constructs an OAI-PMH ListIdentifiers request URL from the parameters.'''
     return "{}?verb=ListIdentifiers&set={}&metadataPrefix={}".format(repository_base_url, set_spec, metadata_prefix)
 
-def get_identifier_count(list_identifiers_response):
+def count_identifiers(list_identifiers_response):
     '''Determines how many identifiers belong to the set associated with the given OAI-PMH ListIdentifiers response.'''
     soup = BeautifulSoup(list_identifiers_response.body, features=BS4_XML_PARSER)
 
@@ -59,7 +59,7 @@ async def main(argv):
             set_spec: {
                 "url": url,
                 "status_code": response.code,
-                "size": get_identifier_count(response) if not response.error else None
+                "size": count_identifiers(response) if not response.error else None
             } for ((set_spec, url), response) in list_identifiers_responses.items()
         }
     }
