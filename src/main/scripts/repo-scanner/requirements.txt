@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.2
+lxml==4.9.3
+tornado==6.3.2
+validators==0.20.0
