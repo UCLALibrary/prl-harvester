@@ -88,6 +88,9 @@
     <!-- The default logging level for the application -->
     <logLevel>ERROR</logLevel>
 
+    <!-- The default timezone -->
+    <user.timezone>America/Los_Angeles</user.timezone>
+
     <!-- Testing properties -->
     <live.test.reloads>false</live.test.reloads>
 
