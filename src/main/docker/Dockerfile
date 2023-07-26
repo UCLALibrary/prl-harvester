@@ -8,6 +8,11 @@ FROM alpine:${ALPINE_TAG}
 # Store some project metadata in the Docker image
 LABEL ContainerName="${project.name}" ContainerSourceCode="${project.url}"
 
+# Set timezone
+RUN apk add alpine-conf \
+    && setup-timezone -z "${user.timezone}" \
+    && apk del alpine-conf
+
 # Install packages and setup the application's user
 WORKDIR "/opt/${project.artifactId}"
 RUN apk add openjdk17 --quiet --no-cache \
