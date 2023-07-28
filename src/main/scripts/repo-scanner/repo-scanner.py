@@ -43,7 +43,7 @@ async def main(argv):
 
     # For each setSpec, construct a ListRecords HTTP request
     list_records_requests = map(
-        lambda set_spec: (set_spec, HTTPRequest(list_records_url(repository_base_url, set_spec, "oai_dc"), "GET")),
+        lambda set_spec: (set_spec, HTTPRequest(list_records_url(repository_base_url, set_spec, "oai_dc"), "GET", connect_timeout = 0, request_timeout = 0)),
         set_specs
         )
 
