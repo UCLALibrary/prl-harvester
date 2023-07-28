@@ -50,7 +50,7 @@ async def main(argv):
     # Send each request (Cf. https://www.tornadoweb.org/en/branch6.3/guide/coroutines.html#parallelism)
     # For the report, we want to associate both the setSpec and request URL with the response, so Dict keys are Tuples
     list_records_responses = await multi(
-        { (set_spec, request.url): http_client.fetch(request) for (set_spec, request) in list_records_requests }
+        { (set_spec, request.url): http_client.fetch(request, False) for (set_spec, request) in list_records_requests }
         )
 
     # Print a report
