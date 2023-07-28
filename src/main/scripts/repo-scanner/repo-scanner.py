@@ -16,13 +16,13 @@ def list_sets_url(repository_base_url):
     '''Constructs an OAI-PMH ListSets request URL from the parameters.'''
     return "{}?verb=ListSets".format(repository_base_url)
 
-def list_identifiers_url(repository_base_url, set_spec, metadata_prefix):
-    '''Constructs an OAI-PMH ListIdentifiers request URL from the parameters.'''
-    return "{}?verb=ListIdentifiers&set={}&metadataPrefix={}".format(repository_base_url, quote(set_spec), metadata_prefix)
+def list_records_url(repository_base_url, set_spec, metadata_prefix):
+    '''Constructs an OAI-PMH ListRecords request URL from the parameters.'''
+    return "{}?verb=ListRecords&set={}&metadataPrefix={}".format(repository_base_url, quote(set_spec), metadata_prefix)
 
-def count_identifiers(list_identifiers_response):
-    '''Determines how many identifiers belong to the set associated with the given OAI-PMH ListIdentifiers response.'''
-    soup = BeautifulSoup(list_identifiers_response.body, features=BS4_XML_PARSER)
+def count_records(list_records_response):
+    '''Determines how many records belong to the set associated with the given OAI-PMH ListRecords response.'''
+    soup = BeautifulSoup(list_records_response.body, features=BS4_XML_PARSER)
 
     resumption_token = soup.find("resumptionToken")
 
@@ -41,16 +41,16 @@ async def main(argv):
     # Get the text content of each setSpec tag
     set_specs = map(Tag.get_text, BeautifulSoup(list_sets_response.body, features=BS4_XML_PARSER).find_all("setSpec"))
 
-    # For each setSpec, construct a ListIdentifiers HTTP request
-    list_identifiers_requests = map(
-        lambda set_spec: (set_spec, HTTPRequest(list_identifiers_url(repository_base_url, set_spec, "oai_dc"), "GET")),
+    # For each setSpec, construct a ListRecords HTTP request
+    list_records_requests = map(
+        lambda set_spec: (set_spec, HTTPRequest(list_records_url(repository_base_url, set_spec, "oai_dc"), "GET")),
         set_specs
         )
 
     # Send each request (Cf. https://www.tornadoweb.org/en/branch6.3/guide/coroutines.html#parallelism)
     # For the report, we want to associate both the setSpec and request URL with the response, so Dict keys are Tuples
-    list_identifiers_responses = await multi(
-        { (set_spec, request.url): http_client.fetch(request) for (set_spec, request) in list_identifiers_requests }
+    list_records_responses = await multi(
+        { (set_spec, request.url): http_client.fetch(request) for (set_spec, request) in list_records_requests }
         )
 
     # Print a report
@@ -60,8 +60,8 @@ async def main(argv):
             set_spec: {
                 "url": url,
                 "status_code": response.code,
-                "size": count_identifiers(response) if not response.error else None
-            } for ((set_spec, url), response) in list_identifiers_responses.items()
+                "size": count_records(response) if not response.error else None
+            } for ((set_spec, url), response) in list_records_responses.items()
         }
     }
 
