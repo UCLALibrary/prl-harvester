@@ -29,7 +29,7 @@ def count_records(list_records_response):
     if resumption_token is not None:
         return resumption_token["completeListSize"]
     else:
-        return len(soup.find_all("header"))
+        return len(soup.find_all("record"))
 
 async def main(argv):
     '''Scans an OAI-PMH repository and prints a report.'''
