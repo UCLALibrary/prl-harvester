@@ -7,6 +7,7 @@ import json
 import sys
 from tornado.gen import multi
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
+from urllib.parse import quote
 import validators
 
 BS4_XML_PARSER = "lxml-xml"
@@ -17,7 +18,7 @@ def list_sets_url(repository_base_url):
 
 def list_identifiers_url(repository_base_url, set_spec, metadata_prefix):
     '''Constructs an OAI-PMH ListIdentifiers request URL from the parameters.'''
-    return "{}?verb=ListIdentifiers&set={}&metadataPrefix={}".format(repository_base_url, set_spec, metadata_prefix)
+    return "{}?verb=ListIdentifiers&set={}&metadataPrefix={}".format(repository_base_url, quote(set_spec), metadata_prefix)
 
 def count_identifiers(list_identifiers_response):
     '''Determines how many identifiers belong to the set associated with the given OAI-PMH ListIdentifiers response.'''
