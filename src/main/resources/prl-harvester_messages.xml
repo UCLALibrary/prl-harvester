@@ -13,7 +13,7 @@
   <entry key="PRL_005">User '{}' connecting to test database at port '{}' with password: {}</entry>
   <entry key="PRL_006">Error during institution insert: {}</entry>
   <entry key="PRL_007">No institution found for ID: {}</entry>
-  <entry key="PRL_008">Starting job {} at {}</entry>
+  <entry key="PRL_008">Starting job {}</entry>
   <entry key="PRL_009">Error during job insert: {}</entry>
   <entry key="PRL_010">No job found for ID: {}</entry>
   <entry key="PRL_011">Institution found for fake ID: {}</entry>

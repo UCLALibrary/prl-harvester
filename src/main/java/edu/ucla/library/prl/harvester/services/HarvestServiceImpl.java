@@ -143,7 +143,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             startTime = OffsetDateTime.now();
 
-            LOGGER.debug(MessageCodes.PRL_008, aJob.toJson(), startTime);
+            LOGGER.debug(MessageCodes.PRL_008, aJob.toJson());
 
             // TODO: de-duplicate list of records (based on identifier; some sets may contain the same record)
             harvest = OaipmhUtils.listRecords(myVertx, baseURL, targetSets, aJob.getMetadataPrefix(),
