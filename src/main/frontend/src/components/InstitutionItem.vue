@@ -87,7 +87,7 @@ const headingIdentifier = computed(() => props.name.toLowerCase().replaceAll(" "
             </v-col>
             <v-col>
                 <v-sheet class="ma-2 pa-2">
-                    <blockquote>{{ description }}</blockquote>
+                    <blockquote v-html="description"></blockquote>
                 </v-sheet>
             </v-col>
         </v-row>
