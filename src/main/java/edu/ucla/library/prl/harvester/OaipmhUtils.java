@@ -7,13 +7,11 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.iterators.IteratorChain;
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
 import org.dspace.xoai.serviceprovider.ServiceProvider;
@@ -25,8 +23,6 @@ import org.dspace.xoai.serviceprovider.exceptions.NoSetHierarchyException;
 import org.dspace.xoai.serviceprovider.model.Context;
 import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
 import org.dspace.xoai.serviceprovider.parameters.ListRecordsParameters;
-
-import com.google.common.collect.ImmutableList;
 
 import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
@@ -116,12 +112,12 @@ public final class OaipmhUtils {
      * @param aFrom The optional timestamp of the last successful run
      * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
-     * @return A stream of OAI-PMH records
+     * @return An iterator on OAI-PMH records
      */
-    public static Future<Stream<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
+    public static Future<Iterator<Record>> listRecords(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
             final String aMetadataPrefix, final Optional<OffsetDateTime> aFrom, final int aTimeout,
             final String aUserAgent) {
-        final Stream<Future<Stream<Record>>> listRecordsPerSet = aSets.stream().map(setSpec -> {
+        final Stream<Future<Iterator<Record>>> listRecordsPerSet = aSets.stream().map(setSpec -> {
             final ListRecordsParameters params =
                     ListRecordsParameters.request().withMetadataPrefix(aMetadataPrefix).withSetSpec(setSpec);
 
@@ -131,10 +127,10 @@ public final class OaipmhUtils {
         });
 
         return CompositeFuture.all(listRecordsPerSet.collect(Collectors.toList())).map(result -> {
-            final List<Stream<Record>> results = result.<Stream<Record>>list();
+            final List<Iterator<Record>> results = result.<Iterator<Record>>list();
 
-            // Flatten the list of streams
-            return results.parallelStream().flatMap(Function.identity());
+            // Flatten the list of iterators
+            return new IteratorChain(results);
         });
     }
 
@@ -147,15 +143,15 @@ public final class OaipmhUtils {
      * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Future that resolves to a list of OAI-PMH sets
      */
-    private static Future<ImmutableList<Set>> listSetsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
+    private static Future<List<Set>> listSetsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
             final int aTimeout, final String aUserAgent) {
-        final Promise<ImmutableList<Set>> promise = Promise.promise();
+        final Promise<List<Set>> promise = Promise.promise();
 
-        aVertx.<ImmutableList<Set>>executeBlocking(execution -> {
+        aVertx.<List<Set>>executeBlocking(execution -> {
             try {
                 final Iterator<Set> synchronousResult = getNewOaipmhClient(aBaseURL, aTimeout, aUserAgent).listSets();
 
-                execution.complete(ImmutableList.copyOf(synchronousResult));
+                execution.complete(IteratorUtils.toList(synchronousResult));
             } catch (final HttpException | NoSetHierarchyException details) {
                 execution.fail(details.getCause());
             }
@@ -172,21 +168,15 @@ public final class OaipmhUtils {
      * @param aParams The OAI-PMH request parameters
      * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
-     * @return A Future that resolves to a stream of OAI-PMH records
+     * @return A Future that resolves to an iterator on OAI-PMH records
      */
-    private static Future<Stream<Record>> listRecordsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
+    private static Future<Iterator<Record>> listRecordsAsyncXoaiWrapper(final Vertx aVertx, final URL aBaseURL,
             final ListRecordsParameters aParams, final int aTimeout, final String aUserAgent) {
-        final Promise<Stream<Record>> promise = Promise.promise();
+        final Promise<Iterator<Record>> promise = Promise.promise();
 
-        aVertx.<Stream<Record>>executeBlocking(execution -> {
+        aVertx.<Iterator<Record>>executeBlocking(execution -> {
             try {
-                final int characteristics = Spliterator.DISTINCT | Spliterator.NONNULL;
-                final Iterator<Record> iterator =
-                        getNewOaipmhClient(aBaseURL, aTimeout, aUserAgent).listRecords(aParams);
-                final Stream<Record> synchronousResult =
-                        StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, characteristics), true);
-
-                execution.complete(synchronousResult);
+                execution.complete(getNewOaipmhClient(aBaseURL, aTimeout, aUserAgent).listRecords(aParams));
             } catch (final BadArgumentException | HttpException details) {
                 execution.fail(details.getCause());
             }

@@ -3,13 +3,15 @@ package edu.ucla.library.prl.harvester.services;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -80,6 +82,11 @@ public class HarvestServiceImpl implements HarvestService {
     private final JavaAsyncSolrClient mySolrClient;
 
     /**
+     * The max batch size for Solr update queries.
+     */
+    private final int myMaxBatchSize;
+
+    /**
      * A proxy to the harvest schedule store service, for retrieving institution names.
      */
     private final HarvestScheduleStoreService myHarvestScheduleStoreService;
@@ -98,6 +105,7 @@ public class HarvestServiceImpl implements HarvestService {
         myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(aConfig);
         myWebClient = WebClient.create(aVertx, new WebClientOptions().setUserAgent(userAgent));
         mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
+        myMaxBatchSize = Config.getSolrUpdateMaxBatchSize(aConfig);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
     }
 
@@ -123,7 +131,7 @@ public class HarvestServiceImpl implements HarvestService {
 
             final List<String> targetSets;
             final OffsetDateTime startTime;
-            final Future<Stream<Record>> harvest;
+            final Future<Iterator<Record>> harvest;
 
             if (!aJob.getSets().isEmpty()) {
                 // Harvest only the specified sets
@@ -142,20 +150,19 @@ public class HarvestServiceImpl implements HarvestService {
                     aJob.getLastSuccessfulRun(), myOaipmhClientHttpTimeout, myHarvesterUserAgent);
 
             return harvest.compose(records -> {
-                final Promise<Tuple2<List<SolrInputDocument>, List<String>>> promise = Promise.promise();
+                final Promise<Tuple2<Integer, Integer>> promise = Promise.promise();
 
                 myVertx.executeBlocking(execution -> {
-                    partitionAndMapRecords(records, institutionName, baseURL, setNameLookup)
+                    updateSolrInBatches(records, institutionName, baseURL, setNameLookup, myMaxBatchSize)
                             .onSuccess(execution::complete).onFailure(execution::fail);
                 }, false, promise);
 
                 return promise.future();
-            }).compose(docsAndDeletedRecordIDs -> {
-                final List<SolrInputDocument> docs = docsAndDeletedRecordIDs._1();
-                final List<String> deletedRecordIDs = docsAndDeletedRecordIDs._2();
+            }).map(docAndDeletedRecordCounts -> {
+                final int docCount = docAndDeletedRecordCounts._1();
+                final int deletedRecordCount = docAndDeletedRecordCounts._2();
 
-                return updateSolr(docs, deletedRecordIDs).map(
-                        result -> new JobResult(aJob.getID().get(), startTime, docs.size(), deletedRecordIDs.size()));
+                return new JobResult(aJob.getID().get(), startTime, docCount, deletedRecordCount);
             });
         }).recover(details -> {
             // TODO: consider retrying on failure
@@ -164,69 +171,119 @@ public class HarvestServiceImpl implements HarvestService {
     }
 
     /**
-     * Partitions the records into those that have been deleted and those that haven't, and then maps deleted ones to
-     * their identifier and not-deleted ones to a Solr document.
+     * Performs Solr update queries while consuming the stream of OAI-PMH records in batches.
      * <p>
-     * This is a potentially long-running function that performs blocking network I/O, so should be run on a worker
-     * thread.
+     * This is a potentially long-running function, so it should be run on a worker thread.
      *
      * @param aRecords A set of records
      * @param anInstitutionName The name of the associated institution
      * @param aBaseURL An OAI-PMH repository base URL
      * @param aSetNameLookup A lookup table that maps setSpec to setName
-     * @return A Future that resolves to a 2-tuple containing: a list of the Solr documents (possibly empty), and a list
-     *         of identifiers of deleted records (also possibly empty)
+     * @param aMaxBatchSize The maximum number of records to handle per Solr query
+     * @return A Future that resolves to a 2-tuple containing: the number of Solr documents added or updated, and the
+     *         number of Solr documents deleted
      */
-    private Future<Tuple2<List<SolrInputDocument>, List<String>>> partitionAndMapRecords(final Stream<Record> aRecords,
-            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup) {
+    private Future<Tuple2<Integer, Integer>> updateSolrInBatches(final Iterator<Record> aRecords,
+            final String anInstitutionName, final URL aBaseURL, final Map<String, String> aSetNameLookup,
+            final int aMaxBatchSize) {
         @SuppressWarnings("rawtypes")
-        final List<Future> recordMappings = new LinkedList<>();
-        final List<String> deletedRecordIDs = new LinkedList<>();
-        final Iterator<Record> it = aRecords.iterator();
+        final List<Future> recordMappingsBatch = new ArrayList<>(aMaxBatchSize);
+        final List<String> deletedRecordIdsBatch = new ArrayList<>(aMaxBatchSize);
 
-        while (it.hasNext()) {
-            final Record record = it.next();
-            final Header header = record.getHeader();
+        final int newRecordCount;
+        final int deletedRecordCount;
 
-            if (header.isDeleted()) {
-                deletedRecordIDs.add(header.getIdentifier());
-            } else {
-                recordMappings.add(HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL,
-                        aSetNameLookup, myWebClient));
+        int runningNewRecordCount = 0;
+        int runningDeletedRecordCount = 0;
+
+        try {
+            while (aRecords.hasNext()) {
+                final Record record = aRecords.next();
+                final Header header = record.getHeader();
+
+                if (!header.isDeleted()) {
+                    recordMappingsBatch.add(HarvestServiceUtils.getSolrDocument(record, anInstitutionName, aBaseURL,
+                            aSetNameLookup, myWebClient));
+
+                    if (recordMappingsBatch.size() == aMaxBatchSize) {
+                        addDocs(HarvestServiceUtils.unwrapAll(recordMappingsBatch));
+                        runningNewRecordCount += recordMappingsBatch.size();
+                        recordMappingsBatch.clear();
+                    }
+                } else {
+                    deletedRecordIdsBatch.add(header.getIdentifier());
+
+                    if (deletedRecordIdsBatch.size() == aMaxBatchSize) {
+                        deleteByIds(deletedRecordIdsBatch);
+                        runningDeletedRecordCount += deletedRecordIdsBatch.size();
+                        deletedRecordIdsBatch.clear();
+                    }
+                }
             }
+
+            // Handle the final batches (if any)
+
+            if (!recordMappingsBatch.isEmpty()) {
+                addDocs(HarvestServiceUtils.unwrapAll(recordMappingsBatch));
+                runningNewRecordCount += recordMappingsBatch.size();
+                recordMappingsBatch.clear();
+            }
+
+            if (!deletedRecordIdsBatch.isEmpty()) {
+                deleteByIds(deletedRecordIdsBatch);
+                runningDeletedRecordCount += deletedRecordIdsBatch.size();
+                deletedRecordIdsBatch.clear();
+            }
+        } catch (final CompletionException details) {
+            // Issuing a rollback is potentially problematic in the event that another harvest job is in progress (since
+            // Solr doesn't support simultaneous transactions), but the likelihood of such an error occuring seems slim
+            return Future.fromCompletionStage(mySolrClient.rollback())
+                    .compose(result -> Future.failedFuture(details.getCause()));
+        } catch (final InterruptedException details) {
+            return Future.fromCompletionStage(mySolrClient.rollback()).compose(result -> Future.failedFuture(details));
         }
 
-        return CompositeFuture.all(recordMappings).map(CompositeFuture::<SolrInputDocument>list).map(docs -> {
-            return Tuple.of(docs, deletedRecordIDs);
-        });
+        // Get some final variables for the lambda below
+
+        newRecordCount = runningNewRecordCount;
+        deletedRecordCount = runningDeletedRecordCount;
+
+        return Future.fromCompletionStage(mySolrClient.commit())
+                .map(response -> Tuple.of(newRecordCount, deletedRecordCount));
     }
 
     /**
-     * Performs a Solr update.
+     * Synchronous wrapper around {@link JavaAsyncSolrClient#addDocs(java.util.Collection)}.
      *
      * @param aDocs A list of Solr documents to add (possibly empty)
-     * @param aDeletedRecordIDs A list of record identifiers that have been deleted (possibly empty)
-     * @return The result of performing the Solr update (if any was necessary)
+     * @return The result of performing the Solr update
+     * @throws InterruptedException If the calling thread is interrupted
      */
-    private Future<UpdateResponse> updateSolr(final List<SolrInputDocument> aDocs,
-            final List<String> aDeletedRecordIDs) {
-        final CompletionStage<UpdateResponse> update;
+    private UpdateResponse addDocs(final List<SolrInputDocument> aDocs) throws InterruptedException {
+        final CompletionStage<UpdateResponse> add = mySolrClient.addDocs(aDocs);
+        final CountDownLatch addQueryCompletion = new CountDownLatch(1);
 
-        if (!aDocs.isEmpty() && !aDeletedRecordIDs.isEmpty()) {
-            // Both docs to add and delete
-            update = mySolrClient.addDocs(aDocs).thenCompose(result -> mySolrClient.deleteByIds(aDeletedRecordIDs));
-        } else if (!aDocs.isEmpty() && aDeletedRecordIDs.isEmpty()) {
-            // Only docs to add
-            update = mySolrClient.addDocs(aDocs);
-        } else if (aDocs.isEmpty() && !aDeletedRecordIDs.isEmpty()) {
-            // Only docs to delete
-            update = mySolrClient.deleteByIds(aDeletedRecordIDs);
-        } else {
-            // Nothing to do
-            return Future.succeededFuture();
-        }
+        add.thenRun(addQueryCompletion::countDown);
+        addQueryCompletion.await();
 
-        return Future.fromCompletionStage(update.thenCompose(result -> mySolrClient.commit()));
+        return add.toCompletableFuture().join();
+    }
+
+    /**
+     * Synchronous wrapper around {@link JavaAsyncSolrClient#deleteByIds(List)}.
+     *
+     * @param aDeletedRecordIDs A list of record identifiers that have been deleted (possibly empty)
+     * @return The result of performing the Solr update
+     * @throws InterruptedException If the calling thread is interrupted
+     */
+    private UpdateResponse deleteByIds(final List<String> aDeletedRecordIDs) throws InterruptedException {
+        final CompletionStage<UpdateResponse> delete = mySolrClient.deleteByIds(aDeletedRecordIDs);
+        final CountDownLatch deleteQueryCompletion = new CountDownLatch(1);
+
+        delete.thenRun(deleteQueryCompletion::countDown);
+        deleteQueryCompletion.await();
+
+        return delete.toCompletableFuture().join();
     }
 
     @Override

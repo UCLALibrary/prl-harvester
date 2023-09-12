@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -360,5 +362,23 @@ final class HarvestServiceUtils {
                 return Future.succeededFuture(Optional.<URL>empty());
             });
         }
+    }
+
+    /**
+     * @param <T> The type of values that are wrapped in futures
+     * @param aListOfFutures A list of futures that we want to unwrap
+     * @return The list of values unwrapped from the futures
+     * @throws InterruptedException If the calling thread is interrupted
+     */
+    @SuppressWarnings("rawtypes")
+    static <T> List<T> unwrapAll(final List<Future> aListOfFutures) throws InterruptedException {
+        final CompletionStage<List<T>> unwrap =
+                CompositeFuture.all(aListOfFutures).map(CompositeFuture::<T>list).toCompletionStage();
+        final CountDownLatch completion = new CountDownLatch(1);
+
+        unwrap.thenRun(completion::countDown);
+        completion.await();
+
+        return unwrap.toCompletableFuture().join();
     }
 }

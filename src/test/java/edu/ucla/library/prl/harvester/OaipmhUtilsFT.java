@@ -8,9 +8,12 @@ import static edu.ucla.library.prl.harvester.Constants.OAI_DC;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.dspace.xoai.model.oaipmh.Record;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -104,8 +107,19 @@ public class OaipmhUtilsFT {
             final VertxTestContext aContext) {
         OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(),
                 myOaipmhClientHttpTimeout, myHarvesterUserAgent).onSuccess(records -> {
+                    final int recordCount;
+                    int runningRecordCount = 0;
+
+                    while (records.hasNext()) {
+                        records.next();
+
+                        runningRecordCount += 1;
+                    }
+
+                    recordCount = runningRecordCount;
+
                     aContext.verify(() -> {
-                        assertEquals(anExpectedRecordCount, records.toList().size());
+                        assertEquals(anExpectedRecordCount, recordCount);
                     }).completeNow();
                 });
     }

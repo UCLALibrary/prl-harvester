@@ -34,6 +34,7 @@ PGPASSWORD|The database password|No|pass
 PGPORT|The database port|No|5432
 PGUSER|The database username|No|user
 SOLR_CORE_URL|The Solr core URL|Yes|
+SOLR_UPDATE_MAX_BATCH_SIZE|The max batch size for Solr update queries|No|1000
 
 ## Running
 
