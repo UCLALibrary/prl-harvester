@@ -116,11 +116,14 @@ public class HarvestServiceImpl implements HarvestService {
         final Future<List<Set>> listSets =
                 OaipmhUtils.listSets(myVertx, baseURL, myOaipmhClientHttpTimeout, myHarvesterUserAgent);
         final Future<Institution> getInstitution = myHarvestScheduleStoreService.getInstitution(institutionID);
+        final int jobID;
 
         if (aJob.getID().isEmpty()) {
             return Future
                     .failedFuture(new IllegalArgumentI18nException(MessageCodes.BUNDLE, MessageCodes.PRL_002, Job.ID));
         }
+
+        jobID = aJob.getID().get();
 
         return CompositeFuture.all(listSets, getInstitution).compose(results -> {
             final List<Set> sets = results.resultAt(0);
@@ -161,12 +164,19 @@ public class HarvestServiceImpl implements HarvestService {
             }).map(docAndDeletedRecordCounts -> {
                 final int docCount = docAndDeletedRecordCounts._1();
                 final int deletedRecordCount = docAndDeletedRecordCounts._2();
+                final JobResult result = new JobResult(jobID, startTime, docCount, deletedRecordCount);
 
-                return new JobResult(aJob.getID().get(), startTime, docCount, deletedRecordCount);
+                LOGGER.debug(MessageCodes.PRL_049, jobID, result.toJson());
+
+                return result;
             });
         }).recover(details -> {
+            final String errorMsg = details.getMessage();
+
+            LOGGER.error(MessageCodes.PRL_050, jobID, errorMsg);
+
             // TODO: consider retrying on failure
-            return Future.failedFuture(new ServiceException(hashCode(), details.toString()));
+            return Future.failedFuture(new ServiceException(hashCode(), errorMsg));
         });
     }
 
