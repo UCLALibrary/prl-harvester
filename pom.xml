@@ -55,7 +55,7 @@
     <libphonenumber.version>8.12.54</libphonenumber.version>
     <solrs.version>2.6.0</solrs.version>
     <xoai.version>4.2.0</xoai.version>
-    <guava.version>31.1-jre</guava.version>
+    <commons.collections4.version>4.4</commons.collections4.version>
     <jackson.version>2.14.2</jackson.version>
     <ldap.auth.version>4.4.0</ldap.auth.version>
 
@@ -241,9 +241,9 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${guava.version}</version>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+      <version>${commons.collections4.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

@@ -104,8 +104,19 @@ public class OaipmhUtilsFT {
             final VertxTestContext aContext) {
         OaipmhUtils.listRecords(aVertx, myTestDataProviderURL, aSets, OAI_DC, Optional.empty(),
                 myOaipmhClientHttpTimeout, myHarvesterUserAgent).onSuccess(records -> {
+                    final int recordCount;
+                    int runningRecordCount = 0;
+
+                    while (records.hasNext()) {
+                        records.next();
+
+                        runningRecordCount += 1;
+                    }
+
+                    recordCount = runningRecordCount;
+
                     aContext.verify(() -> {
-                        assertEquals(anExpectedRecordCount, records.toList().size());
+                        assertEquals(anExpectedRecordCount, recordCount);
                     }).completeNow();
                 });
     }

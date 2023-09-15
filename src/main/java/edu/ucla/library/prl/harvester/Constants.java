@@ -27,6 +27,11 @@ public final class Constants {
     public static final int DEFAULT_OAIPMH_CLIENT_HTTP_TIMEOUT = 60_000;
 
     /**
+     * The default value for the max batch size for Solr update queries.
+     */
+    public static final Integer DEFAULT_SOLR_UPDATE_MAX_BATCH_SIZE = 1000;
+
+    /**
      * Constant classes should have private constructors.
      */
     private Constants() {

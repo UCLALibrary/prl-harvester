@@ -86,6 +86,11 @@ public final class Config {
     public static final String SOLR_CORE_URL = "SOLR_CORE_URL";
 
     /**
+     * The env property for the max batch size for Solr update queries.
+     */
+    public static final String SOLR_UPDATE_MAX_BATCH_SIZE = "SOLR_UPDATE_MAX_BATCH_SIZE";
+
+    /**
      * A logger.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(Config.class, MessageCodes.BUNDLE);
@@ -177,5 +182,15 @@ public final class Config {
      */
     public static int getOaipmhClientHttpTimeout(final JsonObject aConfig) {
         return aConfig.getInteger(Config.OAIPMH_CLIENT_HTTP_TIMEOUT, Constants.DEFAULT_OAIPMH_CLIENT_HTTP_TIMEOUT);
+    }
+
+    /**
+     * Gets the max batch size for Solr update queries.
+     *
+     * @param aConfig A configuration
+     * @return The max batch size
+     */
+    public static int getSolrUpdateMaxBatchSize(final JsonObject aConfig) {
+        return aConfig.getInteger(Config.SOLR_UPDATE_MAX_BATCH_SIZE, Constants.DEFAULT_SOLR_UPDATE_MAX_BATCH_SIZE);
     }
 }
