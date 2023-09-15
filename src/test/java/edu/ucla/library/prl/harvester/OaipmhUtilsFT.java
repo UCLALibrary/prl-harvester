@@ -8,12 +8,9 @@ import static edu.ucla.library.prl.harvester.Constants.OAI_DC;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import org.dspace.xoai.model.oaipmh.Record;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
