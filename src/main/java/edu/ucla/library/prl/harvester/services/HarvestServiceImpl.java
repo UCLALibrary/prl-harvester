@@ -32,6 +32,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import io.ino.solrs.JavaAsyncSolrClient;
+import io.ino.solrs.RetryPolicy;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -104,7 +105,8 @@ public class HarvestServiceImpl implements HarvestService {
         myHarvesterUserAgent = userAgent;
         myOaipmhClientHttpTimeout = Config.getOaipmhClientHttpTimeout(aConfig);
         myWebClient = WebClient.create(aVertx, new WebClientOptions().setUserAgent(userAgent));
-        mySolrClient = JavaAsyncSolrClient.create(aConfig.getString(Config.SOLR_CORE_URL));
+        mySolrClient = JavaAsyncSolrClient.builder(aConfig.getString(Config.SOLR_CORE_URL))
+                .withRetryPolicy(RetryPolicy.AtMost(Config.getSolrUpdateRetryCount(aConfig))).build();
         myMaxBatchSize = Config.getSolrUpdateMaxBatchSize(aConfig);
         myHarvestScheduleStoreService = HarvestScheduleStoreService.createProxy(aVertx);
     }
