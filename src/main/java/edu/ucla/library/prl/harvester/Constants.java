@@ -32,6 +32,11 @@ public final class Constants {
     public static final Integer DEFAULT_SOLR_UPDATE_MAX_BATCH_SIZE = 1000;
 
     /**
+     * The default value for the retry count for Solr update queries.
+     */
+    public static final Integer DEFAULT_SOLR_UPDATE_RETRY_COUNT = 3;
+
+    /**
      * Constant classes should have private constructors.
      */
     private Constants() {

@@ -91,6 +91,11 @@ public final class Config {
     public static final String SOLR_UPDATE_MAX_BATCH_SIZE = "SOLR_UPDATE_MAX_BATCH_SIZE";
 
     /**
+     * The env property for the retry count for Solr update queries.
+     */
+    public static final String SOLR_UPDATE_RETRY_COUNT = "SOLR_UPDATE_RETRY_COUNT";
+
+    /**
      * A logger.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(Config.class, MessageCodes.BUNDLE);
@@ -192,5 +197,15 @@ public final class Config {
      */
     public static int getSolrUpdateMaxBatchSize(final JsonObject aConfig) {
         return aConfig.getInteger(Config.SOLR_UPDATE_MAX_BATCH_SIZE, Constants.DEFAULT_SOLR_UPDATE_MAX_BATCH_SIZE);
+    }
+
+    /**
+     * Gets the retry count for Solr update queries.
+     *
+     * @param aConfig A configuration
+     * @return The retry count
+     */
+    public static int getSolrUpdateRetryCount(final JsonObject aConfig) {
+        return aConfig.getInteger(Config.SOLR_UPDATE_RETRY_COUNT, Constants.DEFAULT_SOLR_UPDATE_RETRY_COUNT);
     }
 }
