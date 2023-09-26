@@ -155,7 +155,11 @@ Certain situations may call for running (hopefully temporary) one-off harvests a
     # Make sure to provide the name, description, location, etc. as they appear on production
     curl -X POST -H "Content-Type: application/json" "$PRL_HARVESTER_LOCAL_INSTANCE/institutions" --data-ascii '[{
         "name": "University of California Los Angeles",
-        ...
+        "description": "The UCLA Library ...",
+        "location": "United States",
+        "email": "helpdesk@library.ucla.edu",
+        "phone": "+1 310 206 5425",
+        "website": "http://www.library.ucla.edu/"
     }]'
 
     # This job will run daily at 6:15 PM local time
