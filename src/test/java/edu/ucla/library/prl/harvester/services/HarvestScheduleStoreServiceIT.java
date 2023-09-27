@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -178,7 +179,7 @@ public class HarvestScheduleStoreServiceIT {
 
             for (final int institutionID : anInstitutionIDs) {
                 final Job job = new Job(institutionID, new URL(StringUtils.format("http://acme{}.edu/", institutionID)),
-                        List.of(), new CronExpression(SAMPLE_CRON), null);
+                        Constants.OAI_DC, List.of(), new CronExpression(SAMPLE_CRON), null);
 
                 jobs.add(job);
             }
@@ -513,8 +514,9 @@ public class HarvestScheduleStoreServiceIT {
 
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getSets(),
-                        original.getScheduleCronExpression(), OffsetDateTime.now());
+                final Job modified =
+                        new Job(original.getInstitutionID(), new URL(UPDATE_URL), original.getMetadataPrefix(),
+                                original.getSets(), original.getScheduleCronExpression(), OffsetDateTime.now());
 
                 myScheduleStoreProxy.updateJob(jobID, modified).onSuccess(result -> {
                     myScheduleStoreProxy.getJob(jobID).onSuccess(updated -> {
@@ -544,8 +546,8 @@ public class HarvestScheduleStoreServiceIT {
 
         myScheduleStoreProxy.getJob(jobID).onSuccess(original -> {
             try {
-                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getSets(),
-                        original.getScheduleCronExpression(), OffsetDateTime.now());
+                final Job modified = new Job(badInstID, new URL(UPDATE_URL), original.getMetadataPrefix(),
+                        original.getSets(), original.getScheduleCronExpression(), OffsetDateTime.now());
 
                 myScheduleStoreProxy.updateJob(jobID, modified).onFailure(details -> {
                     final ServiceException error = (ServiceException) details;

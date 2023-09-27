@@ -188,8 +188,9 @@ public class HarvestScheduleStoreServiceImpl implements HarvestScheduleStoreServ
             final int jobID = jobResult.getJobID();
 
             getJob(jobID).compose(job -> {
-                final Job withNewLastSuccessfulTime = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
-                        job.getSets(), job.getScheduleCronExpression(), jobResult.getStartTime());
+                final Job withNewLastSuccessfulTime =
+                        new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), job.getMetadataPrefix(),
+                                job.getSets(), job.getScheduleCronExpression(), jobResult.getStartTime());
 
                 return updateJob(jobID, withNewLastSuccessfulTime);
             });

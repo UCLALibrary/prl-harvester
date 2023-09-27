@@ -30,7 +30,7 @@
   <entry key="PRL_022">An Institution must be assigned a unique identifier by the database before this operation can be performed</entry>
   <entry key="PRL_023">A Job must be assigned a unique identifier by the database before this operation can be performed</entry>
   <entry key="PRL_024">Unable to find an OAI-PMH repository at {}</entry>
-  <entry key="PRL_025">The OAI-PMH repository at {} does not define a set named "{}"</entry>
+  <entry key="PRL_025">The OAI-PMH repository at {} does not define a {} named "{}"</entry>
   <entry key="PRL_026">Removing authorized user from session: {}</entry>
   <entry key="PRL_027">Authorized request handled successful: {}</entry>
   <entry key="PRL_028">Request denied because it lacks authorization: {}</entry>

@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import org.quartz.CronExpression;
 
+import info.freelibrary.util.Constants;
 import info.freelibrary.util.StringUtils;
 
 import io.vertx.codegen.annotations.DataObject;
@@ -80,6 +81,11 @@ public final class Job {
     private final URL myRepositoryBaseURL;
 
     /**
+     * The metadata prefix to harvest OAI-PMH records as.
+     */
+    private final String myMetadataPrefix;
+
+    /**
      * The list of sets to harvest.
      */
     private final List<String> mySets;
@@ -99,15 +105,18 @@ public final class Job {
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aMetadataPrefix The metadata prefix to harvest OAI-PMH records as
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
-    public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
+    public Job(final int anInstitutionID, final URL aRepositoryBaseURL, final String aMetadataPrefix,
+            final List<String> aSets, final CronExpression aScheduleCronExpression,
+            final OffsetDateTime aLastSuccessfulRun) {
         myID = Optional.empty();
         myInstitutionID = anInstitutionID;
         myRepositoryBaseURL = Objects.requireNonNull(aRepositoryBaseURL);
+        myMetadataPrefix = Objects.requireNonNull(aMetadataPrefix);
         mySets = Objects.requireNonNull(aSets);
         myScheduleCronExpression = Objects.requireNonNull(aScheduleCronExpression);
         myLastSuccessfulRun = Optional.ofNullable(aLastSuccessfulRun);
@@ -121,12 +130,13 @@ public final class Job {
      * @param aJsonObject A job represented as JSON
      * @throws InvalidJobJsonException If the JSON representation is invalid
      */
-    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity" })
+    @SuppressWarnings({ "PMD.CognitiveComplexity", "PMD.CyclomaticComplexity", "PMD.NPathComplexity" })
     public Job(final JsonObject aJsonObject) {
         Objects.requireNonNull(aJsonObject);
 
         final Integer institutionID = aJsonObject.getInteger(INSTITUTION_ID);
         final String repositoryBaseURL = aJsonObject.getString(REPOSITORY_BASE_URL);
+        final String metadataPrefix = aJsonObject.getString(METADATA_PREFIX);
         final JsonArray sets = aJsonObject.getJsonArray(SETS);
         final String scheduleCronExpression = aJsonObject.getString(SCHEDULE_CRON_EXPRESSION);
 
@@ -147,6 +157,12 @@ public final class Job {
             }
         } else {
             throw new InvalidJobJsonException(MessageCodes.PRL_002, REPOSITORY_BASE_URL);
+        }
+
+        if (metadataPrefix != null && !metadataPrefix.equals(Constants.EMPTY)) {
+            myMetadataPrefix = metadataPrefix;
+        } else {
+            throw new InvalidJobJsonException(MessageCodes.PRL_002, METADATA_PREFIX);
         }
 
         if (sets != null) {
@@ -238,7 +254,7 @@ public final class Job {
      * @return The metadata prefix
      */
     public String getMetadataPrefix() {
-        return Constants.OAI_DC;
+        return myMetadataPrefix;
     }
 
     /**
@@ -297,6 +313,7 @@ public final class Job {
         result = prime * result + myID.map(id -> id.hashCode()).orElse(0);
         result = prime * result + myInstitutionID;
         result = prime * result + myRepositoryBaseURL.hashCode();
+        result = prime * result + myMetadataPrefix.hashCode();
         result = prime * result + mySets.hashCode();
         result = prime * result + myScheduleCronExpression.getCronExpression().hashCode();
         result = prime * result + myLastSuccessfulRun.map(timestamp -> timestamp.hashCode()).orElse(0);

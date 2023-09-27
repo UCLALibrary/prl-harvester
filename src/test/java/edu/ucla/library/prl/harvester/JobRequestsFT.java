@@ -782,7 +782,7 @@ public class JobRequestsFT extends AuthorizedFIT {
 
         try {
             // Create a job that will be run soon
-            job = new Job(myInstitutionID, myTestProviderBaseURL, List.of(TestUtils.SET1),
+            job = new Job(myInstitutionID, myTestProviderBaseURL, Constants.OAI_DC, List.of(TestUtils.SET1),
                     TestUtils.getFutureCronExpression(harvestDelay), null);
         } catch (final ParseException details) {
             aContext.failNow(details);

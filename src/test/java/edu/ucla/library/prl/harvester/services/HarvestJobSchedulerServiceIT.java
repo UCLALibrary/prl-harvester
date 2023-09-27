@@ -31,6 +31,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
@@ -262,7 +263,7 @@ public class HarvestJobSchedulerServiceIT {
                 final Job job;
 
                 try {
-                    job = new Job(institutionID, myTestProviderBaseURL, List.of(TestUtils.SET1),
+                    job = new Job(institutionID, myTestProviderBaseURL, Constants.OAI_DC, List.of(TestUtils.SET1),
                             TestUtils.getFutureCronExpression(5), null);
                 } catch (final ParseException details) {
                     return Future.failedFuture(details);
@@ -418,7 +419,8 @@ public class HarvestJobSchedulerServiceIT {
         final Job job;
 
         try {
-            job = new Job(anInstitutionID, myTestProviderBaseURL, aSets, TestUtils.getFutureCronExpression(5), null);
+            job = new Job(anInstitutionID, myTestProviderBaseURL, Constants.OAI_DC, aSets,
+                    TestUtils.getFutureCronExpression(5), null);
         } catch (final ParseException details) {
             return Future.failedFuture(details);
         }
@@ -433,8 +435,8 @@ public class HarvestJobSchedulerServiceIT {
      */
     private Future<Void> updateJob(final int aJobID, final List<String> aSets) {
         return myHarvestScheduleStoreServiceProxy.getJob(aJobID).compose(job -> {
-            final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), aSets,
-                    job.getScheduleCronExpression(), null);
+            final Job updatedJob = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(), job.getMetadataPrefix(),
+                    aSets, job.getScheduleCronExpression(), null);
 
             return myHarvestScheduleStoreServiceProxy.updateJob(aJobID, updatedJob);
         });

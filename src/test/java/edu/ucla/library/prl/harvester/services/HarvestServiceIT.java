@@ -31,6 +31,7 @@ import org.quartz.CronExpression;
 import com.google.i18n.phonenumbers.NumberParseException;
 
 import edu.ucla.library.prl.harvester.Config;
+import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.JobResult;
@@ -163,9 +164,8 @@ public class HarvestServiceIT {
     public void testRun(final List<String> aSets, final CronExpression aScheduleCronExpression,
             final OffsetDateTime aLastSuccessfulRun, final int anExpectedRecordCount,
             final int anExpectedDeletedRecordCount, final Vertx aVertx, final VertxTestContext aContext) {
-        final Job job = Job.withID(
-                new Job(myTestInstitutionID, myTestProviderBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun),
-                1);
+        final Job job = Job.withID(new Job(myTestInstitutionID, myTestProviderBaseURL, Constants.OAI_DC, aSets,
+                aScheduleCronExpression, aLastSuccessfulRun), 1);
 
         runJobAndCheckSolr(job).onSuccess(results -> {
             final JobResult jobResult = results._1();
@@ -241,7 +241,8 @@ public class HarvestServiceIT {
         final CronExpression schedule = new CronExpression("0 * * * * ?");
 
         return Stream.of( //
-                Arguments.of(Job.withID(new Job(myTestInstitutionID, baseURL, List.of(huxley), schedule, null), 1)));
+                Arguments.of(Job.withID(
+                        new Job(myTestInstitutionID, baseURL, Constants.OAI_DC, List.of(huxley), schedule, null), 1)));
     }
 
     /**
@@ -254,8 +255,30 @@ public class HarvestServiceIT {
      */
     public void testRunInvalidbaseURL(final Vertx aVertx, final VertxTestContext aContext)
             throws MalformedURLException, ParseException {
-        final Job job = Job.withID(new Job(myTestInstitutionID, new URL("http://example.com"), null,
+        final Job job = Job.withID(new Job(myTestInstitutionID, new URL("http://example.com"), Constants.OAI_DC, null,
                 new CronExpression("0 0 * * * ?"), null), 1);
+
+        myHarvestServiceProxy.run(job).onFailure(details -> {
+            LOGGER.debug(details.toString());
+
+            aContext.completeNow();
+        }).onSuccess(result -> {
+            aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_000, result.toJson()));
+        });
+    }
+
+    /**
+     * Tests that a harvest job fails if the metadata prefix is not supported by the OAI-PMH data provider.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     * @throws ParseException
+     * @throws MalformedURLException
+     */
+    public void testRunInvalidMetadataPrefix(final Vertx aVertx, final VertxTestContext aContext)
+            throws MalformedURLException, ParseException {
+        final Job job = Job.withID(new Job(myTestInstitutionID, myTestProviderBaseURL, "dc_oai", null,
+                new CronExpression("1 1 * * * ?"), null), 1);
 
         myHarvestServiceProxy.run(job).onFailure(details -> {
             LOGGER.debug(details.toString());

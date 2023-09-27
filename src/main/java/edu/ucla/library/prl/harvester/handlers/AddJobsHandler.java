@@ -75,11 +75,11 @@ public final class AddJobsHandler extends AbstractRequestHandler {
 
         return deserializationResult.compose(job -> {
             final URL baseURL = job.getRepositoryBaseURL();
+            final String metadataPrefix = job.getMetadataPrefix();
             final List<String> sets = job.getSets();
 
-            return OaipmhUtils
-                    .validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
-                    .map(job);
+            return OaipmhUtils.validateIdentifiers(myVertx, baseURL, metadataPrefix, sets, myOaipmhClientHttpTimeout,
+                    myHarvesterUserAgent).map(job);
         });
     }
 }

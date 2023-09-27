@@ -48,9 +48,10 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
             final Job job = new Job(aContext.body().asJsonObject());
             final URL baseURL = job.getRepositoryBaseURL();
             final List<String> sets = job.getSets();
+            final String metadataPrefix = job.getMetadataPrefix();
 
-            OaipmhUtils.validateIdentifiers(myVertx, baseURL, sets, myOaipmhClientHttpTimeout, myHarvesterUserAgent)
-                    .onSuccess(none -> {
+            OaipmhUtils.validateIdentifiers(myVertx, baseURL, metadataPrefix, sets, myOaipmhClientHttpTimeout,
+                    myHarvesterUserAgent).onSuccess(none -> {
                         getJobAndInstitution(id).compose(oldJobAndInstitution -> {
                             // Update the database, the in-memory scheduler, and Solr
                             final Job oldJob = oldJobAndInstitution._1();
@@ -59,7 +60,8 @@ public final class UpdateJobHandler extends AbstractSolrAwareWriteOperationHandl
                                 final Job jobToSubmit;
                                 if (hasNew) {
                                     jobToSubmit = new Job(job.getInstitutionID(), job.getRepositoryBaseURL(),
-                                            job.getSets(), job.getScheduleCronExpression(), null);
+                                            job.getMetadataPrefix(), job.getSets(), job.getScheduleCronExpression(),
+                                            null);
                                 } else {
                                     jobToSubmit = job;
                                 }

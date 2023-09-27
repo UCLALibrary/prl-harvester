@@ -44,19 +44,22 @@ public class JobTest {
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aMetadataPrefix The metadata prefix to harvest OAI-PMH records as
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
     @ParameterizedTest
     @MethodSource
-    void testJobSerDe(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
-        final Job job =
-                new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+    void testJobSerDe(final int anInstitutionID, final URL aRepositoryBaseURL, final String aMetadataPrefix,
+            final List<String> aSets, final CronExpression aScheduleCronExpression,
+            final OffsetDateTime aLastSuccessfulRun) {
+        final Job job = new Job(anInstitutionID, aRepositoryBaseURL, aMetadataPrefix, aSets, aScheduleCronExpression,
+                aLastSuccessfulRun);
         final JsonObject json = new JsonObject() //
                 .put(Job.INSTITUTION_ID, anInstitutionID) //
                 .put(Job.REPOSITORY_BASE_URL, aRepositoryBaseURL.toString()) //
+                .put(Job.METADATA_PREFIX, aMetadataPrefix) //
                 .put(Job.SETS, Optional.ofNullable(aSets).orElse(null)) //
                 .put(Job.SCHEDULE_CRON_EXPRESSION, aScheduleCronExpression.getCronExpression()) //
                 .put(Job.LAST_SUCCESSFUL_RUN,
@@ -64,7 +67,6 @@ public class JobTest {
         final Job jobFromJson = new Job(json);
 
         // If the JSON representations are equal, then serialization works
-        assertEquals(json.copy().put(Job.METADATA_PREFIX, Constants.OAI_DC), job.toJson());
         assertEquals(job.toJson(), jobFromJson.toJson());
 
         // If the objects are equal, then deserialization works
@@ -91,10 +93,10 @@ public class JobTest {
         final OffsetDateTime exampleTimestamp = OffsetDateTime.parse("2000-01-01T00:00Z");
 
         return Stream.of( //
-                Arguments.of(1, exampleURL, List.of(), exampleSchedule, exampleTimestamp), //
-                Arguments.of(2, exampleURL, exampleSets, exampleSchedule, exampleTimestamp), //
-                Arguments.of(3, exampleURL, List.of(), exampleSchedule, null), //
-                Arguments.of(4, exampleURL, exampleSets, exampleSchedule, null));
+                Arguments.of(1, exampleURL, Constants.OAI_DC, List.of(), exampleSchedule, exampleTimestamp), //
+                Arguments.of(2, exampleURL, Constants.OAI_DC, exampleSets, exampleSchedule, exampleTimestamp), //
+                Arguments.of(3, exampleURL, Constants.OAI_DC, List.of(), exampleSchedule, null), //
+                Arguments.of(4, exampleURL, Constants.OAI_DC, exampleSets, exampleSchedule, null));
     }
 
     /**
@@ -102,16 +104,18 @@ public class JobTest {
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aMetadataPrefix The metadata prefix to harvest OAI-PMH records as
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
     @ParameterizedTest
     @MethodSource
-    void testJobWithID(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
-        final Job job =
-                new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+    void testJobWithID(final int anInstitutionID, final URL aRepositoryBaseURL, final String aMetadataPrefix,
+            final List<String> aSets, final CronExpression aScheduleCronExpression,
+            final OffsetDateTime aLastSuccessfulRun) {
+        final Job job = new Job(anInstitutionID, aRepositoryBaseURL, aMetadataPrefix, aSets, aScheduleCronExpression,
+                aLastSuccessfulRun);
         final int jobID = 1;
         final Job jobWithID = Job.withID(job, jobID);
         final Job jobFromJsonWithID = new Job(job.toJson().put(Job.ID, jobID));
@@ -143,6 +147,7 @@ public class JobTest {
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aMetadataPrefix The metadata prefix to harvest OAI-PMH records as
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
@@ -151,11 +156,12 @@ public class JobTest {
     @ParameterizedTest
     @MethodSource
     void testJobInvalidJsonRepresentation(final Integer anInstitutionID, final String aRepositoryBaseURL,
-            final List<String> aSets, final String aScheduleCronExpression, final String aLastSuccessfulRun,
-            final Class<Exception> anErrorClass) {
+            final String aMetadataPrefix, final List<String> aSets, final String aScheduleCronExpression,
+            final String aLastSuccessfulRun, final Class<Exception> anErrorClass) {
         final JsonObject json = new JsonObject() //
                 .put(Job.INSTITUTION_ID, anInstitutionID) //
                 .put(Job.REPOSITORY_BASE_URL, aRepositoryBaseURL) //
+                .put(Job.METADATA_PREFIX, aMetadataPrefix) //
                 .put(Job.SETS, aSets) //
                 .put(Job.SCHEDULE_CRON_EXPRESSION, aScheduleCronExpression) //
                 .put(Job.LAST_SUCCESSFUL_RUN, aLastSuccessfulRun);
@@ -186,12 +192,17 @@ public class JobTest {
         final String invalidTimestamp = LocalDate.of(2020, 1, 1).toString(); // Missing time component
 
         return Stream.of( //
-                Arguments.of(null, validURL, validSets, validSchedule, validTimestamp, null), //
-                Arguments.of(2, null, validSets, validSchedule, validTimestamp, null), //
-                Arguments.of(3, invalidURL, validSets, validSchedule, validTimestamp, MalformedURLException.class), //
-                Arguments.of(4, validURL, validSets, null, validTimestamp, null), //
-                Arguments.of(5, validURL, validSets, invalidSchedule, validTimestamp, ParseException.class), //
-                Arguments.of(6, validURL, validSets, validSchedule, invalidTimestamp, DateTimeParseException.class));
+                Arguments.of(null, validURL, Constants.OAI_DC, validSets, validSchedule, validTimestamp, null), //
+                Arguments.of(2, null, Constants.OAI_DC, validSets, validSchedule, validTimestamp, null), //
+                Arguments.of(3, invalidURL, Constants.OAI_DC, validSets, validSchedule, validTimestamp,
+                        MalformedURLException.class), //
+                Arguments.of(4, validURL, null, validSets, validSchedule, validTimestamp, null), //
+                Arguments.of(5, validURL, "", validSets, validSchedule, validTimestamp, null), //
+                Arguments.of(6, validURL, Constants.OAI_DC, validSets, null, validTimestamp, null), //
+                Arguments.of(7, validURL, Constants.OAI_DC, validSets, invalidSchedule, validTimestamp,
+                        ParseException.class), //
+                Arguments.of(8, validURL, Constants.OAI_DC, validSets, validSchedule, invalidTimestamp,
+                        DateTimeParseException.class));
     }
 
     /**
@@ -199,16 +210,19 @@ public class JobTest {
      *
      * @param anInstitutionID The identifier of the institution that this job should be associated with
      * @param aRepositoryBaseURL The base URL of the OAI-PMH repository
+     * @param aMetadataPrefix The metadata prefix to harvest OAI-PMH records as
      * @param aSets The list of sets to harvest; if empty, assume all sets should be harvested
      * @param aScheduleCronExpression The schedule on which this job should be run
      * @param aLastSuccessfulRun The timestamp of the last successful run of this job; will be null at first
      */
     @ParameterizedTest
     @MethodSource
-    void testJobNullArguments(final int anInstitutionID, final URL aRepositoryBaseURL, final List<String> aSets,
-            final CronExpression aScheduleCronExpression, final OffsetDateTime aLastSuccessfulRun) {
+    void testJobNullArguments(final int anInstitutionID, final URL aRepositoryBaseURL, final String aMetadataPrefix,
+            final List<String> aSets, final CronExpression aScheduleCronExpression,
+            final OffsetDateTime aLastSuccessfulRun) {
         assertThrows(NullPointerException.class, () -> {
-            new Job(anInstitutionID, aRepositoryBaseURL, aSets, aScheduleCronExpression, aLastSuccessfulRun);
+            new Job(anInstitutionID, aRepositoryBaseURL, aMetadataPrefix, aSets, aScheduleCronExpression,
+                    aLastSuccessfulRun);
         });
     }
 
@@ -219,14 +233,19 @@ public class JobTest {
      */
     static Stream<Arguments> testJobNullArguments() throws MalformedURLException, ParseException {
         final URL validURL = new URL("http://example.com/3/oai");
+        final String validMetadataPrefix = Constants.OAI_DC;
         final List<String> validSets = List.of();
         final CronExpression validSchedule = new CronExpression("0 0 * * * ?");
         final OffsetDateTime validTimestamp = OffsetDateTime.parse("2020-01-01T00:00Z");
 
         return Stream.of( //
-                Arguments.of(1, null, validSets, validSchedule, validTimestamp), //
-                Arguments.of(2, validURL, validSets, null, validTimestamp), //
-                Arguments.of(3, null, validSets, null, validTimestamp));
+                Arguments.of(1, null, validMetadataPrefix, validSets, validSchedule, validTimestamp), //
+                Arguments.of(2, validURL, null, validSets, validSchedule, validTimestamp), //
+                Arguments.of(3, validURL, validMetadataPrefix, validSets, null, validTimestamp), //
+                Arguments.of(4, null, null, validSets, validSchedule, validTimestamp), //
+                Arguments.of(5, null, validMetadataPrefix, validSets, null, validTimestamp), //
+                Arguments.of(6, validURL, null, validSets, null, validTimestamp), //
+                Arguments.of(7, null, null, validSets, null, validTimestamp));
     }
 
     /**

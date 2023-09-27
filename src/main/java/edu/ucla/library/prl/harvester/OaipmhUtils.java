@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.iterators.IteratorChain;
+import org.dspace.xoai.model.oaipmh.MetadataFormat;
 import org.dspace.xoai.model.oaipmh.Record;
 import org.dspace.xoai.model.oaipmh.Set;
 import org.dspace.xoai.serviceprovider.ServiceProvider;
@@ -19,6 +20,7 @@ import org.dspace.xoai.serviceprovider.client.HttpOAIClient;
 import org.dspace.xoai.serviceprovider.client.OAIClient;
 import org.dspace.xoai.serviceprovider.exceptions.BadArgumentException;
 import org.dspace.xoai.serviceprovider.exceptions.HttpException;
+import org.dspace.xoai.serviceprovider.exceptions.IdDoesNotExistException;
 import org.dspace.xoai.serviceprovider.exceptions.NoSetHierarchyException;
 import org.dspace.xoai.serviceprovider.model.Context;
 import org.dspace.xoai.serviceprovider.model.Context.KnownTransformer;
@@ -58,34 +60,73 @@ public final class OaipmhUtils {
     }
 
     /**
+     * @param aMetadataFormats A list of metadata formats
+     * @return A list of the names of those metadata formats
+     */
+    private static List<String> getMetadataFormats(final List<MetadataFormat> aMetadataFormats) {
+        return aMetadataFormats.stream().map(MetadataFormat::getMetadataPrefix).toList();
+    }
+
+    /**
      * Checks that the given URL points to an OAI-PMH repository, and (if provided) that the sets are defined.
      *
      * @param aVertx A Vert.x instance
      * @param aBaseURL A URL to check
+     * @param aMetadataPrefix A metadata prefix to check
      * @param aSets A list of sets to check
      * @param aTimeout The value to use for the HTTP timeout
      * @param aUserAgent The value to use for the User-Agent HTTP request header
      * @return A Future that succeeds if the checks pass, and fails otherwise
      */
-    public static Future<Void> validateIdentifiers(final Vertx aVertx, final URL aBaseURL, final List<String> aSets,
-            final int aTimeout, final String aUserAgent) {
-        final Promise<Void> validation = Promise.promise();
+    public static Future<Void> validateIdentifiers(final Vertx aVertx, final URL aBaseURL, final String aMetadataPrefix,
+            final List<String> aSets, final int aTimeout, final String aUserAgent) {
+        final Promise<Void> setValidation = Promise.promise();
+        final Promise<Void> metadataPrefixValidation = Promise.promise();
 
         OaipmhUtils.listSets(aVertx, aBaseURL, aTimeout, aUserAgent).onSuccess(sets -> {
             final List<String> setSpecs = OaipmhUtils.getSetSpecs(sets);
 
             for (final String set : aSets) {
                 if (!setSpecs.contains(set)) {
-                    validation.fail(LOGGER.getMessage(MessageCodes.PRL_025, aBaseURL, set));
+                    setValidation
+                            .fail(LOGGER.getMessage(MessageCodes.PRL_025, aBaseURL, Set.class.getSimpleName(), set));
                 }
             }
 
-            validation.complete();
+            setValidation.complete();
         }).onFailure(details -> {
-            validation.fail(LOGGER.getMessage(MessageCodes.PRL_024, aBaseURL));
+            setValidation.fail(LOGGER.getMessage(MessageCodes.PRL_024, aBaseURL));
         });
 
-        return validation.future();
+        OaipmhUtils.listMetadataFormats(aVertx, aBaseURL, aTimeout, aUserAgent).onSuccess(formats -> {
+            final List<String> metadataFormats = OaipmhUtils.getMetadataFormats(formats);
+
+            if (metadataFormats.contains(aMetadataPrefix)) {
+                metadataPrefixValidation.complete();
+            } else {
+                metadataPrefixValidation.fail(LOGGER.getMessage(MessageCodes.PRL_025, aBaseURL,
+                        MetadataFormat.class.getSimpleName(), aMetadataPrefix));
+            }
+        }).onFailure(details -> {
+            metadataPrefixValidation.fail(LOGGER.getMessage(MessageCodes.PRL_024, aBaseURL));
+        });
+
+        return CompositeFuture.all(List.of(setValidation.future(), metadataPrefixValidation.future())).mapEmpty();
+    }
+
+    /**
+     * Performs a listMetadataFormats operation.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aBaseURL The OAI-PMH repository base URL
+     * @param aTimeout The value to use for the HTTP timeout
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
+     * @return The list of OAI-PMH metadata formats
+     */
+    public static Future<List<MetadataFormat>> listMetadataFormats(final Vertx aVertx, final URL aBaseURL,
+            final int aTimeout, final String aUserAgent) {
+        return listMetadataFormatsAsyncXoaiWrapper(aVertx, aBaseURL, aTimeout, aUserAgent)
+                .map(formats -> (List<MetadataFormat>) formats);
     }
 
     /**
@@ -132,6 +173,33 @@ public final class OaipmhUtils {
             // Flatten the list of iterators
             return new IteratorChain(results);
         });
+    }
+
+    /**
+     * Provides an asynchronous API for the synchronous XOAI listMetadataFormats API.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aBaseURL The OAI-PMH repository base URL
+     * @param aTimeout The value to use for the HTTP timeout
+     * @param aUserAgent The value to use for the User-Agent HTTP request header
+     * @return A Future that resolves to a list of OAI-PMH metadata formats
+     */
+    private static Future<List<MetadataFormat>> listMetadataFormatsAsyncXoaiWrapper(final Vertx aVertx,
+            final URL aBaseURL, final int aTimeout, final String aUserAgent) {
+        final Promise<List<MetadataFormat>> promise = Promise.promise();
+
+        aVertx.<List<MetadataFormat>>executeBlocking(execution -> {
+            try {
+                final Iterator<MetadataFormat> synchronousResult =
+                        getNewOaipmhClient(aBaseURL, aTimeout, aUserAgent).listMetadataFormats();
+
+                execution.complete(IteratorUtils.toList(synchronousResult));
+            } catch (final HttpException | IdDoesNotExistException details) {
+                execution.fail(details.getCause());
+            }
+        }, false, promise);
+
+        return promise.future();
     }
 
     /**

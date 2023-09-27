@@ -16,11 +16,13 @@ const props = defineProps({
 const hasInstitutions = computed(() => Object.keys(props.institutions).length > 0)
 const sortedInstitutions = computed(() => Object.values(props.institutions).sort((a, b) => (a.name < b.name ? -1 : 1)))
 
+const jobFormDefaults = { metadataPrefix: 'oai_dc' }
+
 const displayInstitutionForm = ref(false)
 const institutionToAddOrUpdate = ref({})
 const institutionToRemove = ref()
 const institutionIdForJob = ref()
-const jobToAddOrUpdate = ref({})
+const jobToAddOrUpdate = ref(jobFormDefaults)
 const jobToRemove = ref()
 const actionResultAlert = ref()
 
@@ -44,7 +46,7 @@ function toggleDisplayInstitutionForm() {
 function toggleDisplayJobForm(anInstitutionID) {
     // If the form was rendered in update mode and is being hidden, clear it out
     if (institutionIdForJob.value && jobToAddOrUpdate.value.id !== undefined) {
-        setJobToAddOrUpdate({})
+        setJobToAddOrUpdate(Object.assign({}, jobFormDefaults))
     }
 
     institutionIdForJob.value = anInstitutionID
@@ -114,7 +116,7 @@ async function addJob(aJob) {
     }
 
     // Clear the form and hide it
-    setJobToAddOrUpdate({})
+    setJobToAddOrUpdate(Object.assign({}, jobFormDefaults))
     toggleDisplayJobForm(undefined)
 }
 
@@ -197,7 +199,7 @@ async function updateJob(aJob) {
     }
 
     // Clear the form and hide it
-    setJobToAddOrUpdate({})
+    setJobToAddOrUpdate(Object.assign({}, jobFormDefaults))
     toggleDisplayJobForm(undefined)
 }
 
@@ -428,7 +430,10 @@ async function getErrorMessage(aResponse, anOperation) {
                     label="Repository Base URL"
                     v-model="jobToAddOrUpdate.repositoryBaseURL"
                     required></v-text-field>
-                <v-text-field label="Metadata Format" model-value="oai_dc" disabled></v-text-field>
+                <v-text-field
+                    label="Metadata Format"
+                    v-model="jobToAddOrUpdate.metadataPrefix"
+                    clearble></v-text-field>
                 <v-text-field label="Sets" v-model="jobToAddOrUpdate.sets"></v-text-field>
                 <v-text-field
                     label="Schedule Cron Expression"
@@ -460,7 +465,6 @@ async function getErrorMessage(aResponse, anOperation) {
                         addJob({
                             ...jobToAddOrUpdate,
                             institutionID: institutionIdForJob,
-                            metadataPrefix: `oai_dc`,
                         })
                     ">
                     Save
@@ -475,7 +479,6 @@ async function getErrorMessage(aResponse, anOperation) {
                         updateJob({
                             ...jobToAddOrUpdate,
                             institutionID: institutionIdForJob,
-                            metadataPrefix: `oai_dc`,
                         })
                     ">
                     Save

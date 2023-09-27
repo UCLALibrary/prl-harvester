@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.dspace.xoai.model.oaipmh.MetadataFormat;
+import org.dspace.xoai.model.oaipmh.Set;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -141,8 +144,9 @@ public class OaipmhUtilsFT {
     public final void testValidateIdentifiers(final Vertx aVertx, final VertxTestContext aContext) {
         final List<String> sets = List.of(TestUtils.SET1, TestUtils.SET2);
 
-        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, sets, myOaipmhClientHttpTimeout,
-                myHarvesterUserAgent).onSuccess(nil -> aContext.completeNow()).onFailure(aContext::failNow);
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, Constants.OAI_DC, sets,
+                myOaipmhClientHttpTimeout, myHarvesterUserAgent).onSuccess(nil -> aContext.completeNow())
+                .onFailure(aContext::failNow);
     }
 
     /**
@@ -163,7 +167,7 @@ public class OaipmhUtilsFT {
             return;
         }
 
-        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, sets, myOaipmhClientHttpTimeout,
+        OaipmhUtils.validateIdentifiers(aVertx, invalidOaipmhBaseURL, Constants.OAI_DC, sets, myOaipmhClientHttpTimeout,
                 myHarvesterUserAgent).onFailure(details -> {
                     aContext.verify(() -> {
                         assertEquals(LOGGER.getMessage(MessageCodes.PRL_024, invalidOaipmhBaseURL),
@@ -182,10 +186,33 @@ public class OaipmhUtilsFT {
     public final void testValidateIdentifiersInvalidSetSpec(final Vertx aVertx, final VertxTestContext aContext) {
         final String undefinedSet = "set3";
 
-        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, List.of(undefinedSet), myOaipmhClientHttpTimeout,
-                myHarvesterUserAgent).onFailure(details -> {
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, Constants.OAI_DC, List.of(undefinedSet),
+                myOaipmhClientHttpTimeout, myHarvesterUserAgent).onFailure(details -> {
                     aContext.verify(() -> {
-                        assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, myTestDataProviderURL, undefinedSet),
+                        assertEquals(LOGGER.getMessage(MessageCodes.PRL_025, myTestDataProviderURL,
+                                Set.class.getSimpleName(), undefinedSet), details.getMessage());
+                    }).completeNow();
+                }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));
+    }
+
+    /**
+     * Tests that {@link OaipmhUtils#validateIdentifiers} results in failure when passed an invalid metadata prefix.
+     *
+     * @param aVertx A Vert.x instance
+     * @param aContext A test context
+     */
+    @Test
+    public final void testValidateIdentifiersInvalidMetadataPrefix(final Vertx aVertx,
+            final VertxTestContext aContext) {
+        final List<String> sets = List.of(TestUtils.SET1, TestUtils.SET2);
+        final String undefinedMetadataPrefix = "dc_oai";
+
+        OaipmhUtils.validateIdentifiers(aVertx, myTestDataProviderURL, undefinedMetadataPrefix, sets,
+                myOaipmhClientHttpTimeout, myHarvesterUserAgent).onFailure(details -> {
+                    aContext.verify(() -> {
+                        assertEquals(
+                                LOGGER.getMessage(MessageCodes.PRL_025, myTestDataProviderURL,
+                                        MetadataFormat.class.getSimpleName(), undefinedMetadataPrefix),
                                 details.getMessage());
                     }).completeNow();
                 }).onSuccess(nil -> aContext.failNow(LOGGER.getMessage(MessageCodes.PRL_038)));

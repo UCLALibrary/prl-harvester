@@ -45,6 +45,7 @@ import info.freelibrary.util.Logger;
 import info.freelibrary.util.LoggerFactory;
 import info.freelibrary.util.StringUtils;
 
+import edu.ucla.library.prl.harvester.Constants;
 import edu.ucla.library.prl.harvester.Institution;
 import edu.ucla.library.prl.harvester.Job;
 import edu.ucla.library.prl.harvester.MessageCodes;
@@ -179,7 +180,7 @@ public final class TestUtils {
             randSets.add(RAND_STRING.getRandomValue().replaceAll("\\s", ""));
         }
 
-        return new Job(anInstitutionID, randURL, randSets, randCron, null);
+        return new Job(anInstitutionID, randURL, Constants.OAI_DC, randSets, randCron, null);
     }
 
     private static String buildCron(final OffsetDateTime aSourceDate) {
@@ -200,7 +201,7 @@ public final class TestUtils {
             throws ParseException {
         final CronExpression randCron = new CronExpression(buildCron(RAND_DATE.getRandomValue()));
 
-        return new Job(anInstitutionID, aBaseURL, aSets, randCron, null);
+        return new Job(anInstitutionID, aBaseURL, Constants.OAI_DC, aSets, randCron, null);
     }
 
     /**
