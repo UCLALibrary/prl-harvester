@@ -27,7 +27,7 @@ def count_records(list_records_response):
     resumption_token = soup.find("resumptionToken")
 
     if resumption_token is not None:
-        return resumption_token["completeListSize"]
+        return int(resumption_token["completeListSize"])
     else:
         return len(soup.find_all("record"))
 
