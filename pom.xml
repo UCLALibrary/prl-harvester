@@ -137,12 +137,14 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
+      <version>1.4.14</version>
       <!-- The default scope from the parent is 'test' so we have to override here -->
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+      <version>1.4.14</version>
       <!-- The default scope from the parent is 'test' so we have to override here -->
       <scope>compile</scope>
     </dependency>

@@ -1,0 +1,57 @@
+ignore:
+  'SNYK-JAVA-ORGECLIPSEJETTY-2945452':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGECLIPSEJETTY-2945453':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-COMFASTERXMLWOODSTOX-3091135':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGXERIALSNAPPY-5710961':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGAPACHEZOOKEEPER-5961102':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGECLIPSEJETTYHTTP2-5958845':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGECLIPSEJETTYHTTP2-5958918':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGXERIALSNAPPY-5710960':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGXERIALSNAPPY-5918282':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-ORGXERIALSNAPPY-5710959':
+    - '*':
+      reason: Relies on solr update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-IONETTY-5725787':
+    - '*':
+      reason: Relies on vertx update that breaks program
+      expires: 2024-02-01
+  'SNYK-JAVA-IONETTY-5953332':
+    - '*':
+      reason: Relies on vertx update that breaks program
+      expires: 2024-02-01
+
+
+
+
+
+
+
+
