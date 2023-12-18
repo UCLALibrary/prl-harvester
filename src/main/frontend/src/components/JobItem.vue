@@ -54,14 +54,14 @@ const sortedSets = computed(() => props.sets.slice().sort())
                 variant="outlined"
                 @click="selectJobToUpdate([id, institutionID])"
                 class="propose-edit-job">
-                Edit
+                Edit Job
             </v-btn>
             <v-btn
                 color="red"
                 variant="outlined"
                 @click="selectJobToRemove([id, institutionID])"
                 class="propose-remove-job">
-                Remove
+                Remove Job
             </v-btn>
         </v-card-actions>
     </v-card>
