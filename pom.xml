@@ -62,7 +62,7 @@
     <!-- Build plugin versions -->
     <vertx.plugin.version>1.0.28</vertx.plugin.version>
     <clean.plugin.version>3.1.0</clean.plugin.version>
-    <docker.plugin.version>0.40.2</docker.plugin.version>
+    <docker.plugin.version>0.43.4</docker.plugin.version>
     <deploy.plugin.version>2.8.2</deploy.plugin.version>
     <jar.plugin.version>3.2.2</jar.plugin.version>
     <scm.plugin.version>1.13.0</scm.plugin.version>
@@ -78,7 +78,7 @@
     <docker.alpine.version>3.17.3</docker.alpine.version>
     <postgres.version>12.12-alpine</postgres.version>
     <solr.version>9</solr.version>
-    <docker.localstack.version>1.1.0</docker.localstack.version>
+    <docker.localstack.version>3.0.2</docker.localstack.version>
     <glauth.version>v2.1.0</glauth.version>
     <joai.version>v3.3</joai.version>
 
@@ -1030,18 +1030,6 @@
                 <id>snyk-test</id>
                 <goals>
                   <goal>test</goal>
-                </goals>
-                <configuration>
-                  <args>
-                    <arg>--org=${env.UCLALIBRARY_SNYK_ORG}</arg>
-                    <arg>--fail-on=all</arg>
-                  </args>
-                </configuration>
-              </execution>
-              <execution>
-                <id>snyk-monitor</id>
-                <goals>
-                  <goal>monitor</goal>
                 </goals>
                 <configuration>
                   <args>
