@@ -27,11 +27,12 @@ const sortedSets = computed(() => props.sets.slice().sort())
                 </v-list-item>
                 <v-list-item density="compact" prepend-icon="mdi-archive">
                     <v-list v-if="isSelectiveHarvest">
-                        <span v-for="set in sortedSets" :key="set" density="compact">
+                        <span v-for="(set, index) in sortedSets" :key="set" density="compact">
                             <a
                                 :href="`${repositoryBaseURL}?verb=ListRecords&set=${set}&metadataPrefix=${metadataPrefix}`">
-                                {{ set }} </a
-                            >,
+                                {{ set }}
+                            </a>
+                            <span v-if="index < sortedSets.length - 1">, </span>
                         </span>
                     </v-list>
                     <span v-else class="optional-field-placeholder">(entire repository)</span>
