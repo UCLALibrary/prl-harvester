@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-java@860f60056505705214d223b91ed7a30f173f6142 # v3.3.0
         with:
           cache: maven
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Install NodeJS
         uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c #v3.6.0
