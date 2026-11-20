@@ -36,4 +36,5 @@ EXPOSE ${HTTP_PORT}
 # Run the service
 ENV JAR_PATH="/opt/${project.artifactId}/${project.artifactId}-${project.version}.jar"
 ENV LOGGING_CONFIG="-Dlogback.configurationFile=/etc/${project.artifactId}/logback.xml"
+ENV JAVA_OPTS="-XX:+UnlockDiagnosticVMOptions -XX:-UseBASE64Intrinsics"
 CMD ["sh", "-c", "exec java ${JAVA_OPTS} ${LOGGING_CONFIG} -jar ${JAR_PATH}"]
